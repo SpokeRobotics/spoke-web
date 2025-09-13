@@ -9,7 +9,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "prebuild": "node scripts/generate-static-svgs.js && node scripts/sync-content-images.js",
+    "prebuild": "node scripts/generate-static-svgs.js && node scripts/sync-content-images.js && node scripts/sync-models.js",
     "sync:images": "node scripts/sync-content-images.js",
     "diagrams:generate": "node scripts/generate-static-svgs.js",
     "serve:static": "serve -l 5054 out",
@@ -17,7 +17,8 @@
     "tokens:usage": "node scripts/analyze-token-usage.js",
     "figma:react": "node scripts/figma_to_react.js",
     "figma:fetch": "node scripts/fetch_from_figma.js",
-    "figma:ingest": "node scripts/ingest_figma_exports.js"
+    "figma:ingest": "node scripts/ingest_figma_exports.js",
+    "sync:models": "node scripts/sync-models.js"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.0.5",

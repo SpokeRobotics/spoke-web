@@ -75,14 +75,28 @@ export const STLViewer = forwardRef(function STLViewer(
   const originalGeomRef = useRef(null)
   const centeredGeomRef = useRef(null)
 
-  // Resolve URL respecting basePath for local models
+  // Resolve URL respecting basePath for local models with context-aware repo detection
   const resolvedUrl = useMemo(() => {
     if (!src) return ''
     if (/^https?:\/\//i.test(src)) return src
-    // route: /api/test-models/models/<file>
+    // Direct path to public assets
     if (src.startsWith('/')) return getAssetPath(src)
-    // Treat bare filenames as test-models under docs-test
-    return getAssetPath(`/api/test-models/models/${src}`)
+    
+    // For bare filenames, detect repo context from current URL/path
+    // This is a heuristic based on the current page URL
+    let repoContext = 'spoke-body' // default fallback
+    
+    if (typeof window !== 'undefined') {
+      const currentPath = window.location.pathname
+      // Extract repo name from URLs like /docs-submodules/spoke-body/... or /spoke-body/...
+      const repoMatch = currentPath.match(/\/(spoke-[^\/]+)/)
+      if (repoMatch) {
+        repoContext = repoMatch[1]
+      }
+    }
+    
+    // Treat bare filenames as models in public/models/{repo-context}/
+    return getAssetPath(`/models/${repoContext}/${src}`)
   }, [src])
 
   // Load STL once on mount or when src changes

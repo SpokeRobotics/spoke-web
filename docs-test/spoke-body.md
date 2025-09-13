@@ -68,7 +68,7 @@ This design is a starting point.  Used directly it can give a quick way into bui
 
 New frames can be designed with all kinds of different geometries.  If they conform to the frame-to-frame interconnect, they can connect to existing frames.  If they adopt the panel interfaces they can work with existing panels.
 
-<img src="images/SpokeBotDualMotor_PcbPanels.png" style="width: 60%">
+![](images/SpokeBotDualMotor_PcbPanels.png)
 
 This is the frame and a couple of panels for the Dual Wheel Bot.  The frame parts (core, two main wheel mounts and the rear wheel mount) are all connected together. The panels have rails to hold PCBs.  
 
@@ -78,8 +78,8 @@ Note the different frame shapes.  The core is a simple cuboid (96 x 96 x 48mm), 
 
 Sides are the building blocks of the system.  They're complex enough that it isn't ideal to recreate them each time, so they are designed separately.   
 
-<img src="images/Side.png" style="width: 45%">
-<img src="images/Side_Sketch.png" style="width: 45%">
+![](images/Side.png)
+![](images/Side_Sketch.png)
 
 In CAD, sides are designed as sketches.  These sketches capture the core features of each side.  
 - width and height
@@ -107,7 +107,7 @@ The corners are the hardest part.  They have to be large enough to strongly anch
 
 **Side Assemblies**
 
-<img src="images/Sides_assembled.png" style="width: 60%">
+![](images/Sides_assembled.png)
 
 Then sides can be assembled together to form the core of the Frame.
 
@@ -117,9 +117,9 @@ A library of sides would need to include all the sizes and shapes needed.
 
 In order to make a frame, the core formed by the sides is extruded inwards from the sides, one by one.
 
-<img src="images/Sides.png" style="width: 30%">
-<img src="images/Sides_frame_1.png" style="width: 30%">
-<img src="images/Sides_frame_2.png" style="width: 30%">
+![](images/Sides.png)
+![](images/Sides_frame_1.png)
+![](images/Sides_frame_2.png)
 
 At the end there's a full frame.
 
@@ -139,27 +139,27 @@ Frames designed to be connected to other frames have a modified connection.  Not
 
 Panels can be made from sides.
 
-<img src="images/Panels_Sides.png" style="width: 45%">
-<img src="images/Panels_2.png" style="width: 45%">
+![](images/Panels_Sides.png)
+![](images/Panels_2.png)
 
 Panels have a core, and screw holes.  Also, to locate them in the frame, a small ridge.  Depending on the fasteners, the outside screw holes will be countersunk.
 
 Panels are secured to the frame in a manner appropriate for the materials.  In some plastics, self tapping (thread forming) screws are very effective.  In other plastics,  threaded inserts will be ideal, possibly screws and nuts in some applications.
 
-<img src="images/m3_torx_thread_forming_6mm.png" style="width: 30%">
-<img src="images/m3_torx_thread_forming_6mm_dims.png" style="width: 80%">
+![](images/m3_torx_thread_forming_6mm.png)
+![](images/m3_torx_thread_forming_6mm_dims.png)
 
 Panels can be customized for different purposes.
 - holding PCBs
 - holding batteries
 - holding sensors
 
-<img src="images/BotCore_SidePCB_v20.png" style="width: 60%">
+![](images/BotCore_SidePCB_v20.png)
 
 This a panel with PCB rails holding the Spoke Charger board.  This arrangement means that assembling the robot can be done from any place there is a panel.   PCBs can be accessed very easily just by removing the correct panel.  As another conventions, PCBs are made in standard widths to fit these rails.
 
-<img src="images/Core_4_Cell_Panel.png" style="width: 45%">
-<img src="images/Core_4_Cell_Panel_w_frame.png" style="width: 45%">
+![](images/Core_4_Cell_Panel.png)
+![](images/Core_4_Cell_Panel_w_frame.png)
 
 A more complex example, this is a 96mm x 96mm panel that holds 4 18650 cells and three PCB rails for 28mm PCBs.  Also underneath there is a compartment for a Wireless Charging Receiver coil.
 

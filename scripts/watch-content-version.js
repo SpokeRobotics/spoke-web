@@ -11,6 +11,7 @@ const __dirname = path.dirname(__filename)
 const projectRoot = process.cwd()
 const versionFile = path.join(projectRoot, 'lib', 'content-version.js')
 const syncScript = path.join(projectRoot, 'scripts', 'sync-content-images.js')
+const syncModelsScript = path.join(projectRoot, 'scripts', 'sync-models.js')
 
 function writeVersion(reason = '') {
   const ts = new Date().toISOString()
@@ -22,6 +23,28 @@ function writeVersion(reason = '') {
   } catch (e) {
     log(`failed to write content-version: ${e?.message || e}`)
   }
+}
+
+let modelSyncInFlight = false
+let modelSyncPending = false
+function runModelSync() {
+  if (modelSyncInFlight) {
+    modelSyncPending = true
+    return
+  }
+  modelSyncInFlight = true
+  const child = spawn(process.execPath, [syncModelsScript], {
+    stdio: ['ignore', 'inherit', 'inherit'],
+    cwd: projectRoot,
+    env: process.env,
+  })
+  child.on('exit', (code) => {
+    modelSyncInFlight = false
+    if (modelSyncPending) {
+      modelSyncPending = false
+      runModelSync()
+    }
+  })
 }
 
 let syncInFlight = false
@@ -54,6 +77,7 @@ function log(msg) {
 // Initial write so the module exists
 writeVersion('startup')
 runImageSync()
+runModelSync()
 
 // Watch markdown and images under content/, docs-submodules/, and docs-test/
 const watchGlobs = [
@@ -81,24 +105,33 @@ watcher
     const rel = path.relative(projectRoot, p)
     log(`add: ${rel}`)
     schedule('add')
-    if (/\.(png|jpe?g|svg|gif|webp|bmp|tiff|heic|heif)$/i.test(p)) {
+    if (/(\.(png|jpe?g|svg|gif|webp|bmp|tiff|heic|heif))$/i.test(p)) {
       runImageSync()
+    }
+    if (/(\.(stl|step|stp))$/i.test(p)) {
+      runModelSync()
     }
   })
   .on('change', (p) => {
     const rel = path.relative(projectRoot, p)
     log(`change: ${rel}`)
     schedule('change')
-    if (/\.(png|jpe?g|svg|gif|webp|bmp|tiff|heic|heif)$/i.test(p)) {
+    if (/(\.(png|jpe?g|svg|gif|webp|bmp|tiff|heic|heif))$/i.test(p)) {
       runImageSync()
+    }
+    if (/(\.(stl|step|stp))$/i.test(p)) {
+      runModelSync()
     }
   })
   .on('unlink', (p) => {
     const rel = path.relative(projectRoot, p)
     log(`unlink: ${rel}`)
     schedule('unlink')
-    if (/\.(png|jpe?g|svg|gif|webp|bmp|tiff|heic|heif)$/i.test(p)) {
+    if (/(\.(png|jpe?g|svg|gif|webp|bmp|tiff|heic|heif))$/i.test(p)) {
       runImageSync()
+    }
+    if (/(\.(stl|step|stp))$/i.test(p)) {
+      runModelSync()
     }
   })
   .on('error', (e) => log(`watch error: ${e?.message || e}`))

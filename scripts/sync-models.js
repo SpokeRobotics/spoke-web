@@ -85,9 +85,23 @@ async function syncModels() {
       
       if (modelFiles.length === 0) {
         console.log('  No model files found')
+        // Mirror behavior: if there are no source model files, remove supported files from target
+        try {
+          const existing = await fs.promises.readdir(repoTargetDir)
+          for (const f of existing) {
+            if (supportedExtensions.has(path.extname(f).toLowerCase())) {
+              const toRemove = path.join(repoTargetDir, f)
+              await fs.promises.unlink(toRemove)
+              console.log(`  Removed (no longer in source): ${f}`)
+            }
+          }
+        } catch {}
         continue
       }
       
+      // Track set of source filenames for mirror deletion
+      const sourceSet = new Set(modelFiles)
+
       for (const file of modelFiles) {
         const srcPath = path.join(sourceDir, file)
         const destPath = path.join(repoTargetDir, file)
@@ -98,6 +112,21 @@ async function syncModels() {
         } else {
           totalSkipped++
         }
+      }
+
+      // Mirror behavior: remove target files that are supported but not present in source
+      try {
+        const existing = await fs.promises.readdir(repoTargetDir)
+        for (const f of existing) {
+          if (!supportedExtensions.has(path.extname(f).toLowerCase())) continue
+          if (!sourceSet.has(f)) {
+            const toRemove = path.join(repoTargetDir, f)
+            await fs.promises.unlink(toRemove)
+            console.log(`  Removed (orphan): ${f}`)
+          }
+        }
+      } catch (e) {
+        console.error(`  Error while pruning orphans in ${repoTargetDir}:`, e.message)
       }
     } catch (error) {
       console.log(`  Directory not found or inaccessible: ${sourceDir}`)

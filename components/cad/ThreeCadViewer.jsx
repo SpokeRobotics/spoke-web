@@ -12,7 +12,7 @@ import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js'
 import { LineSegmentsGeometry } from 'three/examples/jsm/lines/LineSegmentsGeometry.js'
 
 // frameMode: 'HIDE' | 'LIGHT' | 'DARK'
-// shadingMode: 'GRAY' | 'WHITE' | 'BLACK' | 'OFF'
+// shadingMode: 'GRAY' | 'CREAM' | 'WHITE' | 'DARK' | 'BLACK' | 'OFF'
 export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
   { spinEnabled = true, spinMode = 'auto', frameMode = 'HIDE', shadingMode = 'GRAY', originVisible = false, resize, styleMode = 'BASIC', backgroundMode = 'WHITE', outlineThreshold = 45, outlineScale = 1.02, edgesMode = 'AUTO', outlineColorMode = 'AUTO', edgesLineWidth = 2, ambientLevel = 2.0, directionalLevel = 2.0, originOffset = { x: 0, y: 0, z: 0 } },
   ref
@@ -128,10 +128,27 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
           if ('roughness' in mat) mat.roughness = 1
           if ('clearcoat' in mat) mat.clearcoat = 0
           if ('envMapIntensity' in mat) mat.envMapIntensity = 0
+        } else if (mode === 'DARK') {
+          // Off-black plastic (lighter than true black for detail)
+          mat.color.setHex(0x2B2B2B)
+          mat.opacity = 1
+          mat.transparent = false
+          if ('metalness' in mat) mat.metalness = 0
+          if ('roughness' in mat) mat.roughness = 0.95
+          if ('clearcoat' in mat) mat.clearcoat = 0
+          if ('envMapIntensity' in mat) mat.envMapIntensity = 0.1
         } else if (mode === 'WHITE') {
           mat.color.setHex(0xffffff)
           mat.opacity = 1
           mat.transparent = false
+        } else if (mode === 'CREAM') {
+          // Very light off-white plastic (reduced yellow)
+          mat.color.setHex(0xF2F1EC)
+          mat.opacity = 1
+          mat.transparent = false
+          // Slightly reduce metalness and increase roughness for plastic feel
+          if ('metalness' in mat) mat.metalness = 0.05
+          if ('roughness' in mat) mat.roughness = 0.9
         } else { // GRAY
           mat.color.setHex(0xe0e0e0)
           mat.opacity = 1
@@ -702,8 +719,11 @@ useEffect(() => {
         // hidden elsewhere; color irrelevant
         return 0x000000
       case 'DK GRAY':
-      case 'DARK GRAY':
-        return 0x4a4a4a
+      case 'DARK GRAY': {
+        // Theme-aware contrast: slightly lighter than before
+        const dark = isDarkTheme()
+        return dark ? 0xaaaaaa : 0x6a6a6a
+      }
       case 'LGT GRAY':
       case 'LIGHT GRAY':
         return 0xbfbfbf
@@ -717,8 +737,8 @@ useEffect(() => {
     }
     // AUTO: derive from shading
     if (shading === 'GRAY') return 0xffffff
-    if (shading === 'WHITE') return 0x7a7a7a
-    if (shading === 'BLACK' || shading === 'OFF') return 0x7a7a7a
+    if (shading === 'WHITE' || shading === 'CREAM') return isDarkTheme() ? 0xbfbfbf : 0x7a7a7a
+    if (shading === 'BLACK' || shading === 'DARK' || shading === 'OFF') return isDarkTheme() ? 0xbfbfbf : 0x7a7a7a
     return 0x000000
   }
 
@@ -726,8 +746,10 @@ useEffect(() => {
   const getColorFromMode = (mode) => {
     switch ((mode || 'AUTO').toUpperCase()) {
       case 'DK GRAY':
-      case 'DARK GRAY':
-        return 0x4a4a4a
+      case 'DARK GRAY': {
+        const dark = isDarkTheme()
+        return dark ? 0xaaaaaa : 0x6a6a6a
+      }
       case 'LGT GRAY':
       case 'LIGHT GRAY':
         return 0xbfbfbf

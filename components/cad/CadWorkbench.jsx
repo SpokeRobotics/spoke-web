@@ -49,7 +49,7 @@ export const CadWorkbench = forwardRef(function CadWorkbench(
   const [shadingMode, setShadingMode] = useState(() => {
     const raw = (typeof ui?.shadingMode === 'string' ? ui.shadingMode : ui?.shading)
     const s = typeof raw === 'string' ? raw.trim().toUpperCase() : ''
-    if (s === 'GRAY' || s === 'WHITE' || s === 'BLACK' || s === 'OFF') return s
+    if (s === 'GRAY' || s === 'CREAM' || s === 'WHITE' || s === 'DARK' || s === 'BLACK' || s === 'OFF') return s
     return initialViewer?.shadingMode || 'GRAY'
   })
   const [originVisible, setOriginVisible] = useState(!!initialViewer?.originVisible)
@@ -75,7 +75,7 @@ export const CadWorkbench = forwardRef(function CadWorkbench(
     shadingMode: (() => {
       const raw = (typeof ui?.shadingMode === 'string' ? ui.shadingMode : ui?.shading)
       const s = typeof raw === 'string' ? raw.trim().toUpperCase() : ''
-      if (s === 'GRAY' || s === 'WHITE' || s === 'BLACK' || s === 'OFF') return s
+      if (s === 'GRAY' || s === 'CREAM' || s === 'WHITE' || s === 'DARK' || s === 'BLACK' || s === 'OFF') return s
       return initialViewer?.shadingMode || 'GRAY'
     })(),
     originVisible: !!initialViewer?.originVisible,
@@ -483,7 +483,7 @@ export const CadWorkbench = forwardRef(function CadWorkbench(
     setFrameMode(prev => (prev === 'HIDE' ? 'LIGHT' : prev === 'LIGHT' ? 'DARK' : 'HIDE'))
   }
   const onToggleShading = () => {
-    const order = ['GRAY', 'WHITE', 'BLACK', 'OFF']
+    const order = ['GRAY', 'CREAM', 'WHITE', 'DARK', 'BLACK', 'OFF']
     const i = order.indexOf(String(shadingMode))
     setShadingMode(order[(i >= 0 ? i + 1 : 0) % order.length])
   }

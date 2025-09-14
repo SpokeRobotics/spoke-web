@@ -6,11 +6,20 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const projectRoot = path.dirname(__dirname)
 
-// Source directories for models
+// Source directories for models (repo-based)
 const sourceDirectories = [
   path.join(projectRoot, 'docs-submodules', 'spoke-body', 'models'),
   path.join(projectRoot, 'docs-submodules', 'spoke-electronics', 'models'),
   path.join(projectRoot, 'docs-submodules', 'spoke-power', 'models'),
+]
+
+// Additional explicit mappings: [{ sourceDir, targetSubdir }]
+// These allow non-repo locations to copy into a specific path under public/models
+const sourceMappings = [
+  {
+    sourceDir: path.join(projectRoot, 'docs-test', 'models'),
+    targetSubdir: path.join('test', 'stl'), // => public/models/test/stl
+  },
 ]
 
 // Target directory
@@ -56,83 +65,97 @@ async function copyFile(src, dest) {
   }
 }
 
-async function syncModels() {
-  console.log('Syncing models from docs-submodules to public/models...')
-  
-  // Ensure target directory exists
-  await ensureDirectory(targetDirectory)
-  
-  let totalCopied = 0
-  let totalSkipped = 0
-  
-  for (const sourceDir of sourceDirectories) {
-    try {
-      await fs.promises.access(sourceDir)
-      
-      // Extract repo name from path (e.g., 'spoke-body' from '.../docs-submodules/spoke-body/models')
-      const repoName = path.basename(path.dirname(sourceDir))
-      const repoTargetDir = path.join(targetDirectory, repoName)
-      
-      console.log(`\nProcessing: ${sourceDir} -> ${repoTargetDir}`)
-      
-      // Ensure repo-specific target directory exists
-      await ensureDirectory(repoTargetDir)
-      
-      const files = await fs.promises.readdir(sourceDir)
-      const modelFiles = files.filter(file => 
-        supportedExtensions.has(path.extname(file).toLowerCase())
-      )
-      
-      if (modelFiles.length === 0) {
-        console.log('  No model files found')
-        // Mirror behavior: if there are no source model files, remove supported files from target
-        try {
-          const existing = await fs.promises.readdir(repoTargetDir)
-          for (const f of existing) {
-            if (supportedExtensions.has(path.extname(f).toLowerCase())) {
-              const toRemove = path.join(repoTargetDir, f)
-              await fs.promises.unlink(toRemove)
-              console.log(`  Removed (no longer in source): ${f}`)
-            }
-          }
-        } catch {}
-        continue
-      }
-      
-      // Track set of source filenames for mirror deletion
-      const sourceSet = new Set(modelFiles)
+async function syncOneSource(sourceDir, targetSubdir) {
+  try {
+    await fs.promises.access(sourceDir)
 
-      for (const file of modelFiles) {
-        const srcPath = path.join(sourceDir, file)
-        const destPath = path.join(repoTargetDir, file)
-        
-        const copied = await copyFile(srcPath, destPath)
-        if (copied) {
-          totalCopied++
-        } else {
-          totalSkipped++
-        }
-      }
+    const repoTargetDir = path.join(targetDirectory, targetSubdir)
+    console.log(`\nProcessing: ${sourceDir} -> ${repoTargetDir}`)
 
-      // Mirror behavior: remove target files that are supported but not present in source
+    // Ensure target directory exists
+    await ensureDirectory(repoTargetDir)
+
+    const files = await fs.promises.readdir(sourceDir)
+    const modelFiles = files.filter(file =>
+      supportedExtensions.has(path.extname(file).toLowerCase())
+    )
+
+    if (modelFiles.length === 0) {
+      console.log('  No model files found')
+      // Mirror behavior: if there are no source model files, remove supported files from target
       try {
         const existing = await fs.promises.readdir(repoTargetDir)
         for (const f of existing) {
-          if (!supportedExtensions.has(path.extname(f).toLowerCase())) continue
-          if (!sourceSet.has(f)) {
+          if (supportedExtensions.has(path.extname(f).toLowerCase())) {
             const toRemove = path.join(repoTargetDir, f)
             await fs.promises.unlink(toRemove)
-            console.log(`  Removed (orphan): ${f}`)
+            console.log(`  Removed (no longer in source): ${f}`)
           }
         }
-      } catch (e) {
-        console.error(`  Error while pruning orphans in ${repoTargetDir}:`, e.message)
-      }
-    } catch (error) {
-      console.log(`  Directory not found or inaccessible: ${sourceDir}`)
+      } catch {}
+      return { copied: 0, skipped: 0 }
     }
+
+    // Track set of source filenames for mirror deletion
+    const sourceSet = new Set(modelFiles)
+
+    let copiedCount = 0
+    let skippedCount = 0
+    for (const file of modelFiles) {
+      const srcPath = path.join(sourceDir, file)
+      const destPath = path.join(repoTargetDir, file)
+      const copied = await copyFile(srcPath, destPath)
+      if (copied) copiedCount++
+      else skippedCount++
+    }
+
+    // Mirror behavior: remove target files that are supported but not present in source
+    try {
+      const existing = await fs.promises.readdir(repoTargetDir)
+      for (const f of existing) {
+        if (!supportedExtensions.has(path.extname(f).toLowerCase())) continue
+        if (!sourceSet.has(f)) {
+          const toRemove = path.join(repoTargetDir, f)
+          await fs.promises.unlink(toRemove)
+          console.log(`  Removed (orphan): ${f}`)
+        }
+      }
+    } catch (e) {
+      console.error(`  Error while pruning orphans in ${repoTargetDir}:`, e.message)
+    }
+
+    return { copied: copiedCount, skipped: skippedCount }
+  } catch (error) {
+    console.log(`  Directory not found or inaccessible: ${sourceDir}`)
+    return { copied: 0, skipped: 0 }
   }
-  
+}
+
+async function syncModels() {
+  console.log('Syncing models from docs-submodules to public/models...')
+
+  // Ensure target directory exists
+  await ensureDirectory(targetDirectory)
+
+  let totalCopied = 0
+  let totalSkipped = 0
+
+  for (const sourceDir of sourceDirectories) {
+    // Extract repo name from path (e.g., 'spoke-body' from '.../docs-submodules/spoke-body/models')
+    const repoName = path.basename(path.dirname(sourceDir))
+    const { copied, skipped } = await syncOneSource(sourceDir, repoName)
+    totalCopied += copied
+    totalSkipped += skipped
+  }
+
+  // Process explicit mappings (e.g., test models)
+  for (const m of sourceMappings) {
+    const { sourceDir, targetSubdir } = m
+    const { copied, skipped } = await syncOneSource(sourceDir, targetSubdir)
+    totalCopied += copied
+    totalSkipped += skipped
+  }
+
   console.log(`\nSync complete: ${totalCopied} files copied, ${totalSkipped} files skipped`)
   
   // List all files in target directory by repo

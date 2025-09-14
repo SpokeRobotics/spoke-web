@@ -88,10 +88,15 @@ export const STLViewer = forwardRef(function STLViewer(
     
     if (typeof window !== 'undefined') {
       const currentPath = window.location.pathname
-      // Extract repo name from URLs like /docs-submodules/spoke-body/... or /spoke-body/...
-      const repoMatch = currentPath.match(/\/(spoke-[^\/]+)/)
-      if (repoMatch) {
-        repoContext = repoMatch[1]
+      // Special-case the STL test page so bare filenames map to /models/test/stl/<file>
+      if (/\/test\/stl\/?$/i.test(currentPath) || /\/test\/stl\//i.test(currentPath)) {
+        repoContext = 'test/stl'
+      } else {
+        // Extract repo name from URLs like /docs-submodules/spoke-body/... or /spoke-body/...
+        const repoMatch = currentPath.match(/\/(spoke-[^\/]+)/)
+        if (repoMatch) {
+          repoContext = repoMatch[1]
+        }
       }
     }
     
@@ -222,7 +227,7 @@ export const STLViewer = forwardRef(function STLViewer(
     setVFrameMode(prev => (prev === 'HIDE' ? 'LIGHT' : prev === 'LIGHT' ? 'DARK' : 'HIDE'))
   }
   const onToggleShading = () => {
-    const order = ['GRAY', 'WHITE', 'BLACK', 'OFF']
+    const order = ['GRAY', 'CREAM', 'WHITE', 'DARK', 'BLACK', 'OFF']
     const i = order.indexOf(String(vShadingMode))
     setVShadingMode(order[(i >= 0 ? i + 1 : 0) % order.length])
   }

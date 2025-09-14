@@ -578,6 +578,44 @@ html {
   line-height: 1.7;
 }
 
+/* Explicit heading scale inside prose to ensure consistent hierarchy */
+.prose h1 {
+  font-size: var(--theme-typography-font-size-8);
+  line-height: var(--theme-typography-line-height-8);
+  font-weight: var(--theme-typography-font-weight-bold);
+  margin: 1.5rem 0 0.75rem;
+}
+.prose h2 {
+  font-size: var(--theme-typography-font-size-7);
+  line-height: var(--theme-typography-line-height-7);
+  font-weight: var(--theme-typography-font-weight-bold);
+  margin: 1.25rem 0 0.5rem;
+}
+.prose h3 {
+  font-size: var(--theme-typography-font-size-6);
+  line-height: var(--theme-typography-line-height-6);
+  font-weight: var(--theme-typography-font-weight-medium);
+  margin: 1rem 0 0.5rem;
+}
+.prose h4 {
+  font-size: var(--theme-typography-font-size-5);
+  line-height: var(--theme-typography-line-height-5);
+  font-weight: var(--theme-typography-font-weight-medium);
+  margin: 0.75rem 0 0.5rem;
+}
+.prose h5 {
+  font-size: var(--theme-typography-font-size-4);
+  line-height: var(--theme-typography-line-height-4);
+  font-weight: var(--theme-typography-font-weight-medium);
+  margin: 0.5rem 0 0.25rem;
+}
+.prose h6 {
+  font-size: var(--theme-typography-font-size-3);
+  line-height: var(--theme-typography-line-height-3);
+  font-weight: var(--theme-typography-font-weight-medium);
+  margin: 0.5rem 0 0.25rem;
+}
+
 /* Constrain media inside prose */
 .prose img,
 .prose video,

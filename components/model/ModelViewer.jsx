@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState, forwardRef } from 'react'
 import { Box, Card, IconButton, Text, Button } from '@radix-ui/themes'
-import { Wrench, Download } from 'lucide-react'
+import { Wrench, Download, Expand, Minimize2 } from 'lucide-react'
 import * as THREE from 'three'
 import { ThreeCadViewer } from '@/components/cad/ThreeCadViewer'
 import { Toolbar } from '@/components/cad/Toolbar'
@@ -52,6 +52,9 @@ export const ModelViewer = forwardRef(function ModelViewer(
   const [error, setError] = useState(null)
   // When true, show the CAD-style appearance toolbar overlay and expand height
   const [viewTools, setViewTools] = useState(false)
+  // Explosion support for multi-part non-STL models
+  const [hasMultiParts, setHasMultiParts] = useState(false)
+  const [isExploded, setIsExploded] = useState(false)
 
   // Mirror viewer option states so Toolbar can mutate them
   const [vSpinMode, setVSpinMode] = useState(() => (spinMode === 'on' || spinMode === 'off' || spinMode === 'auto') ? spinMode : 'auto')
@@ -81,23 +84,31 @@ export const ModelViewer = forwardRef(function ModelViewer(
     if (src.startsWith('/')) return getAssetPath(src)
 
     // Plain-name inference:
-    // Map to "/[root]/models/<file>" where root depends on current URL
-    // - /docs-submodules/<repo>/* -> /docs-submodules/<repo>/models
-    // - /test/*                 -> /docs-test/models
-    // - default                 -> /content/models
+    // Derive a public asset base from current URL to avoid hardcoding.
+    // Rules:
+    // - /docs/<repo>/*           -> /docs-submodules/<repo>/models
+    // - /docs-submodules/<repo>/*-> /docs-submodules/<repo>/models
+    // - /test/*                  -> /docs-test/models
+    // - default                  -> /content/models
     let basePrefix = '/content/models'
     if (typeof window !== 'undefined') {
       const currentPath = window.location.pathname
-      // docs-submodules route
-      const submod = currentPath.match(/^\/docs-submodules\/([^/]+)/i)
-      if (submod && submod[1]) {
-        basePrefix = `/docs-submodules/${submod[1]}/models`
-      } else if (/^\/test\//i.test(currentPath)) {
-        // test pages and test docs use docs-test/models
-        basePrefix = '/docs-test/models'
+      // docs app route -> map to docs-submodules public path
+      const docsMatch = currentPath.match(/^\/docs\/([^/]+)/i)
+      if (docsMatch && docsMatch[1]) {
+        basePrefix = `/docs-submodules/${docsMatch[1]}/models`
       } else {
-        // site content pages (e.g., MDX in /content) use /content/models
-        basePrefix = '/content/models'
+        // direct public path access (rare) still supported
+        const submod = currentPath.match(/^\/docs-submodules\/([^/]+)/i)
+        if (submod && submod[1]) {
+          basePrefix = `/docs-submodules/${submod[1]}/models`
+        } else if (/^\/test\//i.test(currentPath)) {
+          // test pages and test docs use docs-test/models
+          basePrefix = '/docs-test/models'
+        } else {
+          // site content pages (e.g., MDX in /content) use /content/models
+          basePrefix = '/content/models'
+        }
       }
     }
     return getAssetPath(`${basePrefix}/${src}`)
@@ -117,6 +128,9 @@ export const ModelViewer = forwardRef(function ModelViewer(
       try {
         setLoading(true)
         setError(null)
+        // reset explode state on new load
+        setIsExploded(false)
+        setHasMultiParts(false)
         const e = ext
         if (e === 'stl') {
           const mod = await import('three/examples/jsm/loaders/STLLoader.js')
@@ -146,6 +160,7 @@ export const ModelViewer = forwardRef(function ModelViewer(
           const enableByThreshold = (!!recenter) && (ratio > threshold)
           setRecenterEnabled(enableByThreshold)
           setIsSourceMaterialMode(false)
+          setHasMultiParts(false)
           const chosen = enableByThreshold ? centered : geometry
           viewerRef.current?.setGeometry?.(chosen)
           if (autoFitOnLoad) viewerRef.current?.fitView?.()
@@ -157,6 +172,11 @@ export const ModelViewer = forwardRef(function ModelViewer(
           if (cancelled) return
           setIsSourceMaterialMode(true)
           viewerRef.current?.setObject?.(object)
+          // detect multi-part: count direct child objects that are Mesh/Group/Object3D
+          try {
+            const parts = (object?.children || []).filter((c) => c && (c.isMesh || c.isGroup || c.isObject3D))
+            setHasMultiParts(parts.length > 1)
+          } catch {}
           if (autoFitOnLoad) viewerRef.current?.fitView?.()
         } else if (e === 'glb' || e === 'gltf') {
           const mod = await import('three/examples/jsm/loaders/GLTFLoader.js')
@@ -168,6 +188,10 @@ export const ModelViewer = forwardRef(function ModelViewer(
           if (!object) throw new Error('GLTF has no scene')
           setIsSourceMaterialMode(true)
           viewerRef.current?.setObject?.(object)
+          try {
+            const parts = (object?.children || []).filter((c) => c && (c.isMesh || c.isGroup || c.isObject3D))
+            setHasMultiParts(parts.length > 1)
+          } catch {}
           if (autoFitOnLoad) viewerRef.current?.fitView?.()
         } else {
           throw new Error(`Unsupported model extension: .${e}`)
@@ -195,13 +219,13 @@ export const ModelViewer = forwardRef(function ModelViewer(
   }
 
   const onCycleAmbientLevel = () => {
-    const levels = [0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
+    const levels = [0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0]
     const cur = Number(vAmbientLevel) || 0
     const idx = levels.findIndex(v => Math.abs(v - cur) < 1e-6)
     setVAmbientLevel(levels[(idx >= 0 ? idx + 1 : 0) % levels.length])
   }
   const onCycleDirectionalLevel = () => {
-    const levels = [0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
+    const levels = [0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0]
     const cur = Number(vDirectionalLevel) || 0
     const idx = levels.findIndex(v => Math.abs(v - cur) < 1e-6)
     setVDirectionalLevel(levels[(idx >= 0 ? idx + 1 : 0) % levels.length])
@@ -294,6 +318,21 @@ export const ModelViewer = forwardRef(function ModelViewer(
             <IconButton variant="soft" radius="full" onClick={doDownload} aria-label="Download">
               <Download size={18} />
             </IconButton>
+            {isSourceMaterialMode && hasMultiParts && (
+              <IconButton
+                variant={isExploded ? 'solid' : 'soft'}
+                radius="full"
+                onClick={() => {
+                  const next = !isExploded
+                  setIsExploded(next)
+                  viewerRef.current?.setExploded?.(next)
+                }}
+                aria-label={isExploded ? 'Implode' : 'Explode'}
+                title={isExploded ? 'Implode' : 'Explode'}
+              >
+                {isExploded ? <Minimize2 size={18} /> : <Expand size={18} />}
+              </IconButton>
+            )}
             {toolsEnabled && (
               <IconButton
                 variant={viewTools ? 'solid' : 'soft'}
@@ -335,6 +374,7 @@ export const ModelViewer = forwardRef(function ModelViewer(
                   frameMode={vFrameMode}
                   shadingMode={vShadingMode}
                   originVisible={vOriginVisible}
+                  showCadControls={!isSourceMaterialMode}
                   onCycleSpin={onCycleSpin}
                   onToggleFrame={onToggleFrame}
                   onToggleShading={onToggleShading}

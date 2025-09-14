@@ -7,6 +7,7 @@ export function Toolbar({
   frameMode,
   shadingMode,
   originVisible,
+  showCadControls = true,
   onCycleSpin,
   onToggleFrame,
   onToggleShading,
@@ -47,15 +48,17 @@ export function Toolbar({
       <Button onClick={onCycleBackground}>
         BACK: {backgroundMode || 'WHITE'}
       </Button>
-      <Button onClick={onCycleEdges}>
-        EDGES: {edgesMode || 'AUTO'}
-      </Button>
-      {edgesMode !== 'OFF' && (
+      {showCadControls && (
+        <Button onClick={onCycleEdges}>
+          EDGES: {edgesMode || 'AUTO'}
+        </Button>
+      )}
+      {showCadControls && edgesMode !== 'OFF' && (
         <Button onClick={onCycleOutlineThreshold}>
           EDGE THR: {outlineThreshold}{'\u00B0'}
         </Button>
       )}
-      {edgesMode !== 'OFF' && (
+      {showCadControls && edgesMode !== 'OFF' && (
         <Button onClick={onCycleEdgesLineWidth}>
           EDGE W: {(Number(edgesLineWidth ?? 2)).toFixed(2)}
         </Button>
@@ -73,12 +76,16 @@ export function Toolbar({
       <Button onClick={onCycleSpin}>
         SPIN: {(spinMode === 'on') ? 'ON' : (spinMode === 'auto') ? 'AUTO' : 'OFF'}
       </Button>
-      <Button onClick={onToggleFrame}>
-        FRAME: {frameMode}
-      </Button>
-      <Button onClick={onToggleShading}>
-        SHADING: {shadingMode}
-      </Button>
+      {showCadControls && (
+        <Button onClick={onToggleFrame}>
+          FRAME: {frameMode}
+        </Button>
+      )}
+      {showCadControls && (
+        <Button onClick={onToggleShading}>
+          SHADING: {shadingMode}
+        </Button>
+      )}
       {children}
       <Button onClick={onToggleOrigin}>
         ORIGIN: {originVisible ? 'ON' : 'OFF'}

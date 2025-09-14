@@ -32,9 +32,11 @@ description: Demonstrates embedding the lightweight 3D model viewer inside markd
   in the text.
 </div>
 
-## Heavy Model
+## 3MF Models
 
-<ModelViewer src="SirayaTechTestModel2021.stl" height={260} expandedHeight={520} name="SirayaTechTestModel2021" />
+<ModelViewer src="SpokeESP32DualMc.3mf" height={480} expandedHeight={640} name="SpokeESP32DualMc" toolsEnabled={true}  />
+
+<ModelViewer src="Core_96x_64_32_topless.3mf" height={480} expandedHeight={640} name="Core_96x_64_32_topless" toolsEnabled={true}  />
 
 ## Customized View Defaults
 

@@ -47,6 +47,7 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
   const lineResolutionRef = useRef(new THREE.Vector2(1, 1)) // for LineMaterial
   const bgRef = useRef({})           // background resources for cleanup
   const useSourceMaterialsRef = useRef(!!useSourceMaterials)
+  const explodedRef = useRef(false)
 
   // Compute bounding box for the base model meshes only (exclude adorners and axes)
   const getModelBounds = () => {
@@ -576,6 +577,25 @@ useEffect(() => {
     rebuildAdorners()
   }, [outlineColorMode, useSourceMaterials])
 
+  // Sync useSourceMaterials prop to ref and enforce adorner visibility accordingly.
+  // This ensures that when viewing 3MF/GLTF with native materials, edges/outline/wireframe stay hidden.
+  useEffect(() => {
+    useSourceMaterialsRef.current = !!useSourceMaterials
+    const edgesGroup = edgesRef.current
+    const outlineGroup = outlineRef.current
+    const wire = wireframeRef.current
+    if (useSourceMaterialsRef.current) {
+      if (edgesGroup) edgesGroup.visible = false
+      if (outlineGroup) outlineGroup.visible = false
+      if (wire) wire.visible = false
+    } else {
+      if (edgesGroup) edgesGroup.visible = (edgesMode !== 'OFF')
+      // wireframe visibility follows frameMode
+      if (wire) wire.visible = (frameMode !== 'HIDE')
+      // outline visibility will be controlled by shading/style/outlineColorMode effects
+    }
+  }, [useSourceMaterials, edgesMode, frameMode, shadingMode, styleMode, outlineColorMode])
+
   // respond to outline controls: threshold and scale
   useEffect(() => {
     rebuildAdorners()
@@ -754,10 +774,27 @@ useEffect(() => {
       // Add the object
       group.add(object3D)
 
+      // Recenter the object to its bounding box center so it sits at the origin.
+      // This provides consistent centering across all formats (3MF/GLTF included).
+      try {
+        // Ensure world matrices are up to date before measuring
+        object3D.updateMatrixWorld(true)
+        const initialBox = getModelBounds()
+        const center0 = initialBox.getCenter(new THREE.Vector3())
+        if (isFinite(center0.x) && isFinite(center0.y) && isFinite(center0.z)) {
+          object3D.position.sub(center0)
+          object3D.updateMatrixWorld(true)
+          // Position axes at the model's origin (match the object's translation)
+          if (axesRef.current) {
+            axesRef.current.position.copy(object3D.position)
+          }
+        }
+      } catch {}
+
       // Ensure current shading does not override materials
       applyShading(shadingMode)
 
-      // fit view to model-only bounds
+      // fit view to model-only bounds (after recenter)
       const box = getModelBounds()
       const sizeVec = box.getSize(new THREE.Vector3())
       const size = sizeVec.length()
@@ -780,6 +817,59 @@ useEffect(() => {
       }
       syncGridToModel()
       adjustCameraPlanes()
+    },
+    // Toggle exploded view for non-STL multi-part models (applies to Object3D loads)
+    setExploded: (exploded) => {
+      const group = modelGroupRef.current
+      if (!group) return
+      // Find the primary model root (exclude adorners and axes)
+      let modelRoot = null
+      for (const child of group.children) {
+        if (child === wireframeRef.current || child === edgesRef.current || child === outlineRef.current || child === axesRef.current) continue
+        modelRoot = child
+        break
+      }
+      if (!modelRoot) return
+      const parts = (modelRoot.children || []).filter((c) => c && (c.isMesh || c.isGroup || c.isObject3D))
+      if (parts.length <= 1) return
+
+      // Compute overall size from model bounds for scaling the explosion distance
+      const overallBox = new THREE.Box3().setFromObject(modelRoot)
+      const overallSize = overallBox.getSize(new THREE.Vector3())
+      // Slightly stronger explode factor
+      const mag = Math.max(0.001, overallSize.length()) * 0.25
+
+      // Prepare originals
+      parts.forEach((p) => {
+        if (!p.userData) p.userData = {}
+        if (!p.userData._origPos) p.userData._origPos = p.position.clone()
+      })
+
+      if (exploded) {
+        parts.forEach((p) => {
+          // compute part center
+          const pb = new THREE.Box3().setFromObject(p)
+          const pc = pb.getCenter(new THREE.Vector3())
+          // explode direction from origin to the part center
+          const dir = pc.clone()
+          if (dir.lengthSq() < 1e-6) {
+            // fallback: use object index-based direction on near-zero vectors
+            dir.set(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5)
+          }
+          dir.normalize()
+          const delta = dir.multiplyScalar(mag)
+          // Apply in local space of the parent (assumes no rotation on modelRoot)
+          p.position.copy(p.userData._origPos || p.position).add(delta)
+        })
+      } else {
+        // restore
+        parts.forEach((p) => {
+          if (p.userData && p.userData._origPos) {
+            p.position.copy(p.userData._origPos)
+          }
+        })
+      }
+      explodedRef.current = !!exploded
     },
     fitView: () => {
       const group = modelGroupRef.current

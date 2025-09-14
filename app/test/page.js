@@ -88,24 +88,24 @@ export default function TestPage() {
 
         <Separator my="5" size="4" />
 
-        {/* STL Viewer */}
+        {/* Model Viewer */}
         <Box mt="6" mb="3">
-          <Heading size="6">STL Viewer</Heading>
+          <Heading size="6">Model Viewer</Heading>
         </Box>
         <Grid data-toc-exclude columns={{ initial: '1', sm: '2', lg: '3', xl: '5' }} gap="4">
           <DocCard>
-            <Heading size="4" mb="1">STL Viewer Demo</Heading>
-            <Text color="gray" size="2" mb="3">Lightweight Three.js STL viewer with view controls and download.</Text>
+            <Heading size="4" mb="1">Model Viewer Demo</Heading>
+            <Text color="gray" size="2" mb="3">Generic Three.js model viewer supporting STL, 3MF, and GLB/GLTF with materials.</Text>
             <Button asChild>
-              <NextLink href="/test/stl">Open STL Viewer</NextLink>
+              <NextLink href="/test/models">Open Model Viewer</NextLink>
             </Button>
           </DocCard>
 
           <DocCard>
-            <Heading size="4" mb="1">STL in Markdown</Heading>
-            <Text color="gray" size="2" mb="3">Markdown page demonstrating embedded <code>&lt;STLViewer /&gt;</code> components.</Text>
+            <Heading size="4" mb="1">Models in Markdown</Heading>
+            <Text color="gray" size="2" mb="3">Markdown page demonstrating embedded <code>&lt;ModelViewer /&gt;</code> (back-compat with <code>&lt;STLViewer /&gt;</code>).</Text>
             <Button asChild>
-              <NextLink href="/test/docs/stl-viewers">Open STL-MD</NextLink>
+              <NextLink href="/test/docs/model-viewers">Open Model-MD</NextLink>
             </Button>
           </DocCard>
         </Grid>

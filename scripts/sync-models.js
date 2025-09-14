@@ -6,27 +6,20 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const projectRoot = path.dirname(__dirname)
 
-// Source directories for models (repo-based)
-const sourceDirectories = [
-  path.join(projectRoot, 'docs-submodules', 'spoke-body', 'models'),
-  path.join(projectRoot, 'docs-submodules', 'spoke-electronics', 'models'),
-  path.join(projectRoot, 'docs-submodules', 'spoke-power', 'models'),
+// Sync roots specify how to mirror source folders under public
+// Rule: plain names map to /public/[root]/models
+// - docs-submodules/*/models -> /public/docs-submodules/*/models
+// - docs-test/models -> /public/docs-test/models
+// - content/models -> /public/content/models
+const SYNC_ROOTS = [
+  { label: 'docs-submodules', srcRoot: path.join(projectRoot, 'docs-submodules'), dstRoot: path.join(projectRoot, 'public', 'docs-submodules') },
+  { label: 'docs-test',       srcRoot: path.join(projectRoot, 'docs-test'),       dstRoot: path.join(projectRoot, 'public', 'docs-test') },
+  { label: 'content',         srcRoot: path.join(projectRoot, 'content'),         dstRoot: path.join(projectRoot, 'public', 'content') },
 ]
-
-// Additional explicit mappings: [{ sourceDir, targetSubdir }]
-// These allow non-repo locations to copy into a specific path under public/models
-const sourceMappings = [
-  {
-    sourceDir: path.join(projectRoot, 'docs-test', 'models'),
-    targetSubdir: path.join('test', 'stl'), // => public/models/test/stl
-  },
-]
-
-// Target directory
-const targetDirectory = path.join(projectRoot, 'public', 'models')
 
 // Supported model file extensions
-const supportedExtensions = new Set(['.stl', '.step', '.stp'])
+// Include common polygon and interchange formats we want to host statically
+const supportedExtensions = new Set(['.stl', '.step', '.stp', '.3mf', '.glb', '.gltf'])
 
 async function ensureDirectory(dir) {
   try {
@@ -65,11 +58,11 @@ async function copyFile(src, dest) {
   }
 }
 
-async function syncOneSource(sourceDir, targetSubdir) {
+async function syncOneSource(sourceDir, targetDir) {
   try {
     await fs.promises.access(sourceDir)
 
-    const repoTargetDir = path.join(targetDirectory, targetSubdir)
+    const repoTargetDir = targetDir
     console.log(`\nProcessing: ${sourceDir} -> ${repoTargetDir}`)
 
     // Ensure target directory exists
@@ -132,56 +125,60 @@ async function syncOneSource(sourceDir, targetSubdir) {
 }
 
 async function syncModels() {
-  console.log('Syncing models from docs-submodules to public/models...')
-
-  // Ensure target directory exists
-  await ensureDirectory(targetDirectory)
+  console.log('Syncing models to public/*/models (mirroring source roots)...')
 
   let totalCopied = 0
   let totalSkipped = 0
 
-  for (const sourceDir of sourceDirectories) {
-    // Extract repo name from path (e.g., 'spoke-body' from '.../docs-submodules/spoke-body/models')
-    const repoName = path.basename(path.dirname(sourceDir))
-    const { copied, skipped } = await syncOneSource(sourceDir, repoName)
-    totalCopied += copied
-    totalSkipped += skipped
-  }
+  // Walk each sync root
+  for (const root of SYNC_ROOTS) {
+    const { srcRoot, dstRoot, label } = root
+    // Ensure destination root exists
+    await ensureDirectory(dstRoot)
 
-  // Process explicit mappings (e.g., test models)
-  for (const m of sourceMappings) {
-    const { sourceDir, targetSubdir } = m
-    const { copied, skipped } = await syncOneSource(sourceDir, targetSubdir)
-    totalCopied += copied
-    totalSkipped += skipped
+    // Enumerate subfolders that contain a models/ directory
+    // Cases:
+    // - docs-submodules/<repo>/models
+    // - docs-test/models
+    // - content/models
+    const candidates = []
+    try {
+      const items = await fs.promises.readdir(srcRoot)
+      for (const item of items) {
+        const full = path.join(srcRoot, item)
+        const stat = await fs.promises.stat(full)
+        if (stat.isDirectory()) {
+          const modelDir = path.join(full, 'models')
+          try {
+            const ms = await fs.promises.stat(modelDir)
+            if (ms.isDirectory()) {
+              // e.g., docs-submodules/spoke-body/models -> public/docs-submodules/spoke-body/models
+              candidates.push({ src: modelDir, dst: path.join(dstRoot, item, 'models') })
+            }
+          } catch {}
+        }
+      }
+      // Also check if the root itself has models/ (docs-test, content)
+      const rootModels = path.join(srcRoot, 'models')
+      try {
+        const rms = await fs.promises.stat(rootModels)
+        if (rms.isDirectory()) {
+          candidates.push({ src: rootModels, dst: path.join(dstRoot, 'models') })
+        }
+      } catch {}
+    } catch (e) {
+      // ignore missing roots
+    }
+
+    for (const c of candidates) {
+      await ensureDirectory(c.dst)
+      const { copied, skipped } = await syncOneSource(c.src, c.dst)
+      totalCopied += copied
+      totalSkipped += skipped
+    }
   }
 
   console.log(`\nSync complete: ${totalCopied} files copied, ${totalSkipped} files skipped`)
-  
-  // List all files in target directory by repo
-  try {
-    const repoDirs = await fs.promises.readdir(targetDirectory)
-    console.log(`\nAvailable models in public/models:`)
-    
-    for (const repoDir of repoDirs) {
-      const repoDirPath = path.join(targetDirectory, repoDir)
-      try {
-        const stat = await fs.promises.stat(repoDirPath)
-        if (stat.isDirectory()) {
-          const files = await fs.promises.readdir(repoDirPath)
-          const modelFiles = files.filter(file => 
-            supportedExtensions.has(path.extname(file).toLowerCase())
-          )
-          console.log(`  ${repoDir}/ (${modelFiles.length} files)`)
-          modelFiles.forEach(file => console.log(`    - ${file}`))
-        }
-      } catch (error) {
-        console.log(`  ${repoDir}/ (error reading directory)`)
-      }
-    }
-  } catch (error) {
-    console.error('Error listing target directory:', error.message)
-  }
 }
 
 // Run if called directly

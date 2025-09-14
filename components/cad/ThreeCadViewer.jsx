@@ -14,7 +14,7 @@ import { LineSegmentsGeometry } from 'three/examples/jsm/lines/LineSegmentsGeome
 // frameMode: 'HIDE' | 'LIGHT' | 'DARK'
 // shadingMode: 'GRAY' | 'CREAM' | 'WHITE' | 'DARK' | 'BLACK' | 'OFF'
 export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
-  { spinEnabled = true, spinMode = 'auto', frameMode = 'HIDE', shadingMode = 'GRAY', originVisible = false, resize, styleMode = 'BASIC', backgroundMode = 'WHITE', outlineThreshold = 45, outlineScale = 1.02, edgesMode = 'AUTO', outlineColorMode = 'AUTO', edgesLineWidth = 2, ambientLevel = 2.0, directionalLevel = 2.0, originOffset = { x: 0, y: 0, z: 0 } },
+  { spinEnabled = true, spinMode = 'auto', frameMode = 'HIDE', shadingMode = 'GRAY', originVisible = false, resize, styleMode = 'BASIC', backgroundMode = 'WHITE', outlineThreshold = 45, outlineScale = 1.02, edgesMode = 'AUTO', outlineColorMode = 'AUTO', edgesLineWidth = 2, ambientLevel = 2.0, directionalLevel = 2.0, originOffset = { x: 0, y: 0, z: 0 }, useSourceMaterials = false },
   ref
 ) {
   const containerRef = useRef(null)
@@ -23,6 +23,9 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
   const cameraRef = useRef(null)
   const controlsRef = useRef(null)
   const rafRef = useRef(0)
+  const isVisibleRef = useRef(true)       // container in viewport (IntersectionObserver)
+  const isDocVisibleRef = useRef(true)    // page/tab visibility
+  const isActiveRef = useRef(true)        // derived: should we render/animate?
   const modelGroupRef = useRef(null) // holds polygon model
   const wireframeRef = useRef(null)  // holds wireframe overlay
   const edgesRef = useRef(null)      // holds edges/outline overlay
@@ -43,6 +46,7 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
   const smaaPassRef = useRef(null)   // SMAA pass
   const lineResolutionRef = useRef(new THREE.Vector2(1, 1)) // for LineMaterial
   const bgRef = useRef({})           // background resources for cleanup
+  const useSourceMaterialsRef = useRef(!!useSourceMaterials)
 
   // Compute bounding box for the base model meshes only (exclude adorners and axes)
   const getModelBounds = () => {
@@ -61,6 +65,22 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
         if (p === wireG || p === edgesG || p === outlineG || p === axesG) return
         p = p.parent
       }
+
+  const startLoop = () => {
+    if (rafRef.current) return
+    rafRef.current = requestAnimationFrame(tick)
+  }
+  const stopLoop = () => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    rafRef.current = 0
+  }
+  const updateActive = () => {
+    const active = !!isVisibleRef.current && !!isDocVisibleRef.current
+    const was = isActiveRef.current
+    isActiveRef.current = active
+    if (active && !was) startLoop()
+    if (!active && was) stopLoop()
+  }
       box.expandByObject(obj)
     })
     return box
@@ -89,6 +109,15 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
     const edgesGroup = edgesRef.current
     const outlineGroup = outlineRef.current
     if (!group) return
+    // If using model-provided materials, do not override them
+    if (useSourceMaterialsRef.current) {
+      // Ensure adorners are hidden when using source materials
+      if (edgesGroup) edgesGroup.visible = false
+      if (outlineGroup) outlineGroup.visible = false
+      // Still ensure base meshes visible
+      group.traverse((obj) => { if (obj.isMesh) obj.visible = true })
+      return
+    }
     // Local helper to check ancestry without relying on outer scope
     const isDescendantOf = (node, ancestor) => {
       if (!node || !ancestor) return false
@@ -380,7 +409,11 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
       const composer = composerRef.current
       if (composer) composer.render()
       else renderer.render(scene, camera)
-      rafRef.current = requestAnimationFrame(tick)
+      // initial activity flags
+    isVisibleRef.current = true
+    isDocVisibleRef.current = (typeof document !== 'undefined') ? (document.visibilityState !== 'hidden') : true
+    isActiveRef.current = isVisibleRef.current && isDocVisibleRef.current
+    rafRef.current = requestAnimationFrame(tick)
     }
     rafRef.current = requestAnimationFrame(tick)
 
@@ -388,9 +421,30 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
     const cleanupDebounce = debounceRef.current
     const cleanupPauseTimer = pauseTimerRef.current
 
+    // Visibility management
+    let io
+    if ('IntersectionObserver' in window && container) {
+      io = new IntersectionObserver((entries) => {
+        if (entries && entries[0]) {
+          isVisibleRef.current = !!entries[0].isIntersecting
+          updateActive()
+        }
+      }, { root: null, threshold: 0.01 })
+      io.observe(container)
+    }
+    const onVisChange = () => {
+      isDocVisibleRef.current = (document.visibilityState !== 'hidden')
+      updateActive()
+    }
+    document.addEventListener('visibilitychange', onVisChange)
+
     return () => {
       cancelAnimationFrame(rafRef.current)
       ro.disconnect()
+      if (io) {
+        try { io.disconnect() } catch {}
+      }
+      document.removeEventListener('visibilitychange', onVisChange)
       if (cleanupDebounce) clearTimeout(cleanupDebounce)
       if (cleanupPauseTimer) clearTimeout(cleanupPauseTimer)
       controls.removeEventListener('start', onUserInteracted)
@@ -486,8 +540,8 @@ useEffect(() => {
     // Re-assert visibility rules after shading changes
     const edgesGroup = edgesRef.current
     const outlineGroup = outlineRef.current
-    if (edgesGroup) edgesGroup.visible = (edgesMode !== 'OFF')
-    if (outlineGroup) outlineGroup.visible = (shadingMode === 'OFF') ? false : ((styleMode === 'OUTLINE' || styleMode === 'TOON') && (outlineColorMode !== 'OFF'))
+    if (edgesGroup) edgesGroup.visible = useSourceMaterialsRef.current ? false : (edgesMode !== 'OFF')
+    if (outlineGroup) outlineGroup.visible = useSourceMaterialsRef.current ? false : ((shadingMode === 'OFF') ? false : ((styleMode === 'OUTLINE' || styleMode === 'TOON') && (outlineColorMode !== 'OFF')))
   }, [shadingMode])
 
   // React to style changes only (do not re-apply style when only background changes)
@@ -498,7 +552,7 @@ useEffect(() => {
     rebuildAdorners()
     // Ensure outline visibility respects outlineColorMode
     const outlineGroup = outlineRef.current
-    if (outlineGroup) outlineGroup.visible = (shadingMode === 'OFF') ? false : ((styleMode === 'OUTLINE' || styleMode === 'TOON') && (outlineColorMode !== 'OFF'))
+    if (outlineGroup) outlineGroup.visible = useSourceMaterialsRef.current ? false : ((shadingMode === 'OFF') ? false : ((styleMode === 'OUTLINE' || styleMode === 'TOON') && (outlineColorMode !== 'OFF')))
   }, [styleMode])
 
   // respond to background mode changes
@@ -510,17 +564,17 @@ useEffect(() => {
   useEffect(() => {
     const edgesGroup = edgesRef.current
     if (!edgesGroup) return
-    edgesGroup.visible = (edgesMode !== 'OFF')
+    edgesGroup.visible = useSourceMaterialsRef.current ? false : (edgesMode !== 'OFF')
     // Rebuild to apply color override if not AUTO
     rebuildAdorners()
-  }, [edgesMode])
+  }, [edgesMode, useSourceMaterials])
 
   // respond to outline color mode changes
   useEffect(() => {
     const outlineGroup = outlineRef.current
-    if (outlineGroup) outlineGroup.visible = (shadingMode === 'OFF') ? false : ((styleMode === 'OUTLINE' || styleMode === 'TOON') && (outlineColorMode !== 'OFF'))
+    if (outlineGroup) outlineGroup.visible = useSourceMaterialsRef.current ? false : ((shadingMode === 'OFF') ? false : ((styleMode === 'OUTLINE' || styleMode === 'TOON') && (outlineColorMode !== 'OFF')))
     rebuildAdorners()
-  }, [outlineColorMode])
+  }, [outlineColorMode, useSourceMaterials])
 
   // respond to outline controls: threshold and scale
   useEffect(() => {
@@ -654,6 +708,79 @@ useEffect(() => {
       // Ensure far plane covers grid/floor
       adjustCameraPlanes()
     },
+    // Replace model with an Object3D (e.g., GLTF/3MF) preserving its materials
+    setObject: (object3D) => {
+      const group = modelGroupRef.current
+      const wire = wireframeRef.current
+      const edgesGroup = edgesRef.current
+      const outlineGroup = outlineRef.current
+      if (!group || !wire || !edgesGroup || !outlineGroup || !object3D) return
+
+      // clear previous meshes but keep adorner groups attached
+      for (let i = group.children.length - 1; i >= 0; i--) {
+        const child = group.children[i]
+        if (child.isMesh || child.isGroup || child.isObject3D) {
+          // do not remove the adorner groups
+          if (child === wire || child === edgesGroup || child === outlineGroup || child === axesRef.current) continue
+          group.remove(child)
+          // Dispose only geometry/materials we created previously (best-effort)
+          if (child.isMesh) {
+            child.geometry?.dispose?.()
+            if (Array.isArray(child.material)) child.material.forEach((m) => m.dispose?.())
+            else child.material?.dispose?.()
+          }
+        }
+      }
+
+      // Clear adorners completely when using source materials
+      for (let i = edgesGroup.children.length - 1; i >= 0; i--) {
+        const c = edgesGroup.children[i]
+        edgesGroup.remove(c)
+        c.geometry?.dispose?.()
+        c.material?.dispose?.()
+      }
+      for (let i = outlineGroup.children.length - 1; i >= 0; i--) {
+        const c = outlineGroup.children[i]
+        outlineGroup.remove(c)
+        c.geometry?.dispose?.()
+        c.material?.dispose?.()
+      }
+      // Hide adorners when using native materials
+      edgesGroup.visible = false
+      outlineGroup.visible = false
+      // also hide wireframe overlay to avoid clutter
+      wire.visible = false
+
+      // Add the object
+      group.add(object3D)
+
+      // Ensure current shading does not override materials
+      applyShading(shadingMode)
+
+      // fit view to model-only bounds
+      const box = getModelBounds()
+      const sizeVec = box.getSize(new THREE.Vector3())
+      const size = sizeVec.length()
+      const center = box.getCenter(new THREE.Vector3())
+      if (axesRef.current) {
+        const L = Math.max(0.001, sizeVec.x, sizeVec.y, sizeVec.z)
+        axesRef.current.scale.setScalar(L * 1.2)
+      }
+      const camera = cameraRef.current
+      const controls = controlsRef.current
+      if (camera && controls) {
+        controls.target.copy(center)
+        const distance = computeFitDistance(box, camera, 0.75)
+        const dir = new THREE.Vector3().subVectors(camera.position, controls.target).normalize()
+        camera.position.copy(dir.multiplyScalar(distance).add(controls.target))
+        camera.near = Math.max(0.01, Math.min(camera.near, size / 100))
+        camera.far = Math.max(camera.far, size * 10)
+        camera.updateProjectionMatrix()
+        controls.update()
+      }
+      syncGridToModel()
+      adjustCameraPlanes()
+    },
     fitView: () => {
       const group = modelGroupRef.current
       if (!group) return
@@ -775,6 +902,14 @@ useEffect(() => {
     const outlineGroup = outlineRef.current
     const wireGroup = wireframeRef.current
     if (!group || !edgesGroup || !outlineGroup) return
+    if (useSourceMaterialsRef.current) {
+      // When using source materials, keep adorners hidden and do not build them
+      edgesGroup.visible = false
+      outlineGroup.visible = false
+      // Still ensure wireframe hidden to avoid double lines
+      if (wireGroup) wireGroup.visible = false
+      return
+    }
     const edgesColor = getAdornerColor(shadingMode, edgesMode)
     const outlineColor = getOutlineColor(shadingMode, edgesMode, outlineColorMode)
     // clear existing adorners
@@ -1230,16 +1365,23 @@ useEffect(() => {
       while (p) { if (p === ancestor) return true; p = p.parent }
       return false
     }
-    modelGroup.traverse((obj) => {
-      if (obj.isMesh) {
-        if (isUnder(obj, wireGroup) || isUnder(obj, edgesG) || isUnder(obj, outlineG)) return
-        if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose?.())
-        else obj.material?.dispose?.()
-        obj.material = newMat.clone()
-      }
-    })
-    // Reapply current shading choice
-    applyShading(shadingMode)
+    if (!useSourceMaterialsRef.current) {
+      modelGroup.traverse((obj) => {
+        if (obj.isMesh) {
+          if (isUnder(obj, wireGroup) || isUnder(obj, edgesG) || isUnder(obj, outlineG)) return
+          if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose?.())
+          else obj.material?.dispose?.()
+          obj.material = newMat.clone()
+        }
+      })
+      // Reapply current shading choice
+      applyShading(shadingMode)
+    } else {
+      // When using source materials, ensure adorners are hidden
+      if (edgesG) edgesG.visible = false
+      if (outlineG) outlineG.visible = false
+      if (wireGroup) wireGroup.visible = false
+    }
     // Ensure outline visibility aligns with style and outlineColorMode when shading not OFF
     if (outlineGroup) outlineGroup.visible = (shadingMode === 'OFF') ? false : ((mode === 'OUTLINE' || mode === 'TOON') && (outlineColorMode !== 'OFF'))
   }

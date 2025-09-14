@@ -108,7 +108,7 @@ watcher
     if (/(\.(png|jpe?g|svg|gif|webp|bmp|tiff|heic|heif))$/i.test(p)) {
       runImageSync()
     }
-    if (/(\.(stl|step|stp))$/i.test(p)) {
+    if (/(\.(stl|step|stp|3mf|glb|gltf))$/i.test(p)) {
       runModelSync()
     }
   })
@@ -119,7 +119,7 @@ watcher
     if (/(\.(png|jpe?g|svg|gif|webp|bmp|tiff|heic|heif))$/i.test(p)) {
       runImageSync()
     }
-    if (/(\.(stl|step|stp))$/i.test(p)) {
+    if (/(\.(stl|step|stp|3mf|glb|gltf))$/i.test(p)) {
       runModelSync()
     }
   })
@@ -130,7 +130,7 @@ watcher
     if (/(\.(png|jpe?g|svg|gif|webp|bmp|tiff|heic|heif))$/i.test(p)) {
       runImageSync()
     }
-    if (/(\.(stl|step|stp))$/i.test(p)) {
+    if (/(\.(stl|step|stp|3mf|glb|gltf))$/i.test(p)) {
       runModelSync()
     }
   })

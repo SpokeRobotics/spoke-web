@@ -28,7 +28,7 @@ export const ModelViewer = forwardRef(function ModelViewer(
     frameMode = 'HIDE',
     shadingMode = 'GRAY',
     originVisible = false,
-    styleMode = 'BASIC',
+    styleMode = 'STUDIO',
     backgroundMode = 'WHITE',
     outlineThreshold = 45,
     outlineScale = 1.02,
@@ -77,41 +77,45 @@ export const ModelViewer = forwardRef(function ModelViewer(
   const originalGeomRef = useRef(null)
   const centeredGeomRef = useRef(null)
 
-  // Resolve URL respecting basePath
-  const resolvedUrl = useMemo(() => {
-    if (!src) return ''
-    if (/^https?:\/\//i.test(src)) return src
-    if (src.startsWith('/')) return getAssetPath(src)
+  // Resolve URL respecting basePath. Compute on client after mount so routing context is available.
+  const [resolvedUrl, setResolvedUrl] = useState('')
+  useEffect(() => {
+    if (!src) { setResolvedUrl(''); return }
+    // Absolute URL or absolute path: return as-is (with basePath for path)
+    if (/^https?:\/\//i.test(src)) { setResolvedUrl(src); return }
+    if (src.startsWith('/')) { setResolvedUrl(getAssetPath(src)); return }
 
-    // Plain-name inference:
-    // Derive a public asset base from current URL to avoid hardcoding.
-    // Rules:
-    // - /docs/<repo>/*           -> /docs-submodules/<repo>/models
-    // - /docs-submodules/<repo>/*-> /docs-submodules/<repo>/models
-    // - /test/*                  -> /docs-test/models
-    // - default                  -> /content/models
+    // Plain-name inference based on current location
     let basePrefix = '/content/models'
     if (typeof window !== 'undefined') {
       const currentPath = window.location.pathname
-      // docs app route -> map to docs-submodules public path
-      const docsMatch = currentPath.match(/^\/docs\/([^/]+)/i)
-      if (docsMatch && docsMatch[1]) {
-        basePrefix = `/docs-submodules/${docsMatch[1]}/models`
-      } else {
-        // direct public path access (rare) still supported
-        const submod = currentPath.match(/^\/docs-submodules\/([^/]+)/i)
-        if (submod && submod[1]) {
-          basePrefix = `/docs-submodules/${submod[1]}/models`
-        } else if (/^\/test\//i.test(currentPath)) {
-          // test pages and test docs use docs-test/models
-          basePrefix = '/docs-test/models'
+      // - /<basePath?>/docs/<repo>/*           -> /docs-submodules/<repo>/models
+      // - /<basePath?>/docs-submodules/<repo>/*-> /docs-submodules/<repo>/models
+      // - /<basePath?>/test/*                  -> /docs-test/models
+      // - default                              -> /content/models
+      // Remove optional basePath prefix from matching by focusing on trailing path segments
+      try {
+        // Extract the portion starting at '/docs' or '/docs-submodules' or '/test'
+        const idx = currentPath.search(/\/(docs|docs-submodules|test)\//i)
+        const matchTarget = idx >= 0 ? currentPath.slice(idx) : currentPath
+        const docsMatch = matchTarget.match(/^\/docs\/([^/]+)/i)
+        if (docsMatch && docsMatch[1]) {
+          basePrefix = `/docs-submodules/${docsMatch[1]}/models`
         } else {
-          // site content pages (e.g., MDX in /content) use /content/models
-          basePrefix = '/content/models'
+          const submod = matchTarget.match(/^\/docs-submodules\/([^/]+)/i)
+          if (submod && submod[1]) {
+            basePrefix = `/docs-submodules/${submod[1]}/models`
+          } else if (/^\/test\//i.test(matchTarget)) {
+            basePrefix = '/docs-test/models'
+          } else {
+            basePrefix = '/content/models'
+          }
         }
+      } catch {
+        basePrefix = '/content/models'
       }
     }
-    return getAssetPath(`${basePrefix}/${src}`)
+    setResolvedUrl(getAssetPath(`${basePrefix}/${src}`))
   }, [src])
 
   const ext = useMemo(() => {

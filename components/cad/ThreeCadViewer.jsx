@@ -44,6 +44,7 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
   const matcapTexRef = useRef(null)  // generated matcap
   const composerRef = useRef(null)   // post-processing composer
   const smaaPassRef = useRef(null)   // SMAA pass
+  const initializedRef = useRef(false) // guard against double-init in StrictMode/HMR
   const lineResolutionRef = useRef(new THREE.Vector2(1, 1)) // for LineMaterial
   const bgRef = useRef({})           // background resources for cleanup
   const useSourceMaterialsRef = useRef(!!useSourceMaterials)
@@ -66,26 +67,12 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
         if (p === wireG || p === edgesG || p === outlineG || p === axesG) return
         p = p.parent
       }
-
-  const startLoop = () => {
-    if (rafRef.current) return
-    rafRef.current = requestAnimationFrame(tick)
-  }
-  const stopLoop = () => {
-    if (rafRef.current) cancelAnimationFrame(rafRef.current)
-    rafRef.current = 0
-  }
-  const updateActive = () => {
-    const active = !!isVisibleRef.current && !!isDocVisibleRef.current
-    const was = isActiveRef.current
-    isActiveRef.current = active
-    if (active && !was) startLoop()
-    if (!active && was) stopLoop()
-  }
       box.expandByObject(obj)
     })
     return box
   }
+
+  // Loop control helpers are defined inside the init effect where `tick` exists.
 
   // Compute a camera distance so the model's bounding SPHERE fills ~fillFrac of the viewport.
   // Using a sphere makes the fit invariant to rotation/spin.
@@ -193,6 +180,9 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
+    // Prevent double-initialization in React StrictMode/HMR
+    if (initializedRef.current) return
+    initializedRef.current = true
 
     // Defensive: clear any existing children/canvas to avoid multiple contexts (HMR/remounts)
     while (container.firstChild) {
@@ -206,7 +196,20 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
     camera.position.set(6, 6, 6)
     camera.lookAt(0, 0, 0)
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false })
+    // Create a fresh WebGLRenderer and let Three manage the context (most stable across environments)
+    let renderer
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' })
+    } catch (e) {
+      // Graceful fallback: show an inline error and abort init to avoid page crash
+      const msg = document.createElement('div')
+      msg.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:12px;background:var(--red-3, #fee);color:var(--red-11, #b00);font:600 13px/1.4 system-ui, sans-serif;border:1px solid var(--red-6, #fcc)'
+      msg.textContent = '3D viewer failed to initialize WebGL on this page.'
+      container.appendChild(msg)
+      // Allow re-initialization on next render attempt
+      initializedRef.current = false
+      return () => { try { container.removeChild(msg) } catch {} }
+    }
     // Allow higher device pixel ratio to improve visual quality on dense displays
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 3))
     renderer.outputColorSpace = THREE.SRGBColorSpace
@@ -214,6 +217,7 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
     renderer.toneMappingExposure = 1.0
     // Size the drawing buffer and CSS style to match container
     renderer.setSize(container.clientWidth, container.clientHeight, true)
+    // Insert renderer's canvas into the container
     container.appendChild(renderer.domElement)
     // Force canvas to stretch to container both width and height
     if (renderer.domElement && renderer.domElement.style) {
@@ -302,30 +306,16 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
     }
     axesRef.current = axes
 
-    // build initial adorners for placeholder
+    // Build initial adorners and apply initial visual style/background before first render
     rebuildAdorners()
+    applyStyle(styleMode)
+    applyBackground(backgroundMode)
 
     // ---- Post-processing (SMAA + MSAA when available) ----
     // Prefer MSAA with SMAA in the post-processing pipeline on WebGL2 for crisper lines.
-    let composer
-    if (renderer.capabilities && renderer.capabilities.isWebGL2) {
-      // Use highest supported MSAA samples up to 8 for sharper lines
-      const gl = renderer.getContext()
-      const maxSamples = (gl && gl.getParameter) ? (gl.getParameter(gl.MAX_SAMPLES) || 4) : 4
-      const samples = Math.min(8, Math.max(1, maxSamples))
-      const msaaRT = new THREE.WebGLRenderTarget(container.clientWidth || 1, container.clientHeight || 1, { samples })
-      composer = new EffectComposer(renderer, msaaRT)
-    } else {
-      composer = new EffectComposer(renderer)
-    }
-    const renderPass = new RenderPass(scene, camera)
-    composer.addPass(renderPass)
-    // SMAA expects pixel dimensions
-    const prInit = renderer.getPixelRatio ? renderer.getPixelRatio() : 1
-    const smaa = new SMAAPass((container.clientWidth || 1) * prInit, (container.clientHeight || 1) * prInit)
-    composer.addPass(smaa)
-    composerRef.current = composer
-    smaaPassRef.current = smaa
+    // Simplify: render directly without post-processing to maximize compatibility
+    composerRef.current = null
+    smaaPassRef.current = null
 
     // resize
     const resizeNow = (w, h) => {
@@ -361,17 +351,19 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
       const w = container.clientWidth
       const h = container.clientHeight
       resizeNow(w, h)
-      // ensure composer size and SMAA resolution track canvas & pixel ratio
-      if (composerRef.current) composerRef.current.setSize(w, h)
-      if (smaaPassRef.current) {
-        const pr = renderer.getPixelRatio ? renderer.getPixelRatio() : 1
-        smaaPassRef.current.setSize(Math.max(1, w * pr), Math.max(1, h * pr))
-      }
+      // (composer disabled)
     }
     const ro = new ResizeObserver(onResize)
     ro.observe(container)
     // Ensure we sync size immediately after mount
     onResize()
+
+    // Do an immediate first render so the scene is visible even if the loop pauses early
+    try {
+      const composerNow = composerRef.current
+      if (composerNow) composerNow.render()
+      else renderer.render(scene, camera)
+    } catch {}
 
     // interaction handling for auto spin pause
     const INTERACTION_EVENTS = ['pointerdown', 'wheel', 'touchstart']
@@ -407,16 +399,28 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
         modelGroupRef.current.rotation.y += dTheta
       }
       controls.update()
-      const composer = composerRef.current
-      if (composer) composer.render()
-      else renderer.render(scene, camera)
-      // initial activity flags
-    isVisibleRef.current = true
-    isDocVisibleRef.current = (typeof document !== 'undefined') ? (document.visibilityState !== 'hidden') : true
-    isActiveRef.current = isVisibleRef.current && isDocVisibleRef.current
-    rafRef.current = requestAnimationFrame(tick)
+      renderer.render(scene, camera)
+      // Always schedule next frame to ensure continuous rendering
+      rafRef.current = requestAnimationFrame(tick)
     }
     rafRef.current = requestAnimationFrame(tick)
+
+    // Loop control helpers (close over tick)
+    const startLoop = () => {
+      if (rafRef.current) return
+      rafRef.current = requestAnimationFrame(tick)
+    }
+    const stopLoop = () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      rafRef.current = 0
+    }
+    const updateActive = () => {
+      const active = !!isVisibleRef.current && !!isDocVisibleRef.current
+      const was = isActiveRef.current
+      isActiveRef.current = active
+      if (active && !was) startLoop()
+      if (!active && was) stopLoop()
+    }
 
     // Snapshot timers to avoid reading changing refs in cleanup
     const cleanupDebounce = debounceRef.current
@@ -438,6 +442,8 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
       updateActive()
     }
     document.addEventListener('visibilitychange', onVisChange)
+    // Initialize active state once after mounting
+    updateActive()
 
     return () => {
       cancelAnimationFrame(rafRef.current)
@@ -466,7 +472,7 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
         composerRef.current = null
       }
       renderer.dispose()
-      container.removeChild(renderer.domElement)
+      try { if (renderer.domElement && renderer.domElement.parentNode === container) container.removeChild(renderer.domElement) } catch {}
       // dispose basic resources
       scene.traverse((obj) => {
         if (obj.isMesh) {
@@ -475,6 +481,8 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
           else obj.material?.dispose?.()
         }
       })
+      // allow re-initialization after full cleanup
+      initializedRef.current = false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -784,9 +792,16 @@ useEffect(() => {
         if (isFinite(center0.x) && isFinite(center0.y) && isFinite(center0.z)) {
           object3D.position.sub(center0)
           object3D.updateMatrixWorld(true)
-          // Position axes at the model's origin (match the object's translation)
+          // Ensure axes represent the model's true origin and rotate with the model:
+          // - Parent the axes to the loaded object so they live at the object's local origin (0,0,0)
+          // - This places them at the author's model origin (not the rotation center) and they follow rotations.
           if (axesRef.current) {
-            axesRef.current.position.copy(object3D.position)
+            const axes = axesRef.current
+            try {
+              if (axes.parent) axes.parent.remove(axes)
+            } catch {}
+            object3D.add(axes)
+            axes.position.set(0, 0, 0)
           }
         }
       } catch {}

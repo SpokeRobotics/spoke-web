@@ -2,9 +2,19 @@
 	path = docs-submodules/spoke-body
 	url = git@github.com:SpokeRobotics/spoke-body.git
 	branch = main
-[submodule "docs-submodules/spoke-electronics"]
-	path = docs-submodules/spoke-electronics
-	url = git@github.com:SpokeRobotics/spoke-electronics.git
 [submodule "docs-submodules/spoke-power"]
 	path = docs-submodules/spoke-power
 	url = git@github.com:SpokeRobotics/spoke-power.git
+	branch = main
+[submodule "docs-submodules/spoke-compute"]
+	path = docs-submodules/spoke-compute
+	url = git@github.com:SpokeRobotics/spoke-compute.git
+	branch = main
+[submodule "docs-submodules/spoke-controller"]
+	path = docs-submodules/spoke-controller
+	url = git@github.com:SpokeRobotics/spoke-controller.git
+	branch = main
+[submodule "docs-submodules/spoke-peripherals"]
+	path = docs-submodules/spoke-peripherals
+	url = git@github.com:SpokeRobotics/spoke-peripherals.git
+	branch = main

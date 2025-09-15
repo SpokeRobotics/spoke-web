@@ -18,7 +18,6 @@ export default function JsonEditor() {
           import("ace-builds/src-noconflict/mode-json"),
           import("ace-builds/src-noconflict/theme-github"),
           import("ace-builds/src-noconflict/theme-twilight"),
-          import("ace-builds/src-noconflict/worker-json"),
         ]);
         if (mounted) setAce(() => (mod.default || mod));
       } catch (e) {
@@ -232,7 +231,7 @@ export default function JsonEditor() {
             onChange={(v) => { setValue(v); tryParse(v); }}
             name="designer-json-editor"
             fontSize={14}
-            setOptions={{ useWorker: true, showPrintMargin: false, tabSize: 2 }}
+            setOptions={{ useWorker: false, showPrintMargin: false, tabSize: 2 }}
             editorProps={{ $blockScrolling: true }}
             onLoad={(editor) => {
               try {

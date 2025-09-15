@@ -26,7 +26,6 @@ export default function AceProbe() {
         import("ace-builds/src-noconflict/theme-github"),
         import("ace-builds/src-noconflict/theme-twilight"),
         import("ace-builds/src-noconflict/ext-searchbox"),
-        import("ace-builds/src-noconflict/worker-json"),
       ]);
       setAceComponent(() => Ace);
       setStatus("ok");
@@ -76,7 +75,7 @@ export default function AceProbe() {
               width="100%"
               height="100%"
               value={sample}
-              setOptions={{ useWorker: true, tabSize: 2, showPrintMargin: false }}
+              setOptions={{ useWorker: false, tabSize: 2, showPrintMargin: false }}
               editorProps={{ $blockScrolling: true }}
               name="ace-probe-editor"
               readOnly={false}

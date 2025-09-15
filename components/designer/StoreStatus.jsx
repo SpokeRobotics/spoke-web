@@ -5,6 +5,7 @@ import { Box, Card, Flex, Button, Text, Separator, Code } from "@radix-ui/themes
 import { reconcileStore } from "@/lib/store/reconcile";
 import { listDocs } from "@/lib/store/resolver";
 import { store } from "@/lib/store/adapter";
+import { withBase } from "@/lib/basePath";
 
 export default function StoreStatus() {
   const [loading, setLoading] = useState(true);
@@ -43,14 +44,14 @@ export default function StoreStatus() {
         try { await store.deleteDoc(h.$id); } catch {}
       }
       // Load seed index
-      const res = await fetch("/store-seed/index.json", { cache: "no-store" });
+      const res = await fetch(withBase("/store-seed/index.json"), { cache: "no-store" });
       if (!res.ok) throw new Error(`Failed to fetch store-seed index: ${res.status}`);
       const index = await res.json();
       const seedDocs = Array.isArray(index?.docs) ? index.docs : [];
       // Put each seed doc
       for (const entry of seedDocs) {
         if (!entry?.path) continue;
-        const r = await fetch(`/store-seed/${entry.path}`, { cache: "no-store" });
+        const r = await fetch(withBase(`/store-seed/${entry.path}`), { cache: "no-store" });
         if (!r.ok) throw new Error(`Failed to fetch seed doc ${entry.path}: ${r.status}`);
         const doc = await r.json();
         if (!doc?.$id) doc.$id = entry.$id || undefined;

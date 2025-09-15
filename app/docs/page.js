@@ -92,9 +92,9 @@ export default async function DocsIndexPage() {
     <Section size="4">
       <Box className="container">
         <Box mb="5">
-          <Heading size="9">Docs</Heading>
+          <Heading size="9">Documentation</Heading>
           <Text as="p" color="gray" size="4">
-            Documentation from Git submodules mounted under <Code>docs-submodules/</Code>.
+            System Documentation
           </Text>
         </Box>
 

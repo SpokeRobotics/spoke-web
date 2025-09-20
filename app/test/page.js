@@ -256,7 +256,19 @@ export default function TestPage() {
 
         <Separator my="5" size="4" />
 
-        
+        {/* AI */}
+        <Box mt="6" mb="3">
+          <Heading size="6">AI</Heading>
+        </Box>
+        <Grid data-toc-exclude columns={{ initial: '1', sm: '2', lg: '3', xl: '5' }} gap="4">
+          <DocCard>
+            <Heading size="4" mb="1">AI Experiments</Heading>
+            <Text color="gray" size="2" mb="3">Client-only chat with streaming, images, system prompt editing, and token storage per provider.</Text>
+            <Button asChild>
+              <NextLink href="/test/ai">Open AI</NextLink>
+            </Button>
+          </DocCard>
+        </Grid>
 
         {/* Misc */}
         <Box mt="6" mb="3">

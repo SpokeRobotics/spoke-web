@@ -7,7 +7,10 @@ import Composer from './Composer'
 import ToolEvents from './ToolEvents'
 import { Providers } from '@/lib/ai/providers/base'
 import { streamChat as openaiStream, getCapabilities as openaiCaps } from '@/lib/ai/providers/openai'
-import { streamChat as ollamaStream } from '@/lib/ai/providers/ollama'
+import { streamChat as ollamaStream, listRunningModels as ollamaListRunning } from '@/lib/ai/providers/ollama'
+import { streamChat as hfStream } from '@/lib/ai/providers/huggingface'
+import { loadValidatedModels, saveValidatedModels } from '@/lib/ai/model-prefs'
+import MarkdownMessage from './MarkdownMessage'
 
 function MessageBubble({ role, content }) {
   const isUser = role === 'user'
@@ -37,6 +40,59 @@ export default function Chat() {
     if (prov === Providers.OLLAMA) {
       const name = (mdl || '').toLowerCase()
       // Model-specific prompts
+      if (name.includes('glm4')) {
+        return (
+`You are a concise assistant.
+
+Rules:
+- Keep answers ≤ 5 sentences by default.
+- If asked to control the imaginary light, respond with ONLY this JSON and nothing else:
+{"name":"set_light","arguments":{"state":"on|off"}}
+- Do not reveal chain-of-thought; provide brief summaries when necessary.
+- Images are not processed in this chat.`)
+      }
+      if (name.includes('gemma')) {
+        return (
+`You are a clear and pragmatic assistant.
+
+Guidelines:
+- Use simple, direct language. Prefer bullet points for steps.
+- If asked to control the imaginary light, respond with ONLY:
+{"name":"set_light","arguments":{"state":"on|off"}}
+- No chain-of-thought; concise factual conclusions.
+- Images are not processed here.`)
+      }
+      if (name.includes('moondream')) {
+        return (
+`You are a compact vision-oriented assistant operating in text-only mode.
+
+Notes:
+- Image analysis is disabled in this chat UI.
+- To control the imaginary light, output ONLY this JSON (no extra text):
+{"name":"set_light","arguments":{"state":"on|off"}}
+- Keep responses short (≤ 4 sentences).`)
+      }
+      if (name.includes('qwen3')) {
+        return (
+`You are a capable assistant with precise, concise answers.
+
+Policies:
+- Use small examples when helpful.
+- Tool use is via JSON. If controlling the light, reply with ONLY:
+{"name":"set_light","arguments":{"state":"on|off"}}
+- Do not reveal chain-of-thought; add brief 1–2 sentence justifications if needed.
+- No image inputs are available.`)
+      }
+      if (name.includes('qwen2.5vl') || name.includes('qwen2.5-vl')) {
+        return (
+`You are a multimodal assistant running in text-only mode.
+
+Instructions:
+- Ignore/decline image analysis (not supported here).
+- If asked to control the imaginary light, respond with ONLY:
+{"name":"set_light","arguments":{"state":"on|off"}}
+- Keep responses concise; prefer bullet points for multi-step explanations.`)
+      }
       if (name.includes('codellama')) {
         return (
 `You are a pragmatic coding assistant.
@@ -59,6 +115,18 @@ Answer format:
 - Do not reveal step-by-step hidden reasoning or chain-of-thought. Summarize only.
 - If information is missing, state what is missing and propose the minimal assumptions required.
 - Avoid tool usage; none is available.`)
+      }
+      if (name.includes('qwen2.5-coder') || name.includes('qwen2.5coder') || name.includes('coder')) {
+        return (
+`You are a pragmatic coding assistant.
+
+Guidelines:
+- Provide working code first, then a short explanation (2–3 sentences).
+- Use fenced code blocks with language tags (\`\`\`js, \`\`\`py, etc.).
+- Avoid installs or system changes unless asked; propose minimal steps.
+- Tool use: if asked to control the imaginary light, return ONLY this JSON (no extra text):
+{"name":"set_light","arguments":{"state":"on|off"}}
+- Images are not processed in this chat.`)
       }
       if (name.includes('vicuna')) {
         return (
@@ -104,10 +172,16 @@ Guidelines:
   const [streaming, setStreaming] = useState(false)
   const [caps, setCaps] = useState(openaiCaps())
   const [showTools, setShowTools] = useState(false)
+  const [renderMarkdown, setRenderMarkdown] = useState(true)
+  const [showSettings, setShowSettings] = useState(false)
+  const [headerValidated, setHeaderValidated] = useState(false)
+  const [headerRunning, setHeaderRunning] = useState(false)
 
   const abortRef = useRef(null)
   const viewportRef = useRef(null)
   const lastUserTurnRef = useRef(null)
+  const hadTextRef = useRef(false)
+  const announcedRunningRef = useRef(false)
 
   // Persist provider and model between runs
   useEffect(() => {
@@ -125,6 +199,97 @@ Guidelines:
     } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Save provider selection
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try { if (provider) localStorage.setItem('ai:provider', provider) } catch {}
+  }, [provider])
+
+  // Save model selection per provider
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try { if (provider && model) localStorage.setItem(`ai:model:${provider}`, model) } catch {}
+  }, [provider, model])
+
+  // Load renderMarkdown preference (per provider+model if available)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      const key = `ai:renderMarkdown:${provider}:${model || 'default'}`
+      const v = localStorage.getItem(key)
+      if (v === 'true') setRenderMarkdown(true)
+      else if (v === 'false') setRenderMarkdown(false)
+    } catch {}
+  }, [provider, model])
+
+  // Persist renderMarkdown preference on change
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      const key = `ai:renderMarkdown:${provider}:${model || 'default'}`
+      localStorage.setItem(key, renderMarkdown ? 'true' : 'false')
+    } catch {}
+  }, [renderMarkdown, provider, model])
+
+  // Persist settings panel open/close
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      const v = localStorage.getItem('ai:settingsOpen')
+      if (v === 'true') setShowSettings(true)
+      else if (v === 'false') setShowSettings(false)
+    } catch {}
+  }, [])
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try { localStorage.setItem('ai:settingsOpen', showSettings ? 'true' : 'false') } catch {}
+  }, [showSettings])
+
+  // Compute compact header glyph states on provider/model changes
+  useEffect(() => {
+    // Validated glyph
+    try {
+      const validated = loadValidatedModels(provider)
+      setHeaderValidated(!!(model && Array.isArray(validated) && validated.includes(model)))
+    } catch {
+      setHeaderValidated(false)
+    }
+    // Running glyph (Ollama only)
+    ;(async () => {
+      if (provider !== Providers.OLLAMA || !model) { setHeaderRunning(false); return }
+      try {
+        const running = await ollamaListRunning()
+        setHeaderRunning(Array.isArray(running) && running.includes(model))
+      } catch {
+        setHeaderRunning(false)
+      }
+    })()
+  }, [provider, model])
+
+  // React to external validated/running change events
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const onValidated = () => {
+      try {
+        const validated = loadValidatedModels(provider)
+        setHeaderValidated(!!(model && Array.isArray(validated) && validated.includes(model)))
+      } catch {}
+    }
+    const onRunning = async () => {
+      if (provider !== Providers.OLLAMA || !model) return
+      try {
+        const running = await ollamaListRunning()
+        setHeaderRunning(Array.isArray(running) && running.includes(model))
+      } catch {}
+    }
+    window.addEventListener('ai:models:validated:changed', onValidated)
+    window.addEventListener('ai:models:running:changed', onRunning)
+    return () => {
+      window.removeEventListener('ai:models:validated:changed', onValidated)
+      window.removeEventListener('ai:models:running:changed', onRunning)
+    }
+  }, [provider, model])
 
   // Persist system prompt per provider+model and load it on changes
   useEffect(() => {
@@ -204,6 +369,8 @@ Guidelines:
     setStreaming(true)
     const controller = new AbortController()
     abortRef.current = controller
+    hadTextRef.current = false
+    announcedRunningRef.current = false
 
     // Add a placeholder assistant message to stream into
     setMessages(prev => [...prev, { role: 'assistant', content: '' }])
@@ -214,12 +381,24 @@ Guidelines:
         iter = await openaiStream({ model, systemPrompt, history: [...messages, userMsg], images, signal: controller.signal })
       } else if (provider === Providers.OLLAMA) {
         iter = await ollamaStream({ model, systemPrompt, history: [...messages, userMsg], images, signal: controller.signal })
+      } else if (provider === Providers.HUGGINGFACE) {
+        iter = await hfStream({ model, systemPrompt, history: [...messages, userMsg], images, signal: controller.signal })
       } else {
         throw new Error('Provider not implemented yet')
       }
 
       for await (const chunk of iter) {
         if (chunk.type === 'text-delta') {
+          hadTextRef.current = true
+          // As soon as we see text from Ollama, announce running so UI can show 🟢
+          if (!announcedRunningRef.current && provider === Providers.OLLAMA && model) {
+            announcedRunningRef.current = true
+            try {
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new Event('ai:models:running:changed'))
+              }
+            } catch {}
+          }
           setMessages(prev => {
             const copy = prev.slice()
             const last = copy[copy.length - 1]
@@ -238,6 +417,19 @@ Guidelines:
     } finally {
       setStreaming(false)
       abortRef.current = null
+      // If we received any text for this provider+model, mark it validated
+      try {
+        if (hadTextRef.current && provider && model) {
+          const existing = loadValidatedModels(provider)
+          if (!existing.includes(model)) {
+            const next = [...existing, model]
+            saveValidatedModels(provider, next)
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new Event('ai:models:validated:changed'))
+            }
+          }
+        }
+      } catch {}
       // After stream completes, inspect the last assistant message for a tool JSON
       setMessages(prev => {
         if (!prev || prev.length === 0) return prev
@@ -316,23 +508,69 @@ Guidelines:
 
   return (
     <Box>
-      <SettingsPanel
-        provider={provider}
-        setProvider={setProvider}
-        model={model}
-        setModel={setModel}
-        systemPrompt={systemPrompt}
-        setSystemPrompt={setSystemPrompt}
-        onCapabilities={handleCapabilities}
-      />
+      {/* Header with Provider : Model and tools toggle */}
+      <Flex justify="between" align="center" mb="2">
+        {!showSettings ? (
+          <Text size="2" color="gray">
+            {(provider === Providers.OPENAI ? 'OpenAI' : provider === Providers.OLLAMA ? 'Ollama' : provider)} : {model || '—'}{' '}
+            {headerRunning ? '🟢 ' : ''}
+            {headerValidated ? '✓' : ''}
+          </Text>
+        ) : (
+          <Text size="2" weight="bold">Settings</Text>
+        )}
+        <Button size="1" variant={showSettings ? 'soft' : 'ghost'} onClick={() => setShowSettings(s => !s)} aria-label={showSettings ? 'Close settings' : 'Open settings'}>
+          {showSettings ? '✖ Close' : '⚙️ Tools'}
+        </Button>
+      </Flex>
+
+      {showSettings && (
+        <Box mb="3">
+          <SettingsPanel
+            provider={provider}
+            setProvider={setProvider}
+            model={model}
+            setModel={setModel}
+            systemPrompt={systemPrompt}
+            setSystemPrompt={setSystemPrompt}
+            onCapabilities={handleCapabilities}
+            renderMarkdown={renderMarkdown}
+            setRenderMarkdown={setRenderMarkdown}
+            onRestoreDefault={() => {
+              const seed = getSeedPrompt(provider, model)
+              setSystemPrompt(seed)
+              try {
+                const key = `ai:prompt:${provider}:${model}`
+                localStorage.setItem(key, seed)
+              } catch {}
+            }}
+          />
+        </Box>
+      )}
 
       <Box mt="3" p="3" style={{ border: '1px solid var(--gray-5)', borderRadius: 8, height: '50vh', overflow: 'auto' }} ref={viewportRef}>
         {messages.length === 0 && (
           <Text color="gray">Start the conversation. The imaginary light is currently <b>{lightState}</b>.</Text>
         )}
-        {messages.map((m, i) => (
-          <MessageBubble key={i} role={m.role} content={m.content} />
-        ))}
+        {messages.map((m, i) => {
+          const isAssistant = m.role === 'assistant'
+          return (
+            <Flex key={i} justify={m.role === 'user' ? 'end' : 'start'} my="2">
+              <Card variant="soft" style={{ maxWidth: 800, background: m.role === 'user' ? 'var(--accent-3)' : undefined }}>
+                <Flex gap="3" align="start">
+                  <Avatar fallback={m.role === 'user' ? 'U' : 'A'} radius="full" />
+                  <Box style={{ maxWidth: 740 }}>
+                    {isAssistant && renderMarkdown ? (
+                      <MarkdownMessage text={m.content || ''} />
+                    ) : (
+                      <Text as="p" style={{ whiteSpace: 'pre-wrap' }}>{m.content}</Text>
+                    )}
+                  </Box>
+                </Flex>
+              </Card>
+            </Flex>
+          )
+        })}
       </Box>
 
       {/* Composer should be directly under the dialog transcript */}

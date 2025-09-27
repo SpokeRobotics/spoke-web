@@ -20,7 +20,7 @@ description: Demonstrates embedding the lightweight 3D model viewer inside markd
     />
   </div>
 
-  Modern robotics teams iterate rapidly on chassis and actuator designs, and having an
+  [this is yada-yada text] Modern robotics teams iterate rapidly on chassis and actuator designs, and having an
   embedded model preview beside the documentation helps reviewers reason about clearances
   and mounting points without context switching. The compact viewer loads quickly,
   supports responsive orbit controls, and respects the site theme for visual consistency.

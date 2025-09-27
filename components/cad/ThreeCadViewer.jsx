@@ -1,3 +1,4 @@
+
 'use client'
 
 import React, { useRef, useEffect, useImperativeHandle, forwardRef } from 'react'
@@ -11,10 +12,243 @@ import { LineSegments2 } from 'three/examples/jsm/lines/LineSegments2.js'
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js'
 import { LineSegmentsGeometry } from 'three/examples/jsm/lines/LineSegmentsGeometry.js'
 
+const VISIBILITY_EASE_POWER = 2.6
+
+const easeVisibilityOpacity = (fromOpacity, toOpacity, t) => {
+  const start = typeof fromOpacity === 'number' ? fromOpacity : 0
+  const end = typeof toOpacity === 'number' ? toOpacity : 0
+  if (Math.abs(start - end) < 1e-6) return end
+  const clampedT = Math.min(1, Math.max(0, t))
+  if (start > end) {
+    const eased = Math.pow(1 - clampedT, VISIBILITY_EASE_POWER)
+    return end + (start - end) * eased
+  }
+  const eased = Math.pow(clampedT, VISIBILITY_EASE_POWER)
+  return start + (end - start) * eased
+}
+
+const AXES_WIDGET_COLORS = {
+  x: 0xff5555,
+  y: 0x55ff55,
+  z: 0x5591ff,
+}
+
+const AXES_WIDGET_BG_COLOR = 0x111418
+const AXES_WIDGET_MARGIN_RATIO = 0.04
+const AXES_WIDGET_SIZE_RATIO = 0.26
+const AXES_OVERLAY_MIN_SIZE = 96
+const AXES_OVERLAY_RATIO = 0.24
+
+const configureArrowHelperMaterials = (arrow, { opacity = 1 } = {}) => {
+  if (!arrow) return
+  const apply = (obj) => {
+    if (!obj || !obj.material) return
+    const mat = obj.material
+    if (Array.isArray(mat)) {
+      mat.forEach((m) => {
+        if (!m) return
+        m.depthTest = false
+        m.depthWrite = false
+        m.transparent = opacity < 1 || m.transparent
+        if (opacity < 1) m.opacity = opacity
+      })
+    } else {
+      mat.depthTest = false
+      mat.depthWrite = false
+      if (opacity < 1) {
+        mat.transparent = true
+        mat.opacity = opacity
+      }
+    }
+  }
+  apply(arrow.line)
+  apply(arrow.cone)
+}
+
+const createLabelSprite = (text, colorHex, disposersRef) => {
+  const canvas = typeof document !== 'undefined' ? document.createElement('canvas') : null
+  let texture
+  let material
+  if (canvas) {
+    const scale = 2
+    canvas.width = 128 * scale
+    canvas.height = 64 * scale
+    const ctx = canvas.getContext('2d')
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.fillStyle = 'rgba(12, 15, 18, 0.7)'
+    ctx.fillRect(0, canvas.height / 4, canvas.width, canvas.height / 2)
+    ctx.font = `${40 * scale}px "Inter", "Segoe UI", sans-serif`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillStyle = '#ffffff'
+    ctx.fillText(text, canvas.width / 2, canvas.height / 2)
+    texture = new THREE.CanvasTexture(canvas)
+    texture.anisotropy = 4
+    texture.needsUpdate = true
+    material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false, depthWrite: false })
+  } else {
+    material = new THREE.SpriteMaterial({ color: colorHex, depthTest: false, depthWrite: false })
+  }
+  const sprite = new THREE.Sprite(material)
+  sprite.center.set(0.5, 0.5)
+  sprite.scale.set(0.75, 0.35, 1)
+  if (disposersRef) {
+    disposersRef.current.push(() => {
+      if (texture) texture.dispose()
+      material.dispose?.()
+    })
+  }
+  return sprite
+}
+
+const createRotationArc = (axis, colorHex, disposersRef) => {
+  const group = new THREE.Group()
+  const radius = 0.55
+  const arc = Math.PI * 1.35
+  const segments = 48
+  const points = []
+  for (let i = 0; i <= segments; i += 1) {
+    const t = i / segments
+    const theta = t * arc
+    let x = 0
+    let y = 0
+    let z = 0
+    if (axis === 'x') {
+      y = Math.cos(theta) * radius
+      z = Math.sin(theta) * radius
+    } else if (axis === 'y') {
+      x = Math.sin(theta) * radius
+      z = Math.cos(theta) * radius
+    } else {
+      x = Math.cos(theta) * radius
+      y = Math.sin(theta) * radius
+    }
+    points.push(new THREE.Vector3(x, y, z))
+  }
+  const geometry = new THREE.BufferGeometry().setFromPoints(points)
+  const material = new THREE.LineBasicMaterial({ color: colorHex, transparent: true, opacity: 0.85, depthTest: false, depthWrite: false })
+  const line = new THREE.Line(geometry, material)
+  group.add(line)
+
+  const end = points[points.length - 1].clone()
+  const prev = points[points.length - 2].clone()
+  const tangent = end.clone().sub(prev).normalize()
+  const arrow = new THREE.ArrowHelper(tangent, end, 0.18, colorHex, 0.12, 0.08)
+  configureArrowHelperMaterials(arrow, { opacity: 0.95 })
+  group.add(arrow)
+
+  if (disposersRef) {
+    disposersRef.current.push(() => {
+      geometry.dispose()
+      material.dispose()
+      arrow.line.geometry.dispose?.()
+      arrow.line.material.dispose?.()
+      arrow.cone.geometry.dispose?.()
+      arrow.cone.material.dispose?.()
+    })
+  }
+  return group
+}
+
+const createAxesWidget = (disposersRef) => {
+  const scene = new THREE.Scene()
+  scene.autoUpdate = true
+  const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 10)
+  camera.position.set(0, 0, 3)
+  camera.lookAt(0, 0, 0)
+
+  const root = new THREE.Group()
+  scene.add(root)
+
+  const backgroundMaterial = new THREE.MeshBasicMaterial({ color: AXES_WIDGET_BG_COLOR, transparent: true, opacity: 0.55, depthWrite: false, depthTest: false })
+  const background = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.4), backgroundMaterial)
+  background.position.set(0, 0, -0.8)
+  root.add(background)
+  if (disposersRef) {
+    disposersRef.current.push(() => {
+      background.geometry.dispose()
+      background.material.dispose()
+    })
+  }
+
+  const origin = new THREE.Vector3(0, 0, 0)
+  const axisLength = 0.9
+  const headLength = 0.24
+  const headWidth = 0.12
+
+  const xArrow = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), origin, axisLength, AXES_WIDGET_COLORS.x, headLength, headWidth)
+  const yArrow = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), origin, axisLength, AXES_WIDGET_COLORS.y, headLength, headWidth)
+  const zArrow = new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), origin, axisLength, AXES_WIDGET_COLORS.z, headLength, headWidth)
+  ;[xArrow, yArrow, zArrow].forEach((arrow) => {
+    configureArrowHelperMaterials(arrow)
+    root.add(arrow)
+    if (disposersRef) {
+      disposersRef.current.push(() => {
+        arrow.line.geometry.dispose?.()
+        arrow.line.material.dispose?.()
+        arrow.cone.geometry.dispose?.()
+        arrow.cone.material.dispose?.()
+      })
+    }
+  })
+
+  const labelOffset = axisLength + 0.32
+  const xLabel = createLabelSprite('+X', '#ffffff', disposersRef)
+  xLabel.position.set(labelOffset, 0, 0)
+  const yLabel = createLabelSprite('+Y', '#ffffff', disposersRef)
+  yLabel.position.set(0, labelOffset, 0)
+  const zLabel = createLabelSprite('+Z', '#ffffff', disposersRef)
+  zLabel.position.set(0, 0, labelOffset)
+  root.add(xLabel)
+  root.add(yLabel)
+  root.add(zLabel)
+
+  const debugDot = new THREE.Mesh(new THREE.SphereGeometry(0.25, 24, 24), new THREE.MeshBasicMaterial({ color: 0xff00ff, depthTest: false, depthWrite: false }))
+  debugDot.position.set(0, 0, 0)
+  root.add(debugDot)
+  if (disposersRef) {
+    disposersRef.current.push(() => {
+      debugDot.geometry.dispose()
+      debugDot.material.dispose()
+    })
+  }
+
+  const rxArc = createRotationArc('x', AXES_WIDGET_COLORS.x, disposersRef)
+  const ryArc = createRotationArc('y', AXES_WIDGET_COLORS.y, disposersRef)
+  const rzArc = createRotationArc('z', AXES_WIDGET_COLORS.z, disposersRef)
+  root.add(rxArc)
+  root.add(ryArc)
+  root.add(rzArc)
+
+  const rxLabel = createLabelSprite('+Rx', '#ffffff', disposersRef)
+  rxLabel.position.set(0, 0.65, 0.4)
+  const ryLabel = createLabelSprite('+Ry', '#ffffff', disposersRef)
+  ryLabel.position.set(0.4, 0.65, 0)
+  const rzLabel = createLabelSprite('+Rz', '#ffffff', disposersRef)
+  rzLabel.position.set(0.65, 0.0, 0.4)
+  root.add(rxLabel)
+  root.add(ryLabel)
+  root.add(rzLabel)
+
+  const ambient = new THREE.AmbientLight(0xffffff, 0.9)
+  const directional = new THREE.DirectionalLight(0xffffff, 0.8)
+  directional.position.set(2.5, 2, 3.5)
+  scene.add(ambient)
+  scene.add(directional)
+
+  return { scene, camera, root }
+}
+
+const AXES_TMP_BUFFER_SIZE = new THREE.Vector2()
+const AXES_TMP_QUAT_MODEL = new THREE.Quaternion()
+const AXES_TMP_QUAT_CAMERA = new THREE.Quaternion()
+const AXES_TMP_VIEWPORT = new THREE.Vector4()
+const AXES_TMP_SCISSOR = new THREE.Vector4()
+
 // frameMode: 'HIDE' | 'LIGHT' | 'DARK'
 // shadingMode: 'GRAY' | 'CREAM' | 'WHITE' | 'DARK' | 'BLACK' | 'OFF'
 export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
-  { spinEnabled = true, spinMode = 'auto', frameMode = 'HIDE', shadingMode = 'GRAY', originVisible = false, resize, styleMode = 'BASIC', backgroundMode = 'WHITE', outlineThreshold = 45, outlineScale = 1.02, edgesMode = 'AUTO', outlineColorMode = 'AUTO', edgesLineWidth = 2, ambientLevel = 2.0, directionalLevel = 2.0, originOffset = { x: 0, y: 0, z: 0 }, useSourceMaterials = false },
+  { spinEnabled = true, spinMode = 'auto', frameMode = 'HIDE', shadingMode = 'GRAY', originVisible = false, axesHelperVisible = false, resize, styleMode = 'BASIC', backgroundMode = 'WHITE', outlineThreshold = 45, outlineScale = 1.02, edgesMode = 'AUTO', outlineColorMode = 'AUTO', edgesLineWidth = 2, ambientLevel = 2.0, directionalLevel = 2.0, originOffset = { x: 0, y: 0, z: 0 }, useSourceMaterials = false },
   ref
 ) {
   const containerRef = useRef(null)
@@ -26,7 +260,7 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
   const isVisibleRef = useRef(true)       // container in viewport (IntersectionObserver)
   const isDocVisibleRef = useRef(true)    // page/tab visibility
   const isActiveRef = useRef(true)        // derived: should we render/animate?
-  const modelGroupRef = useRef(null) // holds polygon model
+  const modelGroupRef = useRef(null) // holds polygon model (single-mode root)
   const wireframeRef = useRef(null)  // holds wireframe overlay
   const edgesRef = useRef(null)      // holds edges/outline overlay
   const outlineRef = useRef(null)    // holds silhouette backface meshes
@@ -35,6 +269,12 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
   const pauseUntilRef = useRef(0)
   const pauseTimerRef = useRef(null)
   const axesRef = useRef(null) // origin axes helper
+  const axesWidgetRef = useRef(null)
+  const axesWidgetCameraRef = useRef(null)
+  const axesWidgetResourcesRef = useRef({ current: [] })
+  const axesVisibilityRef = useRef(!!axesHelperVisible)
+  const axesRendererRef = useRef(null)
+  const axesCanvasRef = useRef(null)
   const lastSizeRef = useRef({ w: 0, h: 0 })
   const debounceRef = useRef(0)
   const envRTRef = useRef(null)      // environment render target (PMREM)
@@ -49,6 +289,24 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
   const bgRef = useRef({})           // background resources for cleanup
   const useSourceMaterialsRef = useRef(!!useSourceMaterials)
   const explodedRef = useRef(false)
+  const multiSceneRef = useRef({ active: false, sceneGroup: null, models: [], states: {}, displayNames: {}, transitionMap: {}, currentState: null, stateOrder: [] })
+  const animationRef = useRef({ playing: false, start: 0, duration: 0, fromState: null, toState: null, mixers: [], onComplete: null })
+
+  const resetAnimation = () => {
+    const anim = animationRef.current
+    anim.playing = false
+    anim.start = 0
+    anim.duration = 0
+    anim.fromState = null
+    anim.toState = null
+    anim.mixers = []
+    anim.onComplete = null
+  }
+
+  const ensureQuaternion = (obj) => {
+    if (!obj.quaternion) obj.quaternion = new THREE.Quaternion()
+    return obj.quaternion
+  }
 
   // Compute bounding box for the base model meshes only (exclude adorners and axes)
   const getModelBounds = () => {
@@ -72,23 +330,137 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
     return box
   }
 
+  const rebuildMultiSceneBounds = () => {
+    const multi = multiSceneRef.current
+    const models = multi?.models || []
+    const padded = new THREE.Box3()
+    const rotatedCenter = new THREE.Vector3()
+    let initialized = false
+    models.forEach((container) => {
+      if (!container) return
+      const states = container.userData?.__states || {}
+      const localCenter = container.userData?.__localBoundCenter || new THREE.Vector3()
+      const localRadius = container.userData?.__localBoundRadius ?? 0.5
+      Object.values(states).forEach((state) => {
+        if (!state) return
+        rotatedCenter.copy(localCenter).applyQuaternion(state.quaternion).add(state.position)
+        const radius = Math.max(localRadius, 0.0001)
+        const min = new THREE.Vector3(rotatedCenter.x - radius, rotatedCenter.y - radius, rotatedCenter.z - radius)
+        const max = new THREE.Vector3(rotatedCenter.x + radius, rotatedCenter.y + radius, rotatedCenter.z + radius)
+        if (!initialized) {
+          padded.min.copy(min)
+          padded.max.copy(max)
+          initialized = true
+        } else {
+          padded.min.min(min)
+          padded.max.max(max)
+        }
+      })
+    })
+    if (!initialized) {
+      padded.setFromCenterAndSize(new THREE.Vector3(0, 0, 0), new THREE.Vector3(1, 1, 1))
+    }
+    const center = padded.getCenter(new THREE.Vector3())
+    const halfSize = padded.getSize(new THREE.Vector3()).multiplyScalar(0.55)
+    padded.min.copy(center).sub(halfSize)
+    padded.max.copy(center).add(halfSize)
+    const sphere = new THREE.Sphere(center.clone(), halfSize.length())
+    if (multi) {
+      multi.paddedBounds = padded.clone()
+      multi.paddedCenter = center.clone()
+      multi.paddedSphere = sphere.clone()
+    }
+    return padded
+  }
+
+  const computeMultiSceneBounds = () => {
+    const multi = multiSceneRef.current
+    if (multi?.paddedBounds) return multi.paddedBounds.clone()
+    return rebuildMultiSceneBounds().clone()
+  }
+
+  const refreshCurrentMultiBounds = () => {
+    const multi = multiSceneRef.current
+    if (!multi?.active) return null
+    const models = multi.models || []
+    const sceneGroup = multi.sceneGroup
+    sceneGroup?.updateMatrixWorld(true)
+    const box = new THREE.Box3()
+    const tempBox = new THREE.Box3()
+    let initialized = false
+    models.forEach((container) => {
+      if (!container || container.visible === false) return
+      tempBox.makeEmpty()
+      tempBox.setFromObject(container)
+      if (tempBox.isEmpty()) return
+      if (!initialized) {
+        box.copy(tempBox)
+        initialized = true
+      } else {
+        box.union(tempBox)
+      }
+    })
+    if (!initialized) {
+      box.setFromCenterAndSize(new THREE.Vector3(0, 0, 0), new THREE.Vector3(1, 1, 1))
+    }
+    const center = box.getCenter(new THREE.Vector3())
+    const radius = box.getSize(new THREE.Vector3()).length() / 2
+    multi.currentBounds = box.clone()
+    multi.currentCenter = center.clone()
+    multi.currentSphere = new THREE.Sphere(center.clone(), radius)
+    return box
+  }
+
+  const frameMultiScene = () => {
+    const multi = multiSceneRef.current
+    const camera = cameraRef.current
+    const controls = controlsRef.current
+    if (!multi?.active || !camera || !controls) return
+    const currentBox = refreshCurrentMultiBounds() || computeMultiSceneBounds()
+    const center = multi.currentCenter ? multi.currentCenter.clone() : currentBox.getCenter(new THREE.Vector3())
+    const sphere = multi.currentSphere || new THREE.Sphere(center.clone(), currentBox.getSize(new THREE.Vector3()).length() / 2)
+    controls.target.copy(center)
+    const dir = new THREE.Vector3().subVectors(camera.position, center)
+    if (dir.lengthSq() < 1e-6) dir.set(1, 0.8, 1)
+    if (dir.y < 0.45) {
+      dir.y = Math.abs(dir.y) + 0.45
+    }
+    dir.normalize()
+    const distance = Math.max(computeFitDistance(currentBox, camera, 0.9), 0.1)
+    camera.position.copy(dir.multiplyScalar(distance).add(center))
+    camera.updateProjectionMatrix()
+    controls.update()
+    adjustCameraPlanes(currentBox)
+  }
+
+  const getActiveBounds = () => {
+    const multi = multiSceneRef.current
+    if (multi && multi.active) {
+      if (multi.currentBounds) return multi.currentBounds.clone()
+      return computeMultiSceneBounds()
+    }
+    return getModelBounds()
+  }
+
   // Loop control helpers are defined inside the init effect where `tick` exists.
 
   // Compute a camera distance so the model's bounding SPHERE fills ~fillFrac of the viewport.
   // Using a sphere makes the fit invariant to rotation/spin.
-  const computeFitDistance = (box, camera, fillFrac = 0.75) => {
+  const computeFitDistance = (box, camera, fillFrac = 0.9) => {
     const size = box.getSize(new THREE.Vector3())
     const diag = Math.max(0.0001, size.length())
     const R = diag / 2 // sphere radius
     const vFov = (camera.fov * Math.PI) / 180
     const hFov = 2 * Math.atan(Math.tan(vFov / 2) * camera.aspect)
-    const frac = Math.max(0.1, Math.min(0.95, fillFrac))
+    const frac = Math.max(0.7, Math.min(0.97, fillFrac))
     // For sphere diameter 2R to fit within frac*height or frac*width at depth d:
     // height = 2 d tan(vFov/2); width = 2 d tan(hFov/2)
     // => d >= R / (frac * tan(fov/2)) for each axis.
     const dV = R / (frac * Math.tan(vFov / 2))
     const dH = R / (frac * Math.tan(hFov / 2))
-    return Math.max(dV, dH) * 1.05 // small padding
+    const distance = Math.max(dV, dH) * 1.01 // minimal padding
+    const cameraMinDistance = camera.near * 2
+    return Math.max(distance, cameraMinDistance)
   }
 
   // helper to apply shading to current model group
@@ -192,7 +564,7 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
     const scene = new THREE.Scene()
     // background set in applyStyle + applyBackground
 
-    const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000)
+    const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.05, 5000)
     camera.position.set(6, 6, 6)
     camera.lookAt(0, 0, 0)
 
@@ -232,6 +604,18 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
       renderer.domElement.style.margin = '0'
     }
 
+    const overlayRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true })
+    overlayRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 3))
+    const overlaySize = Math.max(AXES_OVERLAY_MIN_SIZE, Math.min(container.clientWidth, container.clientHeight) * AXES_OVERLAY_RATIO)
+    overlayRenderer.setSize(overlaySize, overlaySize, false)
+    const overlayCanvas = overlayRenderer.domElement
+    overlayCanvas.style.cssText = 'position:absolute;top:12px;right:12px;pointer-events:none;mix-blend-mode:screen;z-index:12;width:120px;height:120px;'
+    overlayCanvas.width = overlayRenderer.domElement.width
+    overlayCanvas.height = overlayRenderer.domElement.height
+    container.appendChild(overlayCanvas)
+    axesRendererRef.current = overlayRenderer
+    axesCanvasRef.current = overlayCanvas
+
     // Initialize line resolution immediately to avoid first-frame fat-quad artifacts
     {
       const w = Math.max(1, container.clientWidth)
@@ -267,6 +651,8 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
     modelGroup.add(wireGroup)
     modelGroup.add(edgesGroup)
     modelGroup.add(outlineGroup)
+    const multiSceneGroup = new THREE.Group()
+    scene.add(multiSceneGroup)
     // Initial visibility: edges follow edgesMode (hidden when OFF)
     edgesGroup.visible = (edgesMode !== 'OFF')
 
@@ -293,6 +679,7 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
     wireframeRef.current = wireGroup
     edgesRef.current = edgesGroup
     outlineRef.current = outlineGroup
+    multiSceneRef.current.sceneGroup = multiSceneGroup
 
     // Origin axes helper attached to model group so it inherits transforms
     // Use unit length; we'll scale to desired world lengths per axis
@@ -305,6 +692,14 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
       axes.position.set(Number(o.x) || 0, Number(o.y) || 0, Number(o.z) || 0)
     }
     axesRef.current = axes
+
+    axesWidgetResourcesRef.current.current = []
+    const widget = createAxesWidget(axesWidgetResourcesRef.current)
+    if (widget && widget.root) {
+      widget.root.visible = !!axesVisibilityRef.current
+    }
+    axesWidgetRef.current = widget
+    axesWidgetCameraRef.current = widget?.camera || null
 
     // Build initial adorners and apply initial visual style/background before first render
     rebuildAdorners()
@@ -344,6 +739,15 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
       const edgesG = edgesRef.current
       if (wireG) applyLineResolution(wireG)
       if (edgesG) applyLineResolution(edgesG)
+
+      const overlayRenderer = axesRendererRef.current
+      const overlayCanvas = axesCanvasRef.current
+      if (overlayRenderer && overlayCanvas) {
+        const overlaySize = Math.max(AXES_OVERLAY_MIN_SIZE, Math.min(w, h) * AXES_OVERLAY_RATIO)
+        overlayRenderer.setSize(overlaySize, overlaySize, false)
+        overlayCanvas.style.width = `${overlaySize}px`
+        overlayCanvas.style.height = `${overlaySize}px`
+      }
     }
 
     const onResize = () => {
@@ -394,17 +798,64 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
           spinRef.current = false
         }
       }
-      if (spinRef.current && modelGroupRef.current) {
-        const dTheta = 0.01
+      if (spinRef.current && modelGroupRef.current && !multiSceneRef.current.active) {
+        const dTheta = 0.005
         modelGroupRef.current.rotation.y += dTheta
       }
+      if (multiSceneRef.current.active) {
+        const anim = animationRef.current
+        const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()
+        if (anim.playing) {
+          const elapsed = (now - anim.start) / anim.duration
+          const t = Math.min(1, Math.max(0, elapsed))
+          anim.mixers.forEach((mix) => {
+            const { object, from, to, materials = [], fromOpacity = 1, toOpacity = 1 } = mix
+            object.position.lerpVectors(from.position, to.position, t)
+            object.quaternion.slerpQuaternions(from.quaternion, to.quaternion, t)
+            const opacity = easeVisibilityOpacity(fromOpacity, toOpacity, t)
+            if (materials.length) {
+              materials.forEach((mat) => {
+                if (!mat) return
+                mat.opacity = opacity
+                mat.transparent = opacity < 0.999
+                if (opacity <= 0.001) {
+                  mat.depthWrite = false
+                } else if (mat.depthWrite === false) {
+                  mat.depthWrite = true
+                }
+              })
+            }
+            object.visible = opacity > 0.001 || toOpacity > 0.001
+          })
+          if (t >= 1) {
+            anim.playing = false
+            anim.mixers = []
+            anim.onComplete?.()
+          }
+        }
+        if (multiSceneRef.current.sceneGroup && spinRef.current) {
+          multiSceneRef.current.sceneGroup.rotation.y += 0.005
+        }
+      }
       controls.update()
+      const bufferSize = renderer.getDrawingBufferSize(AXES_TMP_BUFFER_SIZE)
+      renderer.setViewport(0, 0, bufferSize.x, bufferSize.y)
+      renderer.setScissorTest(false)
       renderer.render(scene, camera)
+      const widget = axesWidgetRef.current
+      const widgetCamera = axesWidgetCameraRef.current
+      const overlayRenderer = axesRendererRef.current
+      if (widget && widgetCamera && overlayRenderer && axesVisibilityRef.current) {
+        if (camera) {
+          widget.root.quaternion.copy(camera.getWorldQuaternion(AXES_TMP_QUAT_CAMERA)).invert()
+        }
+        overlayRenderer.autoClear = true
+        overlayRenderer.render(widget.scene, widgetCamera)
+      }
       // Always schedule next frame to ensure continuous rendering
       rafRef.current = requestAnimationFrame(tick)
     }
     rafRef.current = requestAnimationFrame(tick)
-
     // Loop control helpers (close over tick)
     const startLoop = () => {
       if (rafRef.current) return
@@ -473,6 +924,15 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
       }
       renderer.dispose()
       try { if (renderer.domElement && renderer.domElement.parentNode === container) container.removeChild(renderer.domElement) } catch {}
+      const overlayRenderer = axesRendererRef.current
+      const overlayCanvas = axesCanvasRef.current
+      if (overlayRenderer) {
+        overlayRenderer.dispose()
+        axesRendererRef.current = null
+      }
+      if (overlayCanvas && overlayCanvas.parentNode === container) {
+        try { container.removeChild(overlayCanvas) } catch {}
+      }
       // dispose basic resources
       scene.traverse((obj) => {
         if (obj.isMesh) {
@@ -483,6 +943,25 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
       })
       // allow re-initialization after full cleanup
       initializedRef.current = false
+      const widget = axesWidgetRef.current
+      axesWidgetRef.current = null
+      if (widget && widget.scene) {
+        widget.scene.traverse((obj) => {
+          if (obj.isMesh) {
+            obj.geometry?.dispose?.()
+            if (Array.isArray(obj.material)) obj.material.forEach((m) => m.dispose?.())
+            else obj.material?.dispose?.()
+          }
+        })
+      }
+      const disposers = axesWidgetResourcesRef.current?.current || []
+      disposers.forEach((dispose) => {
+        try {
+          dispose?.()
+        } catch {}
+      })
+      if (axesWidgetResourcesRef.current) axesWidgetResourcesRef.current.current = []
+      axesWidgetCameraRef.current = null
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -530,8 +1009,25 @@ useEffect(() => {
 
   // respond to origin visibility
   useEffect(() => {
-    if (axesRef.current) axesRef.current.visible = !!originVisible
+    const visible = !!originVisible
+    if (axesRef.current) axesRef.current.visible = visible
+    const multi = multiSceneRef.current
+    ;(multi?.models || []).forEach((container) => {
+      const axes = container?.userData?.__axes
+      if (axes) axes.visible = visible
+    })
+    const overlayCanvas = axesCanvasRef.current
+    if (overlayCanvas) overlayCanvas.style.display = visible ? 'block' : 'none'
   }, [originVisible])
+
+  useEffect(() => {
+    const visible = !!axesHelperVisible
+    axesVisibilityRef.current = visible
+    const widget = axesWidgetRef.current
+    if (widget && widget.root) widget.root.visible = visible
+    const overlayCanvas = axesCanvasRef.current
+    if (overlayCanvas) overlayCanvas.style.display = visible ? 'block' : 'none'
+  }, [axesHelperVisible])
 
   // respond to originOffset (world position for axes)
   useEffect(() => {
@@ -645,11 +1141,29 @@ useEffect(() => {
     // Replace the current model geometry with a given BufferGeometry
     // Accepts THREE.BufferGeometry and optional material
     setGeometry: (geometry, material) => {
+      multiSceneRef.current.active = false
+      resetAnimation()
       const group = modelGroupRef.current
       const wire = wireframeRef.current
       const edgesGroup = edgesRef.current
       const outlineGroup = outlineRef.current
+      const multiGroup = multiSceneRef.current.sceneGroup
       if (!group || !wire || !edgesGroup || !outlineGroup) return
+
+      if (multiGroup) {
+        while (multiGroup.children.length) {
+          const child = multiGroup.children.pop()
+          child.traverse?.((obj) => {
+            if (obj.geometry) obj.geometry.dispose?.()
+            if (obj.material) {
+              if (Array.isArray(obj.material)) obj.material.forEach((m) => m.dispose?.())
+              else obj.material.dispose?.()
+            }
+          })
+        }
+        multiGroup.visible = false
+        multiGroup.rotation.set(0, 0, 0)
+      }
 
       // clear previous meshes but keep adorner groups (wire, edges, outline) attached
       for (let i = group.children.length - 1; i >= 0; i--) {
@@ -736,13 +1250,154 @@ useEffect(() => {
       // Ensure far plane covers grid/floor
       adjustCameraPlanes()
     },
-    // Replace model with an Object3D (e.g., GLTF/3MF) preserving its materials
-    setObject: (object3D) => {
+    setMultiScene: (definition) => {
+      const multi = multiSceneRef.current
       const group = modelGroupRef.current
       const wire = wireframeRef.current
       const edgesGroup = edgesRef.current
       const outlineGroup = outlineRef.current
+      const axes = axesRef.current
+      const multiGroup = multi.sceneGroup
+      if (!multiGroup || !group || !wire || !edgesGroup || !outlineGroup || !definition) return
+
+      resetAnimation()
+      multi.active = true
+      multi.stateDisplayNames = definition.stateDisplayMap || {}
+      multi.stateOrder = definition.stateOrder || []
+      multi.transitionMap = definition.transitionMap || {}
+      multi.currentState = definition.initialState || (multi.stateOrder[0] || 'start')
+
+      // Clear single-model group
+      ;[group, wire, edgesGroup, outlineGroup].forEach((g) => {
+        if (!g) return
+        while (g.children.length) {
+          const child = g.children.pop()
+          if (child === axes) continue
+          child.traverse?.((obj) => {
+            if (obj.geometry) obj.geometry.dispose?.()
+            if (obj.material) {
+              if (Array.isArray(obj.material)) obj.material.forEach((m) => m.dispose?.())
+              else obj.material.dispose?.()
+            }
+          })
+        }
+      })
+      group.visible = false
+      if (wire) wire.visible = false
+      if (edgesGroup) edgesGroup.visible = false
+      if (outlineGroup) outlineGroup.visible = false
+
+      // Clear multi group children
+      while (multiGroup.children.length) {
+        const child = multiGroup.children.pop()
+        child.traverse?.((obj) => {
+          if (obj.geometry) obj.geometry.dispose?.()
+          if (obj.material) {
+            if (Array.isArray(obj.material)) obj.material.forEach((m) => m.dispose?.())
+            else obj.material.dispose?.()
+          }
+        })
+      }
+
+      const modelEntries = definition.models || []
+      const preparedModels = []
+
+      modelEntries.forEach((entry) => {
+        if (!entry || !entry.object) return
+        const container = new THREE.Group()
+        container.name = entry.name || 'Model'
+        const object = entry.object
+        container.add(object)
+        container.userData.__modelRoot = object
+        object.updateMatrixWorld(true)
+        const localBox = new THREE.Box3().setFromObject(object)
+        const localCenter = localBox.getCenter(new THREE.Vector3())
+        const localRadius = localBox.getSize(new THREE.Vector3()).length() / 2 || 0.5
+        container.userData.__localBoundCenter = localCenter
+        container.userData.__localBoundRadius = localRadius
+        const faderMaterials = []
+        object.traverse((obj) => {
+          if (obj.isMesh) {
+            ensureQuaternion(obj)
+            if (Array.isArray(obj.material)) {
+              obj.material.forEach((m) => { faderMaterials.push(m) })
+            } else if (obj.material) {
+              faderMaterials.push(obj.material)
+            }
+            obj.material.transparent = true
+          }
+        })
+        const axesHelper = new THREE.AxesHelper(1)
+        axesHelper.userData.__isOriginAxes = true
+        axesHelper.visible = !!originVisible
+        const modelBox = new THREE.Box3().setFromObject(object)
+        const sizeVec = modelBox.getSize(new THREE.Vector3())
+        const diag = sizeVec.length()
+        const axisScale = Math.max(0.05, diag * 0.12 || 0.5)
+        axesHelper.scale.setScalar(axisScale)
+        container.add(axesHelper)
+        container.userData.__axes = axesHelper
+        container.userData.__states = entry.states || {}
+        container.userData.__faderMaterials = faderMaterials
+        container.userData.__name = entry.name
+        ensureQuaternion(container)
+        multiGroup.add(container)
+        preparedModels.push(container)
+      })
+
+      multi.models = preparedModels
+      multiGroup.visible = true
+      multiGroup.rotation.set(0, 0, 0)
+
+      if (axes) {
+        if (axes.parent) axes.parent.remove(axes)
+        multiGroup.add(axes)
+        axes.position.set(0, 0, 0)
+        axes.visible = !!originVisible
+      }
+
+      rebuildMultiSceneBounds()
+      applyMultiState(multi.currentState, true, false)
+      frameMultiScene()
+    },
+    transitionMultiState: (targetState, duration = 900, onComplete) => {
+      return startStateTransition(targetState, duration, onComplete)
+    },
+    getMultiSceneInfo: () => {
+      const multi = multiSceneRef.current
+      if (!multi.active) return null
+      return {
+        currentState: multi.currentState,
+        stateOrder: multi.stateOrder || [],
+        transitionMap: multi.transitionMap || {},
+        stateDisplayNames: multi.stateDisplayNames || {},
+      }
+    },
+    // Replace model with an Object3D (e.g., GLTF/3MF) preserving its materials
+    setObject: (object3D) => {
+      multiSceneRef.current.active = false
+      resetAnimation()
+      const group = modelGroupRef.current
+      const wire = wireframeRef.current
+      const edgesGroup = edgesRef.current
+      const outlineGroup = outlineRef.current
+      const multiGroup = multiSceneRef.current.sceneGroup
       if (!group || !wire || !edgesGroup || !outlineGroup || !object3D) return
+
+      if (multiGroup) {
+        while (multiGroup.children.length) {
+          const child = multiGroup.children.pop()
+          child.traverse?.((obj) => {
+            if (obj.geometry) obj.geometry.dispose?.()
+            if (obj.material) {
+              if (Array.isArray(obj.material)) obj.material.forEach((m) => m.dispose?.())
+              else obj.material.dispose?.()
+            }
+          })
+        }
+        multiGroup.visible = false
+        multiGroup.rotation.set(0, 0, 0)
+      }
 
       // clear previous meshes but keep adorner groups attached
       for (let i = group.children.length - 1; i >= 0; i--) {
@@ -911,8 +1566,8 @@ useEffect(() => {
         camera.updateProjectionMatrix()
         controls.update()
       }
-      // Ensure far plane covers grid/floor
-      adjustCameraPlanes()
+      // Ensure near/far planes cover the model extents
+      adjustCameraPlanes(box)
     },
     reset: () => {
       const group = modelGroupRef.current
@@ -921,6 +1576,8 @@ useEffect(() => {
       if (group) group.rotation.set(0, 0, 0)
       if (wire) wire.rotation.set(0, 0, 0)
       if (axes) axes.rotation.set(0, 0, 0)
+      const multi = multiSceneRef.current
+      if (multi.sceneGroup) multi.sceneGroup.rotation.set(0, 0, 0)
       const camera = cameraRef.current
       const controls = controlsRef.current
       if (camera && controls) {
@@ -931,6 +1588,122 @@ useEffect(() => {
       }
     },
   }))
+
+  const applyMultiState = (stateName, immediate = false, adjustCamera = true) => {
+    const multi = multiSceneRef.current
+    if (!multi.active) {
+      // Single-model fit should continue to recenter around bounding box
+      const group = modelGroupRef.current
+      const camera = cameraRef.current
+      const controls = controlsRef.current
+      if (!group || !camera || !controls) return
+      const box = getModelBounds()
+      const sizeVec = box.getSize(new THREE.Vector3())
+      const size = sizeVec.length()
+      const center = box.getCenter(new THREE.Vector3())
+      controls.target.copy(center)
+      const distance = computeFitDistance(box, camera, 0.75)
+      const dir = new THREE.Vector3().subVectors(camera.position, controls.target).normalize()
+      camera.position.copy(dir.multiplyScalar(distance).add(controls.target))
+      camera.near = Math.max(0.01, Math.min(camera.near, size / 100))
+      camera.far = Math.max(camera.far, size * 10)
+      camera.updateProjectionMatrix()
+      controls.update()
+      adjustCameraPlanes(box)
+      return
+    }
+    const key = (stateName || '').toLowerCase()
+    const models = multi.models || []
+    models.forEach((container) => {
+      const states = container.userData.__states || {}
+      const state = states[key] || states.start || states['start'] || null
+      if (!state) return
+      const targetPos = state.position || new THREE.Vector3()
+      const targetQuat = state.quaternion || new THREE.Quaternion()
+      container.position.copy(targetPos)
+      container.quaternion.copy(targetQuat)
+      container.visible = state.visible !== false
+      const mats = container.userData.__faderMaterials || []
+      mats.forEach((mat) => {
+        mat.opacity = state.visible === false ? 0 : 1
+        mat.transparent = mat.opacity < 1
+        mat.depthWrite = mat.opacity >= 0.999
+      })
+      const axes = container.userData.__axes
+      if (axes) axes.visible = !!originVisible
+    })
+    multi.currentState = key
+    const camera = cameraRef.current
+    const controls = controlsRef.current
+    if (adjustCamera && !immediate && camera && controls && multi.active) {
+      frameMultiScene()
+    }
+    if (immediate) {
+      resetAnimation()
+    }
+  }
+
+  const startStateTransition = (targetState, duration = 900, onComplete) => {
+    const multi = multiSceneRef.current
+    if (!multi.active) return Promise.resolve(false)
+    const fromKey = multi.currentState || 'start'
+    const toKey = (targetState || '').toLowerCase()
+    if (fromKey === toKey) return Promise.resolve(false)
+    const allowed = multi.transitionMap?.[fromKey] || []
+    if (!allowed.includes(toKey)) return Promise.resolve(false)
+    const models = multi.models || []
+    const anim = animationRef.current
+    const now = performance.now()
+    const mixes = []
+    models.forEach((container) => {
+      const states = container.userData.__states || {}
+      const fromState = states[fromKey] || states.start || states['start']
+      const toState = states[toKey] || states.start || states['start']
+      if (!fromState || !toState) return
+      const object = container
+      const from = {
+        position: fromState.position.clone(),
+        quaternion: fromState.quaternion.clone(),
+        visible: fromState.visible !== false,
+      }
+      const to = {
+        position: toState.position.clone(),
+        quaternion: toState.quaternion.clone(),
+        visible: toState.visible !== false,
+      }
+      ensureQuaternion(object)
+      ensureQuaternion(fromState)
+      ensureQuaternion(toState)
+      object.visible = from.visible || to.visible
+      const materials = container.userData.__faderMaterials || []
+      const fromOpacity = from.visible ? 1 : 0
+      const toOpacity = to.visible ? 1 : 0
+      if (materials.length) {
+        materials.forEach((mat) => {
+          if (!mat) return
+          mat.opacity = fromOpacity
+          mat.transparent = fromOpacity < 0.999
+          mat.depthWrite = fromOpacity >= 0.999
+        })
+      }
+      mixes.push({ object, from, to, materials, fromOpacity, toOpacity })
+    })
+    if (!mixes.length) return Promise.resolve(false)
+
+    anim.playing = true
+    anim.start = now
+    anim.duration = Math.max(100, duration)
+    anim.fromState = fromKey
+    anim.toState = toKey
+    anim.mixers = mixes
+    anim.onComplete = () => {
+      applyMultiState(toKey, true)
+      resetAnimation()
+      onComplete?.()
+    }
+    multi.currentState = toKey
+    return Promise.resolve(true)
+  }
 
   // -------- Style helpers ---------
   const isDarkTheme = () => {
@@ -1169,18 +1942,25 @@ useEffect(() => {
   }
 
   // Ensure camera near/far planes encompass both model and background extents (grid/floor)
-  const adjustCameraPlanes = () => {
+  const adjustCameraPlanes = (boxOverride) => {
     const camera = cameraRef.current
-    const group = modelGroupRef.current
+    if (!camera) return
     const r = bgRef.current || {}
-    if (!camera || !group) return
-    const box = new THREE.Box3().setFromObject(group)
-    const size = box.getSize(new THREE.Vector3())
-    const span = Math.max(1, Math.max(size.x, size.y, size.z))
+    const box = boxOverride ? boxOverride.clone() : getActiveBounds()
+    const sizeVec = box.getSize(new THREE.Vector3())
+    const span = Math.max(1e-3, Math.max(sizeVec.x, sizeVec.y, sizeVec.z))
+    const center = box.getCenter(new THREE.Vector3())
+    const distance = camera.position.lengthSq() === 0 ? span * 5 : camera.position.distanceTo(center)
+    const radius = Math.max(span * Math.sqrt(3) / 2, 1e-3)
     const floorSize = (typeof r.floorSize === 'number' && r.floorSize > 0) ? r.floorSize : 0
-    const safety = 100
-    camera.near = Math.max(0.01, span / 100)
-    camera.far = Math.max(span * 10, floorSize * 2) + safety
+    const padding = Math.max(radius * 2, floorSize * 0.5, 10)
+    let near = distance - radius * 1.25
+    if (!Number.isFinite(near) || near <= 0) near = radius / 100
+    near = Math.max(0.01, Math.min(near, radius / 5, 2))
+    let far = distance + radius * 3 + padding
+    if (!Number.isFinite(far) || far <= near) far = near + Math.max(radius * 10, 50)
+    camera.near = near
+    camera.far = far
     camera.updateProjectionMatrix()
   }
 

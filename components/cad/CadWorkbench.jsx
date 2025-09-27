@@ -53,6 +53,7 @@ export const CadWorkbench = forwardRef(function CadWorkbench(
     return initialViewer?.shadingMode || 'GRAY'
   })
   const [originVisible, setOriginVisible] = useState(!!initialViewer?.originVisible)
+  const [axesVisible, setAxesVisible] = useState(!!initialViewer?.axesVisible)
   const [styleMode, setStyleMode] = useState('BASIC')
   const [backgroundMode, setBackgroundMode] = useState('WHITE')
   const [outlineThreshold, setOutlineThreshold] = useState(45)
@@ -79,6 +80,7 @@ export const CadWorkbench = forwardRef(function CadWorkbench(
       return initialViewer?.shadingMode || 'GRAY'
     })(),
     originVisible: !!initialViewer?.originVisible,
+    axesVisible: !!initialViewer?.axesVisible,
   })
 
   // When entering viewer-only mode, force conservative settings
@@ -91,10 +93,12 @@ export const CadWorkbench = forwardRef(function CadWorkbench(
         frameMode,
         shadingMode,
         originVisible,
+        axesVisible,
       }
       setFrameMode('HIDE')
       // keep shading as-is (GRAY by default) for pleasant fill
       setOriginVisible(false)
+      setAxesVisible(false)
     } else {
       // restore previous state when returning to workbench
       const p = prevViewerStateRef.current
@@ -102,6 +106,7 @@ export const CadWorkbench = forwardRef(function CadWorkbench(
       setFrameMode(p.frameMode || 'HIDE')
       setShadingMode(p.shadingMode || 'GRAY')
       setOriginVisible(!!p.originVisible)
+      setAxesVisible(!!p.axesVisible)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wbVisible])
@@ -488,6 +493,7 @@ export const CadWorkbench = forwardRef(function CadWorkbench(
     setShadingMode(order[(i >= 0 ? i + 1 : 0) % order.length])
   }
   const onToggleOrigin = () => setOriginVisible(v => !v)
+  const onToggleAxes = () => setAxesVisible(v => !v)
 
   return (
     <Card variant="ghost">
@@ -515,6 +521,7 @@ export const CadWorkbench = forwardRef(function CadWorkbench(
               frameMode={frameMode}
               shadingMode={shadingMode}
               originVisible={originVisible}
+              axesHelperVisible={axesVisible}
               styleMode={styleMode}
               backgroundMode={backgroundMode}
               outlineThreshold={outlineThreshold}
@@ -532,10 +539,12 @@ export const CadWorkbench = forwardRef(function CadWorkbench(
               frameMode={frameMode}
               shadingMode={shadingMode}
               originVisible={originVisible}
+              axesVisible={axesVisible}
               onCycleSpin={onCycleSpin}
               onToggleFrame={onToggleFrame}
               onToggleShading={onToggleShading}
               onToggleOrigin={onToggleOrigin}
+              onToggleAxes={onToggleAxes}
               styleMode={styleMode}
               onCycleStyle={onCycleStyle}
               backgroundMode={backgroundMode}

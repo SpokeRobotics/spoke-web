@@ -7,11 +7,13 @@ export function Toolbar({
   frameMode,
   shadingMode,
   originVisible,
+  axesVisible = false,
   showCadControls = true,
   onCycleSpin,
   onToggleFrame,
   onToggleShading,
   onToggleOrigin,
+  onToggleAxes,
   styleMode,
   onCycleStyle,
   backgroundMode,
@@ -90,6 +92,11 @@ export function Toolbar({
       <Button onClick={onToggleOrigin}>
         ORIGIN: {originVisible ? 'ON' : 'OFF'}
       </Button>
+      {onToggleAxes && (
+        <Button onClick={onToggleAxes}>
+          AXES: {axesVisible ? 'ON' : 'OFF'}
+        </Button>
+      )}
     </div>
   )
 }

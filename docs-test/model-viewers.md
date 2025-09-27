@@ -3,6 +3,22 @@ title: Model Viewer Embeds
 description: Demonstrates embedding the lightweight 3D model viewer inside markdown using MDX components.
 ---
 
+## Multi-Model Scene with Animation
+
+<ModelViewer toolsEnabled={true} height={420} expandedHeight={620}>
+
+| name  | start                | exploded             | path                                              |
+|-------|----------------------|----------------------|---------------------------------------------------|
+| frame | 0, 0, 0, 0, 0, 0, 1  | 0, 0, 0, 0, 0, 0, 1  | Cuboid_96x_64_32_4mm_Frame.3mf |
+| panel | 0, 0, 0, 0, 0, 0, 1  | 0, 0, 32, 0, 0, 0, 1 | RectPanel_64_32_4mm_1.3mf       |
+
+| from    | to        |
+|---------|-----------|
+| start   | exploded  |
+| exploded| start     |
+
+</ModelViewer>
+
 ## Simple Model Viewer
 
 <ModelViewer src="CrudeFrame.stl" height={260} expandedHeight={480} name="CrudeFrame" toolsEnabled={true} />
@@ -37,6 +53,10 @@ description: Demonstrates embedding the lightweight 3D model viewer inside markd
 <ModelViewer src="SpokeESP32DualMc.3mf" height={480} expandedHeight={640} name="SpokeESP32DualMc" toolsEnabled={true}  />
 
 <ModelViewer src="Core_96x_64_32_topless.3mf" height={480} expandedHeight={640} name="Core_96x_64_32_topless" toolsEnabled={true}  />
+
+<ModelViewer src="Cuboid_96x_64_32_4mm_Frame.3mf" height={480} expandedHeight={640} name="CoreFrame" toolsEnabled={true}  />
+
+<ModelViewer src="RectPanel_96x_64_PcbMount_28_MagCon_4mm_.3mf" height={480} expandedHeight={640} name="CoreFrame" toolsEnabled={true}  />
 
 ## Customized View Defaults
 

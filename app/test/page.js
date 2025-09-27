@@ -124,6 +124,14 @@ export default function TestPage() {
               <NextLink href="/test/docs/model-viewers">Open Model-MD</NextLink>
             </Button>
           </DocCard>
+
+          <DocCard>
+            <Heading size="4" mb="1">Multi-Model Scenes</Heading>
+            <Text color="gray" size="2" mb="3">Focused example showing multi-model assemblies with state transitions inside <code>&lt;ModelViewer /&gt;</code>.</Text>
+            <Button asChild>
+              <NextLink href="/test/docs/multi-model-viewers">View Multi-Model</NextLink>
+            </Button>
+          </DocCard>
         </Grid>
 
         <Separator my="5" size="4" />

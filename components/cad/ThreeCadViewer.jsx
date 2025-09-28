@@ -248,7 +248,30 @@ const AXES_TMP_SCISSOR = new THREE.Vector4()
 // frameMode: 'HIDE' | 'LIGHT' | 'DARK'
 // shadingMode: 'GRAY' | 'CREAM' | 'WHITE' | 'DARK' | 'BLACK' | 'OFF'
 export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
-  { spinEnabled = true, spinMode = 'auto', frameMode = 'HIDE', shadingMode = 'GRAY', originVisible = false, axesHelperVisible = false, resize, styleMode = 'BASIC', backgroundMode = 'WHITE', outlineThreshold = 45, outlineScale = 1.02, edgesMode = 'AUTO', outlineColorMode = 'AUTO', edgesLineWidth = 2, ambientLevel = 2.0, directionalLevel = 2.0, originOffset = { x: 0, y: 0, z: 0 }, useSourceMaterials = false },
+  {
+    spinEnabled = true,
+    spinMode = 'auto',
+    frameMode = 'HIDE',
+    shadingMode = 'GRAY',
+    originVisible = false,
+    axesHelperVisible = false,
+    resize,
+    styleMode = 'BASIC',
+    backgroundMode = 'WHITE',
+    outlineThreshold = 45,
+    outlineScale = 1.02,
+    edgesMode = 'AUTO',
+    outlineColorMode = 'AUTO',
+    edgesLineWidth = 2,
+    ambientLevel = 2.0,
+    directionalLevel = 2.0,
+    originOffset = { x: 0, y: 0, z: 0 },
+    useSourceMaterials = false,
+    targetHelperVisible = false,
+    boundingBoxesVisible = false,
+    modelCenterVisible = false,
+    autoCenterTarget = false,
+  },
   ref
 ) {
   const containerRef = useRef(null)
@@ -275,6 +298,55 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
   const axesVisibilityRef = useRef(!!axesHelperVisible)
   const axesRendererRef = useRef(null)
   const axesCanvasRef = useRef(null)
+  const overlayCenterRef = useRef(null) // DOM crosshair at viewport center
+  const overlayTargetRef = useRef(null) // DOM dot at projected controls.target
+  const overlayHelperRef = useRef(null) // DOM dot at projected helper position
+  const lastDebugLogRef = useRef(0) // throttle debug logs
+
+  // Helper: print canvas/camera metrics to console
+  const logMetrics = (tag = 'tick') => {
+    try {
+      const container = containerRef.current
+      const renderer = rendererRef.current
+      const camera = cameraRef.current
+      const controls = controlsRef.current
+      if (!container || !renderer || !camera || !controls) return
+      const elem = renderer.domElement
+      const rect = elem?.getBoundingClientRect?.() || { width: 0, height: 0, left: 0, top: 0 }
+      const cw = elem?.clientWidth || 0
+      const ch = elem?.clientHeight || 0
+      const attrW = elem?.width || 0
+      const attrH = elem?.height || 0
+      const contW = container?.clientWidth || 0
+      const contH = container?.clientHeight || 0
+      const pr = renderer.getPixelRatio ? renderer.getPixelRatio() : (window.devicePixelRatio || 1)
+      const dpr = (window.devicePixelRatio || 1)
+      const db = (renderer.getDrawingBufferSize ? renderer.getDrawingBufferSize(AXES_TMP_BUFFER_SIZE) : { x: 0, y: 0 })
+      const camAspect = camera.aspect
+      const domAspect = (cw && ch) ? (cw / ch) : 0
+      const ndc = controls.target.clone().project(camera)
+      const px = (ndc.x * 0.5 + 0.5) * (cw || contW || 1)
+      const py = (-ndc.y * 0.5 + 0.5) * (ch || contH || 1)
+      console.log('[ThreeCadViewer] metrics', tag, {
+        container: { w: contW, h: contH },
+        canvasClient: { w: cw, h: ch },
+        canvasAttr: { w: attrW, h: attrH },
+        canvasRect: { w: Math.round(rect.width), h: Math.round(rect.height), left: Math.round(rect.left), top: Math.round(rect.top) },
+        drawingBuffer: { w: db?.x || 0, h: db?.y || 0 },
+        pixelRatio: pr, devicePixelRatio: dpr,
+        aspect: { camera: Number(camAspect.toFixed(5)), dom: Number(domAspect.toFixed(5)) },
+        target: { world: controls.target.clone(), ndc: ndc.clone(), px: Math.round(px), py: Math.round(py) },
+      })
+    } catch {}
+  }
+  const targetHelperRef = useRef(null)
+  const targetHelperVisibleRef = useRef(!!targetHelperVisible)
+  const modelCenterHelperRef = useRef(null)
+  const modelCenterVisibleRef = useRef(!!modelCenterVisible)
+  const boundingBoxesVisibleRef = useRef(!!boundingBoxesVisible)
+  const boundingBoxesRef = useRef([])
+  const boundingBoxesDirtyRef = useRef(false)
+  const autoCenterTargetRef = useRef(!!autoCenterTarget)
   const lastSizeRef = useRef({ w: 0, h: 0 })
   const debounceRef = useRef(0)
   const envRTRef = useRef(null)      // environment render target (PMREM)
@@ -328,6 +400,184 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
       box.expandByObject(obj)
     })
     return box
+  }
+
+  const createTargetHelper = () => {
+    // World-space sprite anchored at controls.target for robust visibility
+    const material = new THREE.SpriteMaterial({ color: 0xff00ff, depthTest: false, depthWrite: false, opacity: 0.95, transparent: true })
+    const sprite = new THREE.Sprite(material)
+    sprite.userData.__isTargetHelper = true
+    sprite.center.set(0.5, 0.5)
+    sprite.renderOrder = 10
+    // start with unit scale; we will scale per-frame to maintain screen size
+    sprite.scale.set(1, 1, 1)
+    return sprite
+  }
+
+  const createModelCenterHelper = () => {
+    const sphereGeo = new THREE.SphereGeometry(0.5, 16, 16)
+    const sphereMat = new THREE.MeshBasicMaterial({ color: 0xffd400, transparent: true, opacity: 0.85, depthTest: false, depthWrite: false })
+    const mesh = new THREE.Mesh(sphereGeo, sphereMat)
+    mesh.renderOrder = 9
+    mesh.userData.__isModelCenterHelper = true
+    mesh.raycast = () => {}
+    return mesh
+  }
+
+  const disposeTargetHelper = (helper) => {
+    if (!helper) return
+    try { helper.geometry?.dispose?.() } catch {}
+    try { helper.material?.dispose?.() } catch {}
+  }
+
+  const disposeModelCenterHelper = (helper) => {
+    if (!helper) return
+    helper.geometry?.dispose?.()
+    helper.material?.dispose?.()
+  }
+
+  const createBoundingBoxHelper = (object, color = 0x00fff5) => {
+    if (!object) return null
+    const helper = new THREE.BoxHelper(object, color)
+    helper.material.transparent = true
+    helper.material.opacity = 0.7
+    helper.material.depthTest = false
+    helper.material.depthWrite = false
+    helper.userData.__isBoundingBoxHelper = true
+    return helper
+  }
+
+  const ensureTargetHelper = () => {
+    if (!targetHelperVisibleRef.current) return null
+    const scene = sceneRef.current
+    if (!scene) return null
+    let helper = targetHelperRef.current
+    if (!helper) {
+      helper = createTargetHelper()
+      targetHelperRef.current = helper
+    }
+    if (!helper.parent) scene.add(helper)
+    helper.visible = true
+    // Remove duplicates if any
+    try {
+      let dup = 0
+      scene.traverse((obj) => {
+        if (obj && obj !== helper && obj.userData && obj.userData.__isTargetHelper) {
+          dup++
+          try { if (obj.parent) obj.parent.remove(obj) } catch {}
+          try { obj.geometry?.dispose?.(); obj.material?.dispose?.() } catch {}
+        }
+      })
+      if (dup > 0) { try { console.debug('[ThreeCadViewer] Removed duplicate target helpers:', dup) } catch {} }
+    } catch {}
+    return helper
+  }
+
+  const ensureModelCenterHelper = () => {
+    if (!modelCenterVisibleRef.current) return null
+    const scene = sceneRef.current
+    if (!scene) return null
+    let helper = modelCenterHelperRef.current
+    if (!helper) {
+      helper = createModelCenterHelper()
+      modelCenterHelperRef.current = helper
+    }
+    if (helper && !helper.parent) scene.add(helper)
+    if (helper) helper.visible = true
+    return helper
+  }
+
+  const removeTargetHelper = () => {
+    const helper = targetHelperRef.current
+    if (helper) {
+      if (helper.parent) helper.parent.remove(helper)
+      helper.visible = false
+    }
+  }
+
+  const removeModelCenterHelper = () => {
+    const helper = modelCenterHelperRef.current
+    if (!helper) return
+    if (helper.parent) helper.parent.remove(helper)
+    helper.visible = false
+  }
+
+  const disposeTargetHelperRef = () => {
+    const helper = targetHelperRef.current
+    if (!helper) return
+    if (helper.parent) helper.parent.remove(helper)
+    disposeTargetHelper(helper)
+    targetHelperRef.current = null
+  }
+
+  const disposeModelCenterHelperRef = () => {
+    const helper = modelCenterHelperRef.current
+    if (!helper) return
+    if (helper.parent) helper.parent.remove(helper)
+    disposeModelCenterHelper(helper)
+    modelCenterHelperRef.current = null
+  }
+
+  const clearBoundingBoxes = () => {
+    const boxes = boundingBoxesRef.current || []
+    boxes.forEach((helper) => {
+      if (!helper) return
+      if (helper.parent) helper.parent.remove(helper)
+      if (Array.isArray(helper.material)) helper.material.forEach((m) => m?.dispose?.())
+      else helper.material?.dispose?.()
+      helper.geometry?.dispose?.()
+    })
+    boundingBoxesRef.current = []
+    boundingBoxesDirtyRef.current = false
+  }
+
+  const markBoundingBoxesDirty = () => {
+    boundingBoxesDirtyRef.current = true
+  }
+
+  const rebuildBoundingBoxes = () => {
+    boundingBoxesDirtyRef.current = false
+    clearBoundingBoxes()
+    if (!boundingBoxesVisibleRef.current) return
+    const scene = sceneRef.current
+    if (!scene) return
+    const boxes = []
+    const multi = multiSceneRef.current
+    if (multi?.active) {
+      (multi.models || []).forEach((container) => {
+        if (!container || container.visible === false) return
+        const target = container.userData?.__modelRoot || container
+        if (!target) return
+        const helper = createBoundingBoxHelper(target)
+        if (!helper) return
+        helper.userData.__target = target
+        // Attach to scene root to avoid inheriting transforms (double-rotation)
+        scene.add(helper)
+        helper.matrixAutoUpdate = true
+        helper.update(target)
+        boxes.push(helper)
+      })
+    } else {
+      const group = modelGroupRef.current
+      if (group) {
+        const wireG = wireframeRef.current
+        const edgesG = edgesRef.current
+        const outlineG = outlineRef.current
+        const axesG = axesRef.current
+        group.children.forEach((child) => {
+          if (child === wireG || child === edgesG || child === outlineG || child === axesG) return
+          const helper = createBoundingBoxHelper(child)
+          if (!helper) return
+          helper.userData.__target = child
+          // Attach to scene root to avoid inheriting transforms
+          scene.add(helper)
+          helper.matrixAutoUpdate = true
+          helper.update(child)
+          boxes.push(helper)
+        })
+      }
+    }
+    boundingBoxesRef.current = boxes
   }
 
   const rebuildMultiSceneBounds = () => {
@@ -570,6 +820,11 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
     const scene = new THREE.Scene()
     // background set in applyStyle + applyBackground
 
+    // Camera setup
+    // - We use a single PerspectiveCamera owned by this viewer
+    // - The camera's projection matrix (fov/aspect/near/far) is updated on resize and when fit operations occur
+    // - IMPORTANT: In the render loop we always call controls.update() first, and then aim the camera at controls.target via camera.lookAt(target)
+    //   so that the optical axis passes through OrbitControls.target. Anything rendered exactly at controls.target should project to screen center.
     const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.05, 5000)
     camera.position.set(6, 6, 6)
     camera.lookAt(0, 0, 0)
@@ -631,6 +886,25 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
     container.style.minHeight = '0'
     container.style.flex = '1 1 auto'
     container.style.alignSelf = 'stretch'
+
+    // Expose a manual debug hook to print metrics on demand
+    try { window.__cadDebug = () => logMetrics('manual') } catch {}
+
+    // Create simple 2D debug overlays
+    const centerEl = document.createElement('div')
+    centerEl.style.cssText = 'position:absolute;left:50%;top:50%;width:12px;height:12px;margin-left:-6px;margin-top:-6px;border:2px solid rgba(80,90,100,0.65);border-radius:2px;pointer-events:none;z-index:5'
+    container.appendChild(centerEl)
+    overlayCenterRef.current = centerEl
+
+    const targetEl = document.createElement('div')
+    targetEl.style.cssText = 'position:absolute;width:8px;height:8px;margin-left:-4px;margin-top:-4px;background:#f0f;box-shadow:0 0 0 2px rgba(255,0,255,0.25);border-radius:50%;pointer-events:none;z-index:6;left:50%;top:50%'
+    container.appendChild(targetEl)
+    overlayTargetRef.current = targetEl
+
+    const helperEl = document.createElement('div')
+    helperEl.style.cssText = 'position:absolute;width:8px;height:8px;margin-left:-4px;margin-top:-4px;background:#0ff;box-shadow:0 0 0 2px rgba(0,255,255,0.25);border-radius:50%;pointer-events:none;z-index:6;left:50%;top:50%'
+    container.appendChild(helperEl)
+    overlayHelperRef.current = helperEl
 
     const controls = new OrbitControls(camera, renderer.domElement)
     controls.enableDamping = true
@@ -759,6 +1033,45 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
       if (composerNow) composerNow.render()
       else renderer.render(scene, camera)
     } catch {}
+    // Emit initial metrics once after first render
+    logMetrics('init')
+
+    // Expose a manual helper/target projection check for debugging
+    try {
+      window.__cadCheckHelper = () => {
+        try {
+          const rendererNow = rendererRef.current
+          const cameraNow = cameraRef.current
+          const controlsNow = controlsRef.current
+          const helperNow = targetHelperRef.current
+          if (!rendererNow || !cameraNow || !controlsNow) return 'viewer not ready'
+          const ndc = controlsNow.target.clone().project(cameraNow)
+          let helperNDC = null
+          let helperWorld = null
+          if (helperNow) {
+            helperWorld = new THREE.Vector3().setFromMatrixPosition(helperNow.matrixWorld)
+            helperNDC = helperWorld.clone().project(cameraNow)
+          }
+          let glViewport = null
+          try {
+            const gl = rendererNow.getContext()
+            glViewport = Array.from(gl.getParameter(gl.VIEWPORT))
+          } catch {}
+          const canvas = rendererNow.domElement
+          const payload = {
+            ndc,
+            helperNDC,
+            helperWorld,
+            glViewport,
+            canvasAttr: { w: canvas?.width || 0, h: canvas?.height || 0 },
+          }
+          console.log('[ThreeCadViewer] helper-check manual', payload)
+          return payload
+        } catch (e) {
+          return String(e)
+        }
+      }
+    } catch {}
 
     // interaction handling for auto spin pause
     const INTERACTION_EVENTS = ['pointerdown', 'wheel', 'touchstart']
@@ -828,10 +1141,107 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
           multiSceneRef.current.sceneGroup.rotation.y += 0.005
         }
       }
+      // Auto-center disabled to allow normal dragging
+      //
+      // Camera/controls update order per frame:
+      // 1) controls.update() applies damping and any user interaction to the camera pose but DOES NOT change controls.target.
+      // 2) camera.lookAt(controls.target) explicitly aims the optical axis at OrbitControls.target.
+      //    This guarantees that projecting controls.target lands at the exact viewport center (NDC 0,0).
+      // 3) Helpers are positioned AFTER the above so they reflect the current camera/target state of this frame.
       controls.update()
-      const bufferSize = renderer.getDrawingBufferSize(AXES_TMP_BUFFER_SIZE)
-      renderer.setViewport(0, 0, bufferSize.x, bufferSize.y)
-      renderer.setScissor(0, 0, bufferSize.x, bufferSize.y)
+      const cameraNow = cameraRef.current
+      if (cameraNow) cameraNow.lookAt(controls.target)
+
+      // Target helper (magenta):
+      // - Implemented as a world-space THREE.Sprite for robust visibility (depthTest=false)
+      // - Anchored at controls.target so it marks the true orbit point in world space
+      // - Scaled by distance and FOV to appear ~constant size on screen
+      const helper = ensureTargetHelper()
+      if (helper && controls) {
+        const scene = sceneRef.current
+        const cam = cameraRef.current
+        const renderer = rendererRef.current
+        if (scene && cam && renderer) {
+          if (helper.parent !== scene) {
+            try { helper.parent?.remove?.(helper) } catch {}
+            scene.add(helper)
+          }
+          // Position at exact world target
+          helper.position.copy(controls.target)
+          // Scale to roughly constant on-screen size (in pixels)
+          const desiredPx = 16
+          const h = Math.max(1, renderer.domElement?.clientHeight || 0)
+          const d = cam.position.distanceTo(controls.target)
+          const worldSize = 2 * Math.tan((cam.fov * Math.PI / 180) / 2) * d * (desiredPx / h)
+          helper.scale.setScalar(Math.max(0.001, worldSize))
+          helper.visible = true
+          helper.updateMatrixWorld(true)
+        }
+      }
+      // Model-center helper (yellow): computes current model bounds each frame and places a 3D sphere at that center.
+      // This is independent from the camera target and is used to visualize discrepancies between "camera target" and "model center".
+      const mcHelper = ensureModelCenterHelper()
+      if (mcHelper) {
+        const center = getModelBounds().getCenter(new THREE.Vector3())
+        if (isFinite(center.x) && isFinite(center.y) && isFinite(center.z)) mcHelper.position.copy(center)
+      }
+      // Position 2D overlay dot at projected controls.target and compare to 3D helper
+      try {
+        const dot = overlayTargetRef.current
+        const hdot = overlayHelperRef.current
+        const cam = cameraRef.current
+        const elem = renderer.domElement
+        if (dot && cam && elem) {
+          const rectW = elem.clientWidth || container.clientWidth
+          const rectH = elem.clientHeight || container.clientHeight
+          const ndc = controls.target.clone().project(cam)
+          const px = (ndc.x * 0.5 + 0.5) * rectW
+          const py = (-ndc.y * 0.5 + 0.5) * rectH
+          dot.style.left = `${px}px`
+          dot.style.top = `${py}px`
+          // Compare helper projection (world-space sprite)
+          if (helper) {
+            const worldPos = new THREE.Vector3().setFromMatrixPosition(helper.matrixWorld)
+            const hp = worldPos.clone().project(cam)
+            const dx = Math.abs(hp.x - ndc.x)
+            const dy = Math.abs(hp.y - ndc.y)
+            if (dx > 1e-3 || dy > 1e-3) {
+              try { console.debug('[ThreeCadViewer] helper vs target NDC mismatch (camera-parented)', { ndc, hp, target: controls.target.clone(), helperWorld: worldPos }) } catch {}
+            }
+            if (hdot) {
+              const hpx = (hp.x * 0.5 + 0.5) * rectW
+              const hpy = (-hp.y * 0.5 + 0.5) * rectH
+              hdot.style.left = `${hpx}px`
+              hdot.style.top = `${hpy}px`
+            }
+          }
+        }
+      } catch {}
+      if (boundingBoxesVisibleRef.current) {
+        if (boundingBoxesDirtyRef.current) {
+          rebuildBoundingBoxes()
+        }
+        const boxes = boundingBoxesRef.current || []
+        boxes.forEach((bbox) => {
+          if (!bbox) return
+          const target = bbox.userData?.__target
+          if (!target) return
+          target.updateMatrixWorld?.(true)
+          bbox.update(target)
+        })
+      } else if ((boundingBoxesRef.current || []).length) {
+        clearBoundingBoxes()
+      }
+      // Do not auto-center target each frame; leave target under user control
+      // Enforce viewport/scissor to canvas attribute size (not drawingBuffer) to avoid DPR mismatch
+      const canvas = renderer.domElement
+      const vw = canvas?.width || 0
+      const vh = canvas?.height || 0
+      if (vw > 0 && vh > 0) {
+        renderer.setViewport(0, 0, vw, vh)
+        renderer.setScissor(0, 0, vw, vh)
+        try { renderer.getContext()?.viewport(0, 0, vw, vh) } catch {}
+      }
       renderer.setScissorTest(false)
       renderer.render(scene, camera)
       const widget = axesWidgetRef.current
@@ -917,6 +1327,19 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
       if (overlayCanvas && overlayCanvas.parentNode === container) {
         try { container.removeChild(overlayCanvas) } catch {}
       }
+      // Remove 2D debug overlays
+      const centerEl2 = overlayCenterRef.current
+      const targetEl2 = overlayTargetRef.current
+      const helperEl2 = overlayHelperRef.current
+      try { if (centerEl2 && centerEl2.parentNode === container) container.removeChild(centerEl2) } catch {}
+      try { if (targetEl2 && targetEl2.parentNode === container) container.removeChild(targetEl2) } catch {}
+      try { if (helperEl2 && helperEl2.parentNode === container) container.removeChild(helperEl2) } catch {}
+      overlayCenterRef.current = null
+      overlayTargetRef.current = null
+      overlayHelperRef.current = null
+      clearBoundingBoxes()
+      disposeTargetHelperRef()
+      disposeModelCenterHelperRef()
       // dispose basic resources
       scene.traverse((obj) => {
         if (obj.isMesh) {
@@ -1012,6 +1435,41 @@ useEffect(() => {
     const overlayCanvas = axesCanvasRef.current
     if (overlayCanvas) overlayCanvas.style.display = visible ? 'block' : 'none'
   }, [axesHelperVisible])
+
+  useEffect(() => {
+    targetHelperVisibleRef.current = !!targetHelperVisible
+    // Toggle 2D overlay dot visibility
+    const dot = overlayTargetRef.current
+    if (dot) dot.style.display = targetHelperVisibleRef.current ? 'block' : 'none'
+    if (targetHelperVisibleRef.current) {
+      ensureTargetHelper()
+    } else {
+      removeTargetHelper()
+    }
+  }, [targetHelperVisible])
+
+  useEffect(() => {
+    modelCenterVisibleRef.current = !!modelCenterVisible
+    if (modelCenterVisibleRef.current) {
+      ensureModelCenterHelper()
+    } else {
+      removeModelCenterHelper()
+    }
+  }, [modelCenterVisible])
+
+  useEffect(() => {
+    boundingBoxesVisibleRef.current = !!boundingBoxesVisible
+    if (boundingBoxesVisibleRef.current) {
+      markBoundingBoxesDirty()
+    } else {
+      clearBoundingBoxes()
+    }
+  }, [boundingBoxesVisible])
+
+  // respond to autoCenterTarget toggle
+  useEffect(() => {
+    autoCenterTargetRef.current = !!autoCenterTarget
+  }, [autoCenterTarget])
 
   // respond to originOffset (world position for axes)
   useEffect(() => {
@@ -1233,6 +1691,7 @@ useEffect(() => {
       syncGridToModel()
       // Ensure far plane covers grid/floor
       adjustCameraPlanes()
+      markBoundingBoxesDirty()
     },
     setMultiScene: (definition) => {
       const multi = multiSceneRef.current
@@ -1343,6 +1802,7 @@ useEffect(() => {
       rebuildMultiSceneBounds()
       applyMultiState(multi.currentState, true, false)
       frameMultiScene()
+      markBoundingBoxesDirty()
     },
     transitionMultiState: (targetState, duration = 900, onComplete) => {
       return startStateTransition(targetState, duration, onComplete)
@@ -1421,29 +1881,8 @@ useEffect(() => {
       // Add the object
       group.add(object3D)
 
-      // Recenter the object to its bounding box center so it sits at the origin.
-      // This provides consistent centering across all formats (3MF/GLTF included).
-      try {
-        // Ensure world matrices are up to date before measuring
-        object3D.updateMatrixWorld(true)
-        const initialBox = getModelBounds()
-        const center0 = initialBox.getCenter(new THREE.Vector3())
-        if (isFinite(center0.x) && isFinite(center0.y) && isFinite(center0.z)) {
-          object3D.position.sub(center0)
-          object3D.updateMatrixWorld(true)
-          // Ensure axes represent the model's true origin and rotate with the model:
-          // - Parent the axes to the loaded object so they live at the object's local origin (0,0,0)
-          // - This places them at the author's model origin (not the rotation center) and they follow rotations.
-          if (axesRef.current) {
-            const axes = axesRef.current
-            try {
-              if (axes.parent) axes.parent.remove(axes)
-            } catch {}
-            object3D.add(axes)
-            axes.position.set(0, 0, 0)
-          }
-        }
-      } catch {}
+      // Do not translate the loaded object to origin; preserve authoring coordinates.
+      // Axes remain under modelGroup and are positioned via originOffset.
 
       // Ensure current shading does not override materials
       applyShading(shadingMode)
@@ -1471,6 +1910,7 @@ useEffect(() => {
       }
       syncGridToModel()
       adjustCameraPlanes()
+      markBoundingBoxesDirty()
     },
     // Toggle exploded view for non-STL multi-part models (applies to Object3D loads)
     setExploded: (exploded) => {
@@ -1524,6 +1964,7 @@ useEffect(() => {
         })
       }
       explodedRef.current = !!exploded
+      markBoundingBoxesDirty()
     },
     fitView: () => {
       const group = modelGroupRef.current
@@ -1568,6 +2009,16 @@ useEffect(() => {
         camera.position.set(6, 6, 6)
         controls.target.set(0, 0, 0)
         camera.updateProjectionMatrix()
+        controls.update()
+      }
+    },
+    recenterTarget: () => {
+      const controls = controlsRef.current
+      if (!controls) return
+      const center = getModelBounds().getCenter(new THREE.Vector3())
+      if (isFinite(center.x) && isFinite(center.y) && isFinite(center.z)) {
+        controls.target.copy(center)
+        try { console.debug('[ThreeCadViewer] recenterTarget ->', center) } catch {}
         controls.update()
       }
     },

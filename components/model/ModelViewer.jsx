@@ -409,6 +409,10 @@ export const ModelViewer = forwardRef(function ModelViewer(
   const [vBackgroundMode, setVBackgroundMode] = useState(backgroundMode)
   const [vOutlineThreshold, setVOutlineThreshold] = useState(outlineThreshold)
   const [vOutlineScale, setVOutlineScale] = useState(outlineScale)
+  // Debug helpers: camera target sphere + bounding boxes
+  const [vTargetHelper, setVTargetHelper] = useState(false)
+  const [vBoundingBoxes, setVBoundingBoxes] = useState(false)
+  const [vModelCenter, setVModelCenter] = useState(false)
   const [vEdgesMode, setVEdgesMode] = useState(edgesMode)
   const [vOutlineColorMode, setVOutlineColorMode] = useState(outlineColorMode)
   const [vEdgesLineWidth, setVEdgesLineWidth] = useState(edgesLineWidth)
@@ -779,6 +783,9 @@ export const ModelViewer = forwardRef(function ModelViewer(
   }
   const onToggleOrigin = () => setVOriginVisible(v => !v)
   const onToggleAxes = () => setVAxesVisible(v => !v)
+const onToggleTargetHelper = () => setVTargetHelper(v => !v)
+const onToggleBoundingBoxes = () => setVBoundingBoxes(v => !v)
+const onToggleModelCenter = () => setVModelCenter(v => !v)
 
   const canDownload = !!resolvedUrl && !isMultiScene
 
@@ -863,6 +870,10 @@ export const ModelViewer = forwardRef(function ModelViewer(
             edgesLineWidth={vEdgesLineWidth}
             ambientLevel={vAmbientLevel}
             directionalLevel={vDirectionalLevel}
+            targetHelperVisible={vTargetHelper}
+            boundingBoxesVisible={vBoundingBoxes}
+            modelCenterVisible={vModelCenter}
+            autoCenterTarget={vModelCenter || vTargetHelper}
             useSourceMaterials={isSourceMaterialMode}
             originOffset={{
               x: (!isSourceMaterialMode && !isMultiScene && recenterEnabled) ? -(offsetRef.current.x || 0) : 0,
@@ -911,6 +922,12 @@ export const ModelViewer = forwardRef(function ModelViewer(
                   onToggleShading={onToggleShading}
                   onToggleOrigin={onToggleOrigin}
                   onToggleAxes={onToggleAxes}
+                  targetHelperVisible={vTargetHelper}
+                  onToggleTargetHelper={onToggleTargetHelper}
+                  boundingBoxesVisible={vBoundingBoxes}
+                  onToggleBoundingBoxes={onToggleBoundingBoxes}
+                  modelCenterVisible={vModelCenter}
+                  onToggleModelCenter={onToggleModelCenter}
                   styleMode={vStyleMode}
                   onCycleStyle={onCycleStyle}
                   backgroundMode={vBackgroundMode}
@@ -934,7 +951,11 @@ export const ModelViewer = forwardRef(function ModelViewer(
                       CENTER: {recenterEnabled ? 'ON' : 'OFF'}
                     </Button>
                   )}
-                />
+                >
+                  <Button variant="solid" size="2" onClick={() => viewerRef.current?.recenterTarget?.()} style={{ whiteSpace: 'nowrap' }}>
+                    CENTER TARGET
+                  </Button>
+                </Toolbar>
               </div>
               {!isSourceMaterialMode && !isMultiScene && (
                 <Box mt="1" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', maxWidth: 'calc(100% - 96px)' }}>

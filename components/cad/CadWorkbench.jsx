@@ -66,6 +66,8 @@ export const CadWorkbench = forwardRef(function CadWorkbench(
   // Global lighting controls
   const [ambientLevel, setAmbientLevel] = useState(2.0) // 0 = OFF
   const [directionalLevel, setDirectionalLevel] = useState(2.0) // 0 = OFF
+  const [targetHelperEnabled, setTargetHelperEnabled] = useState(false)
+  const [boundingBoxesEnabled, setBoundingBoxesEnabled] = useState(true)
 
   // Preserve previous viewer settings when collapsing to viewer-only
   const prevViewerStateRef = useRef({
@@ -102,18 +104,15 @@ export const CadWorkbench = forwardRef(function CadWorkbench(
     } else {
       // restore previous state when returning to workbench
       const p = prevViewerStateRef.current
-      setSpinMode(p.spinMode || 'off')
       setFrameMode(p.frameMode || 'HIDE')
       setShadingMode(p.shadingMode || 'GRAY')
       setOriginVisible(!!p.originVisible)
       setAxesVisible(!!p.axesVisible)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wbVisible])
 
-  const [status, setStatus] = useState('Ready')
-  const [error, setError] = useState(null)
-  const [busy, setBusy] = useState(false)
+  const [debugHelper, setDebugHelper] = useState(false)
+  const isWorkbenchOpen = wbVisible !== false
   const [showDocsHelper, setShowDocsHelper] = useState(false)
 
   const viewerRef = useRef(null)
@@ -494,6 +493,8 @@ export const CadWorkbench = forwardRef(function CadWorkbench(
   }
   const onToggleOrigin = () => setOriginVisible(v => !v)
   const onToggleAxes = () => setAxesVisible(v => !v)
+  const onToggleTargetHelper = () => setTargetHelperEnabled(v => !v)
+  const onToggleBoundingBoxes = () => setBoundingBoxesEnabled(v => !v)
 
   return (
     <Card variant="ghost">
@@ -531,6 +532,8 @@ export const CadWorkbench = forwardRef(function CadWorkbench(
               edgesLineWidth={edgesLineWidth}
               ambientLevel={ambientLevel}
               directionalLevel={directionalLevel}
+              targetHelperVisible={targetHelperEnabled}
+              boundingBoxesVisible={isWorkbenchOpen && boundingBoxesEnabled}
             />
           )}
           overlayTopLeft={(
@@ -545,6 +548,10 @@ export const CadWorkbench = forwardRef(function CadWorkbench(
               onToggleShading={onToggleShading}
               onToggleOrigin={onToggleOrigin}
               onToggleAxes={onToggleAxes}
+              targetHelperVisible={targetHelperEnabled}
+              onToggleTargetHelper={onToggleTargetHelper}
+              boundingBoxesVisible={isWorkbenchOpen && boundingBoxesEnabled}
+              onToggleBoundingBoxes={onToggleBoundingBoxes}
               styleMode={styleMode}
               onCycleStyle={onCycleStyle}
               backgroundMode={backgroundMode}
@@ -563,7 +570,11 @@ export const CadWorkbench = forwardRef(function CadWorkbench(
               directionalLevel={directionalLevel}
               onCycleAmbientLevel={onCycleAmbientLevel}
               onCycleDirectionalLevel={onCycleDirectionalLevel}
-            />
+            >
+              <Button onClick={() => viewerRef.current?.recenterTarget?.()}>
+                CENTER TARGET
+              </Button>
+            </Toolbar>
           )}
           toolbar={!isModelMode ? (
             <Box style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>

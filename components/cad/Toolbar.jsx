@@ -14,6 +14,12 @@ export function Toolbar({
   onToggleShading,
   onToggleOrigin,
   onToggleAxes,
+  targetHelperVisible = false,
+  onToggleTargetHelper,
+  boundingBoxesVisible = false,
+  onToggleBoundingBoxes,
+  modelCenterVisible = false,
+  onToggleModelCenter,
   styleMode,
   onCycleStyle,
   backgroundMode,
@@ -89,12 +95,29 @@ export function Toolbar({
         </Button>
       )}
       {children}
-      <Button onClick={onToggleOrigin}>
-        ORIGIN: {originVisible ? 'ON' : 'OFF'}
-      </Button>
-      {onToggleAxes && (
-        <Button onClick={onToggleAxes}>
-          AXES: {axesVisible ? 'ON' : 'OFF'}
+      {showCadControls && (
+        <>
+          <Button onClick={onToggleOrigin}>
+            ORIGIN: {originVisible ? 'ON' : 'OFF'}
+          </Button>
+          <Button onClick={onToggleAxes}>
+            AXES: {axesVisible ? 'ON' : 'OFF'}
+          </Button>
+        </>
+      )}
+      {typeof onToggleTargetHelper === 'function' && (
+        <Button onClick={onToggleTargetHelper}>
+          TARGET: {targetHelperVisible ? 'ON' : 'OFF'}
+        </Button>
+      )}
+      {typeof onToggleBoundingBoxes === 'function' && (
+        <Button onClick={onToggleBoundingBoxes}>
+          BBOX: {boundingBoxesVisible ? 'ON' : 'OFF'}
+        </Button>
+      )}
+      {typeof onToggleModelCenter === 'function' && (
+        <Button onClick={onToggleModelCenter}>
+          MODEL CTR: {modelCenterVisible ? 'ON' : 'OFF'}
         </Button>
       )}
     </div>

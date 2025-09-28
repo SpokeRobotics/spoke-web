@@ -391,7 +391,13 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
     models.forEach((container) => {
       if (!container || container.visible === false) return
       tempBox.makeEmpty()
-      tempBox.setFromObject(container)
+      const modelRoot = container.userData?.__modelRoot
+      if (modelRoot) {
+        modelRoot.updateMatrixWorld(true)
+        tempBox.setFromObject(modelRoot)
+      } else {
+        tempBox.setFromObject(container)
+      }
       if (tempBox.isEmpty()) return
       if (!initialized) {
         box.copy(tempBox)
@@ -604,17 +610,9 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
       renderer.domElement.style.margin = '0'
     }
 
-    const overlayRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true })
-    overlayRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 3))
-    const overlaySize = Math.max(AXES_OVERLAY_MIN_SIZE, Math.min(container.clientWidth, container.clientHeight) * AXES_OVERLAY_RATIO)
-    overlayRenderer.setSize(overlaySize, overlaySize, false)
-    const overlayCanvas = overlayRenderer.domElement
-    overlayCanvas.style.cssText = 'position:absolute;top:12px;right:12px;pointer-events:none;mix-blend-mode:screen;z-index:12;width:120px;height:120px;'
-    overlayCanvas.width = overlayRenderer.domElement.width
-    overlayCanvas.height = overlayRenderer.domElement.height
-    container.appendChild(overlayCanvas)
-    axesRendererRef.current = overlayRenderer
-    axesCanvasRef.current = overlayCanvas
+    // AXES OVERLAY DISABLED: keep references null so overlay renderer is inactive
+    axesRendererRef.current = null
+    axesCanvasRef.current = null
 
     // Initialize line resolution immediately to avoid first-frame fat-quad artifacts
     {
@@ -740,14 +738,7 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
       if (wireG) applyLineResolution(wireG)
       if (edgesG) applyLineResolution(edgesG)
 
-      const overlayRenderer = axesRendererRef.current
-      const overlayCanvas = axesCanvasRef.current
-      if (overlayRenderer && overlayCanvas) {
-        const overlaySize = Math.max(AXES_OVERLAY_MIN_SIZE, Math.min(w, h) * AXES_OVERLAY_RATIO)
-        overlayRenderer.setSize(overlaySize, overlaySize, false)
-        overlayCanvas.style.width = `${overlaySize}px`
-        overlayCanvas.style.height = `${overlaySize}px`
-      }
+      // AXES OVERLAY DISABLED: no overlay renderer resize
     }
 
     const onResize = () => {
@@ -840,17 +831,14 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
       controls.update()
       const bufferSize = renderer.getDrawingBufferSize(AXES_TMP_BUFFER_SIZE)
       renderer.setViewport(0, 0, bufferSize.x, bufferSize.y)
+      renderer.setScissor(0, 0, bufferSize.x, bufferSize.y)
       renderer.setScissorTest(false)
       renderer.render(scene, camera)
       const widget = axesWidgetRef.current
       const widgetCamera = axesWidgetCameraRef.current
       const overlayRenderer = axesRendererRef.current
       if (widget && widgetCamera && overlayRenderer && axesVisibilityRef.current) {
-        if (camera) {
-          widget.root.quaternion.copy(camera.getWorldQuaternion(AXES_TMP_QUAT_CAMERA)).invert()
-        }
-        overlayRenderer.autoClear = true
-        overlayRenderer.render(widget.scene, widgetCamera)
+        // overlay currently disabled
       }
       // Always schedule next frame to ensure continuous rendering
       rafRef.current = requestAnimationFrame(tick)
@@ -924,12 +912,8 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
       }
       renderer.dispose()
       try { if (renderer.domElement && renderer.domElement.parentNode === container) container.removeChild(renderer.domElement) } catch {}
-      const overlayRenderer = axesRendererRef.current
+      axesRendererRef.current = null
       const overlayCanvas = axesCanvasRef.current
-      if (overlayRenderer) {
-        overlayRenderer.dispose()
-        axesRendererRef.current = null
-      }
       if (overlayCanvas && overlayCanvas.parentNode === container) {
         try { container.removeChild(overlayCanvas) } catch {}
       }

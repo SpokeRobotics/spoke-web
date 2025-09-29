@@ -474,6 +474,7 @@ html {
 .navbar-logo {
   /* Ensure logo renders at its intrinsic SVG size */
   max-width: none;
+  width: 140px;  /* give SVG without intrinsic size a concrete width on desktop */
   height: auto;
   display: block;
 }

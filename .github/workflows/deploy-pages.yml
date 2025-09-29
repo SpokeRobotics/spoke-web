@@ -37,11 +37,15 @@ jobs:
         env:
           NODE_ENV: production
           # For GitHub Pages on a project repo, base path should be "/<repo-name>"
-          NEXT_PUBLIC_BASE_PATH: "/spoke-web"
+          # For a custom domain served at the root (e.g., spokerobotics.com), leave base path empty
+          NEXT_PUBLIC_BASE_PATH: ""
         run: |
           npm run build
       - name: Disable Jekyll
         run: touch out/.nojekyll
+
+      - name: Add CNAME for custom domain
+        run: echo spokerobotics.com > out/CNAME
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

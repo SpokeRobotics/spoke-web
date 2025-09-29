@@ -9,8 +9,8 @@ import OcWorkerBootstrap from '@/components/cad/OcWorkerBootstrap'
 const ibmPlexMono = IBM_Plex_Mono({ subsets: ['latin'], weight: ['400','500','600','700'] })
 
 export const metadata = {
-  title: 'SPOKO',
-  description: 'SPOKO site',
+  title: 'SPOKE',
+  description: 'SPOKE site',
 }
 
 export default function RootLayout({ children }) {

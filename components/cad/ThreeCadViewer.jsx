@@ -1101,13 +1101,7 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
       if (cameraNow) cameraNow.lookAt(controls.target)
 
       // Target helper handling removed (debug-only)
-      // Model-center helper (yellow): computes current model bounds each frame and places a 3D sphere at that center.
-      // This is independent from the camera target and is used to visualize discrepancies between "camera target" and "model center".
-      const mcHelper = ensureModelCenterHelper()
-      if (mcHelper) {
-        const center = getModelBounds().getCenter(new THREE.Vector3())
-        if (isFinite(center.x) && isFinite(center.y) && isFinite(center.z)) mcHelper.position.copy(center)
-      }
+      // Model-center helper disabled
       // 2D debug overlay updates removed
       if (boundingBoxesVisibleRef.current) {
         if (boundingBoxesDirtyRef.current) {
@@ -1335,12 +1329,9 @@ useEffect(() => {
   }, [targetHelperVisible])
 
   useEffect(() => {
-    modelCenterVisibleRef.current = !!modelCenterVisible
-    if (modelCenterVisibleRef.current) {
-      ensureModelCenterHelper()
-    } else {
-      removeModelCenterHelper()
-    }
+    // Always keep model-center helper removed (debug visual disabled)
+    modelCenterVisibleRef.current = false
+    removeModelCenterHelper()
   }, [modelCenterVisible])
 
   useEffect(() => {

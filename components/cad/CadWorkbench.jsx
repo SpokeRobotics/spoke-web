@@ -66,7 +66,6 @@ export const CadWorkbench = forwardRef(function CadWorkbench(
   // Global lighting controls
   const [ambientLevel, setAmbientLevel] = useState(2.0) // 0 = OFF
   const [directionalLevel, setDirectionalLevel] = useState(2.0) // 0 = OFF
-  const [targetHelperEnabled, setTargetHelperEnabled] = useState(false)
   const [boundingBoxesEnabled, setBoundingBoxesEnabled] = useState(true)
 
   // Preserve previous viewer settings when collapsing to viewer-only
@@ -493,7 +492,6 @@ export const CadWorkbench = forwardRef(function CadWorkbench(
   }
   const onToggleOrigin = () => setOriginVisible(v => !v)
   const onToggleAxes = () => setAxesVisible(v => !v)
-  const onToggleTargetHelper = () => setTargetHelperEnabled(v => !v)
   const onToggleBoundingBoxes = () => setBoundingBoxesEnabled(v => !v)
 
   return (
@@ -532,7 +530,6 @@ export const CadWorkbench = forwardRef(function CadWorkbench(
               edgesLineWidth={edgesLineWidth}
               ambientLevel={ambientLevel}
               directionalLevel={directionalLevel}
-              targetHelperVisible={targetHelperEnabled}
               boundingBoxesVisible={isWorkbenchOpen && boundingBoxesEnabled}
             />
           )}
@@ -548,8 +545,6 @@ export const CadWorkbench = forwardRef(function CadWorkbench(
               onToggleShading={onToggleShading}
               onToggleOrigin={onToggleOrigin}
               onToggleAxes={onToggleAxes}
-              targetHelperVisible={targetHelperEnabled}
-              onToggleTargetHelper={onToggleTargetHelper}
               boundingBoxesVisible={isWorkbenchOpen && boundingBoxesEnabled}
               onToggleBoundingBoxes={onToggleBoundingBoxes}
               styleMode={styleMode}

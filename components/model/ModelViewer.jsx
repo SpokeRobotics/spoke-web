@@ -353,8 +353,8 @@ export const ModelViewer = forwardRef(function ModelViewer(
     // Size
     height = 280,
     expandedHeight = 460,
-    // Whether the Tools (wrench) button is available; hidden by default
-    toolsEnabled = false,
+    // Whether the Tools (wrench) button is available
+    toolsEnabled = true,
     // Motion
     spinMode = 'auto', // 'on' | 'off' | 'auto'
     // Visual defaults align with CAD viewer (applied for STL or when not using source materials)
@@ -410,9 +410,7 @@ export const ModelViewer = forwardRef(function ModelViewer(
   const [vOutlineThreshold, setVOutlineThreshold] = useState(outlineThreshold)
   const [vOutlineScale, setVOutlineScale] = useState(outlineScale)
   // Debug helpers: camera target sphere + bounding boxes
-  const [vTargetHelper, setVTargetHelper] = useState(false)
   const [vBoundingBoxes, setVBoundingBoxes] = useState(false)
-  const [vModelCenter, setVModelCenter] = useState(false)
   const [vEdgesMode, setVEdgesMode] = useState(edgesMode)
   const [vOutlineColorMode, setVOutlineColorMode] = useState(outlineColorMode)
   const [vEdgesLineWidth, setVEdgesLineWidth] = useState(edgesLineWidth)
@@ -783,9 +781,7 @@ export const ModelViewer = forwardRef(function ModelViewer(
   }
   const onToggleOrigin = () => setVOriginVisible(v => !v)
   const onToggleAxes = () => setVAxesVisible(v => !v)
-const onToggleTargetHelper = () => setVTargetHelper(v => !v)
-const onToggleBoundingBoxes = () => setVBoundingBoxes(v => !v)
-const onToggleModelCenter = () => setVModelCenter(v => !v)
+  const onToggleBoundingBoxes = () => setVBoundingBoxes(v => !v)
 
   const canDownload = !!resolvedUrl && !isMultiScene
 
@@ -870,10 +866,7 @@ const onToggleModelCenter = () => setVModelCenter(v => !v)
             edgesLineWidth={vEdgesLineWidth}
             ambientLevel={vAmbientLevel}
             directionalLevel={vDirectionalLevel}
-            targetHelperVisible={vTargetHelper}
             boundingBoxesVisible={vBoundingBoxes}
-            modelCenterVisible={vModelCenter}
-            autoCenterTarget={vModelCenter || vTargetHelper}
             useSourceMaterials={isSourceMaterialMode}
             originOffset={{
               x: (!isSourceMaterialMode && !isMultiScene && recenterEnabled) ? -(offsetRef.current.x || 0) : 0,
@@ -922,12 +915,8 @@ const onToggleModelCenter = () => setVModelCenter(v => !v)
                   onToggleShading={onToggleShading}
                   onToggleOrigin={onToggleOrigin}
                   onToggleAxes={onToggleAxes}
-                  targetHelperVisible={vTargetHelper}
-                  onToggleTargetHelper={onToggleTargetHelper}
                   boundingBoxesVisible={vBoundingBoxes}
                   onToggleBoundingBoxes={onToggleBoundingBoxes}
-                  modelCenterVisible={vModelCenter}
-                  onToggleModelCenter={onToggleModelCenter}
                   styleMode={vStyleMode}
                   onCycleStyle={onCycleStyle}
                   backgroundMode={vBackgroundMode}

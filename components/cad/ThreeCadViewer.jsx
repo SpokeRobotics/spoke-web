@@ -887,24 +887,7 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
     container.style.flex = '1 1 auto'
     container.style.alignSelf = 'stretch'
 
-    // Expose a manual debug hook to print metrics on demand
-    try { window.__cadDebug = () => logMetrics('manual') } catch {}
-
-    // Create simple 2D debug overlays
-    const centerEl = document.createElement('div')
-    centerEl.style.cssText = 'position:absolute;left:50%;top:50%;width:12px;height:12px;margin-left:-6px;margin-top:-6px;border:2px solid rgba(80,90,100,0.65);border-radius:2px;pointer-events:none;z-index:5'
-    container.appendChild(centerEl)
-    overlayCenterRef.current = centerEl
-
-    const targetEl = document.createElement('div')
-    targetEl.style.cssText = 'position:absolute;width:8px;height:8px;margin-left:-4px;margin-top:-4px;background:#f0f;box-shadow:0 0 0 2px rgba(255,0,255,0.25);border-radius:50%;pointer-events:none;z-index:6;left:50%;top:50%'
-    container.appendChild(targetEl)
-    overlayTargetRef.current = targetEl
-
-    const helperEl = document.createElement('div')
-    helperEl.style.cssText = 'position:absolute;width:8px;height:8px;margin-left:-4px;margin-top:-4px;background:#0ff;box-shadow:0 0 0 2px rgba(0,255,255,0.25);border-radius:50%;pointer-events:none;z-index:6;left:50%;top:50%'
-    container.appendChild(helperEl)
-    overlayHelperRef.current = helperEl
+    // Debug overlays removed
 
     const controls = new OrbitControls(camera, renderer.domElement)
     controls.enableDamping = true
@@ -1036,42 +1019,7 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
     // Emit initial metrics once after first render
     logMetrics('init')
 
-    // Expose a manual helper/target projection check for debugging
-    try {
-      window.__cadCheckHelper = () => {
-        try {
-          const rendererNow = rendererRef.current
-          const cameraNow = cameraRef.current
-          const controlsNow = controlsRef.current
-          const helperNow = targetHelperRef.current
-          if (!rendererNow || !cameraNow || !controlsNow) return 'viewer not ready'
-          const ndc = controlsNow.target.clone().project(cameraNow)
-          let helperNDC = null
-          let helperWorld = null
-          if (helperNow) {
-            helperWorld = new THREE.Vector3().setFromMatrixPosition(helperNow.matrixWorld)
-            helperNDC = helperWorld.clone().project(cameraNow)
-          }
-          let glViewport = null
-          try {
-            const gl = rendererNow.getContext()
-            glViewport = Array.from(gl.getParameter(gl.VIEWPORT))
-          } catch {}
-          const canvas = rendererNow.domElement
-          const payload = {
-            ndc,
-            helperNDC,
-            helperWorld,
-            glViewport,
-            canvasAttr: { w: canvas?.width || 0, h: canvas?.height || 0 },
-          }
-          console.log('[ThreeCadViewer] helper-check manual', payload)
-          return payload
-        } catch (e) {
-          return String(e)
-        }
-      }
-    } catch {}
+    // Debug helper hook removed
 
     // interaction handling for auto spin pause
     const INTERACTION_EVENTS = ['pointerdown', 'wheel', 'touchstart']
@@ -1152,32 +1100,7 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
       const cameraNow = cameraRef.current
       if (cameraNow) cameraNow.lookAt(controls.target)
 
-      // Target helper (magenta):
-      // - Implemented as a world-space THREE.Sprite for robust visibility (depthTest=false)
-      // - Anchored at controls.target so it marks the true orbit point in world space
-      // - Scaled by distance and FOV to appear ~constant size on screen
-      const helper = ensureTargetHelper()
-      if (helper && controls) {
-        const scene = sceneRef.current
-        const cam = cameraRef.current
-        const renderer = rendererRef.current
-        if (scene && cam && renderer) {
-          if (helper.parent !== scene) {
-            try { helper.parent?.remove?.(helper) } catch {}
-            scene.add(helper)
-          }
-          // Position at exact world target
-          helper.position.copy(controls.target)
-          // Scale to roughly constant on-screen size (in pixels)
-          const desiredPx = 16
-          const h = Math.max(1, renderer.domElement?.clientHeight || 0)
-          const d = cam.position.distanceTo(controls.target)
-          const worldSize = 2 * Math.tan((cam.fov * Math.PI / 180) / 2) * d * (desiredPx / h)
-          helper.scale.setScalar(Math.max(0.001, worldSize))
-          helper.visible = true
-          helper.updateMatrixWorld(true)
-        }
-      }
+      // Target helper handling removed (debug-only)
       // Model-center helper (yellow): computes current model bounds each frame and places a 3D sphere at that center.
       // This is independent from the camera target and is used to visualize discrepancies between "camera target" and "model center".
       const mcHelper = ensureModelCenterHelper()
@@ -1185,38 +1108,7 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
         const center = getModelBounds().getCenter(new THREE.Vector3())
         if (isFinite(center.x) && isFinite(center.y) && isFinite(center.z)) mcHelper.position.copy(center)
       }
-      // Position 2D overlay dot at projected controls.target and compare to 3D helper
-      try {
-        const dot = overlayTargetRef.current
-        const hdot = overlayHelperRef.current
-        const cam = cameraRef.current
-        const elem = renderer.domElement
-        if (dot && cam && elem) {
-          const rectW = elem.clientWidth || container.clientWidth
-          const rectH = elem.clientHeight || container.clientHeight
-          const ndc = controls.target.clone().project(cam)
-          const px = (ndc.x * 0.5 + 0.5) * rectW
-          const py = (-ndc.y * 0.5 + 0.5) * rectH
-          dot.style.left = `${px}px`
-          dot.style.top = `${py}px`
-          // Compare helper projection (world-space sprite)
-          if (helper) {
-            const worldPos = new THREE.Vector3().setFromMatrixPosition(helper.matrixWorld)
-            const hp = worldPos.clone().project(cam)
-            const dx = Math.abs(hp.x - ndc.x)
-            const dy = Math.abs(hp.y - ndc.y)
-            if (dx > 1e-3 || dy > 1e-3) {
-              try { console.debug('[ThreeCadViewer] helper vs target NDC mismatch (camera-parented)', { ndc, hp, target: controls.target.clone(), helperWorld: worldPos }) } catch {}
-            }
-            if (hdot) {
-              const hpx = (hp.x * 0.5 + 0.5) * rectW
-              const hpy = (-hp.y * 0.5 + 0.5) * rectH
-              hdot.style.left = `${hpx}px`
-              hdot.style.top = `${hpy}px`
-            }
-          }
-        }
-      } catch {}
+      // 2D debug overlay updates removed
       if (boundingBoxesVisibleRef.current) {
         if (boundingBoxesDirtyRef.current) {
           rebuildBoundingBoxes()
@@ -1437,15 +1329,9 @@ useEffect(() => {
   }, [axesHelperVisible])
 
   useEffect(() => {
-    targetHelperVisibleRef.current = !!targetHelperVisible
-    // Toggle 2D overlay dot visibility
-    const dot = overlayTargetRef.current
-    if (dot) dot.style.display = targetHelperVisibleRef.current ? 'block' : 'none'
-    if (targetHelperVisibleRef.current) {
-      ensureTargetHelper()
-    } else {
-      removeTargetHelper()
-    }
+    // Always remove target helper (debug visuals disabled)
+    targetHelperVisibleRef.current = false
+    removeTargetHelper()
   }, [targetHelperVisible])
 
   useEffect(() => {

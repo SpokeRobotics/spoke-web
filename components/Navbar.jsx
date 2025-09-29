@@ -14,8 +14,8 @@ export async function Navbar() {
           <Link href="/" style={{ display: 'flex', alignItems: 'center', marginRight: 24 }}>
             <img
               className="navbar-logo"
-              src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/assets/spoko-logo-outline.svg`}
-              alt="Spoke Logo"
+              src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/assets/spoke-logo.svg`}
+              alt="Spoke Logo"split-outline-03
               decoding="async"
               loading="eager"
             />

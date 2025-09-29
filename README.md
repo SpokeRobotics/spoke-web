@@ -1,4 +1,4 @@
-# Spoko Web – Static Next.js Site
+# Spoke Web – Static Next.js Site
 
 A modern static site built with Next.js (App Router) featuring Markdown/MDX content, SideImages layout, Mermaid diagrams, OpenCascade CAD in the browser (via web worker) with Three.js viewers, and a Figma design token ingestion pipeline.
 

@@ -90,7 +90,7 @@ export default async function Home() {
           <Text size="1" color="gray" mb="2">[Dev] Fallback homepage JSX</Text>
         )}
         <Box style={{ textAlign: 'center' }}>
-          <Heading size="9" mb="2">Welcome to Spoko</Heading>
+          <Heading size="9" mb="2">Welcome to Spoke</Heading>
           <Text as="p" size="4" color="gray">
             A modern design system and development toolkit.
           </Text>

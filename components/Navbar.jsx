@@ -15,7 +15,7 @@ export async function Navbar() {
             <img
               className="navbar-logo"
               src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/assets/spoko-logo-outline.svg`}
-              alt="Spoko Logo"
+              alt="Spoke Logo"
               decoding="async"
               loading="eager"
             />

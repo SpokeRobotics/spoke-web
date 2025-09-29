@@ -37,7 +37,7 @@ jobs:
         env:
           NODE_ENV: production
           # For GitHub Pages on a project repo, base path should be "/<repo-name>"
-          NEXT_PUBLIC_BASE_PATH: "/spoko-web"
+          NEXT_PUBLIC_BASE_PATH: "/spoke-web"
         run: |
           npm run build
       - name: Disable Jekyll

@@ -12,7 +12,7 @@ export function Footer() {
         </div>
         <div>
           <Link
-            href="https://github.com/davidthings/spoko-web"
+            href="https://github.com/spokerobotics/spoke-web"
             target="_blank"
             rel="noreferrer"
             aria-label="GitHub"

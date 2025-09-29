@@ -68,6 +68,11 @@ export const CadWorkbench = forwardRef(function CadWorkbench(
   const [directionalLevel, setDirectionalLevel] = useState(2.0) // 0 = OFF
   const [boundingBoxesEnabled, setBoundingBoxesEnabled] = useState(true)
 
+  // Build/run status and error state
+  const [status, setStatus] = useState('')
+  const [error, setError] = useState(null)
+  const [busy, setBusy] = useState(false)
+
   // Preserve previous viewer settings when collapsing to viewer-only
   const prevViewerStateRef = useRef({
     spinMode: (initialViewer?.spinMode === 'on' || initialViewer?.spinMode === 'off' || initialViewer?.spinMode === 'auto')

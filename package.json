@@ -10,6 +10,7 @@
     "start": "next start",
     "lint": "next lint",
     "prebuild": "node scripts/generate-static-svgs.js && node scripts/sync-content-images.js && node scripts/sync-models.js",
+    "og:generate": "node scripts/generate-og-image.js",
     "sync:images": "node scripts/sync-content-images.js",
     "diagrams:generate": "node scripts/generate-static-svgs.js",
     "serve:static": "serve -l 5054 out",

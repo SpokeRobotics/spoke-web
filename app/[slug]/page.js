@@ -16,6 +16,54 @@ export async function generateStaticParams() {
   return slugs
 }
 
+export async function generateMetadata({ params }) {
+  const resolvedParams = await params
+  const slug = resolvedParams.slug
+
+  // Read the content file to derive metadata
+  const mdxPath = path.join(process.cwd(), 'content', `${slug}.mdx`)
+  const mdPath = path.join(process.cwd(), 'content', `${slug}.md`)
+
+  let fileContents
+  if (fs.existsSync(mdxPath)) {
+    fileContents = fs.readFileSync(mdxPath, 'utf8')
+  } else if (fs.existsSync(mdPath)) {
+    fileContents = fs.readFileSync(mdPath, 'utf8')
+  } else {
+    return {}
+  }
+
+  const { data: frontmatter, content } = matter(fileContents)
+  const { title: derivedTitle } = extractAndMaybeRemoveFirstH1FromMdxSource(
+    content,
+    frontmatter.title
+  )
+
+  const pageTitle = derivedTitle || slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+  const description = frontmatter.description || undefined
+  const image = frontmatter.image || '/og/og-image.png'
+  const url = `/${slug}`
+
+  return {
+    title: pageTitle,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      title: pageTitle,
+      description,
+      url,
+      images: [
+        typeof image === 'string' ? { url: image, width: 1200, height: 630 } : image,
+      ],
+      type: 'article',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      images: [typeof image === 'string' ? image : image?.url],
+    },
+  }
+}
+
 export default async function TopLevelContentPage({ params }) {
   const resolvedParams = await params
   const slug = resolvedParams.slug

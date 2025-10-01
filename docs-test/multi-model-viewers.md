@@ -103,7 +103,7 @@ Simple body only
 | Frame          | 0, 0, 0, 0, 0, 0, 1            | 0, 0, 0, 0, 0, 0, 1            | Cuboid_96x_64_32_4mm_Frame.3mf                    |
 | LeftBattery    |  20, 0, -33, 90, 0, 0, 1       |  20, 0, -33, 90, 0, 0, 1       | 18650Li-IonCell_1.3mf                             |
 | RightBattery   | -20, 0, 33, -90, 0, 0, 1       | -20, 0, 33, -90, 0, 0, 1       | 18650Li-IonCell_1.3mf                             |
-| Charger        | -12, -13, -256, 0, -90, -90, 0  | -12, -13, -18, 0, -90, -90, 1  | SpokeCharger_lo.3mf   |
+| Charger        | -12, -13, 256, 0, -90, -90, 0  | -12, -13, -18, 0, -90, -90, 1  | SpokeCharger_lo.3mf   |
 | MagConnector   | -21, -17, -256, 180, 0, 0, 0    | -21, -17, -33, 180, 0, 0, 1    | MagneticConnector8mm.3mf   |
 
 | from     | to       |
@@ -140,7 +140,7 @@ Simple body only
 
 <ModelViewer toolsEnabled={true} height={420} backgroundMode="WHITE">
 
-| name           | -Controller                    | +Controller                        | path                                              |
+| name           | -Controller                    | +Controller                    | path                                              |
 |-------         |----------------------          |----------------------          |---------------------------------------------------|
 | Frame          | 0, 0, 0, 0, 0, 0, 1            | 0, 0, 0, 0, 0, 0, 1            | Cuboid_96x_64_32_4mm_Frame.3mf                    |
 | LeftBattery    |  20, 0, -33, 90, 0, 0, 1       |  20, 0, -33, 90, 0, 0, 1       | 18650Li-IonCell_1.3mf                             |
@@ -148,13 +148,13 @@ Simple body only
 | Charger        | -12, -13, -18, 0, -90, -90, 1  | -12, -13, -18, 0, -90, -90, 1  | SpokeCharger_lo.3mf   |
 | MagConnector   | -21, -17, -33, 180, 0, 0, 1    | -21, -17, -33, 180, 0, 0, 1    | MagneticConnector8mm.3mf   |
 | WPCBoard       | -13, -13, -22, -90, 0, 0, 1    | -13, -13, -22, -90, 0, 0, 1    | SpokeWirelessPowerReceiver_lo.3mf   |
-| WPCCoil        | 0, -16, 0, 90, 0, 0, 1         | 0, -16, 0, 90, 0, 0, 1        | Qi_Coil.3mf   |
-| Controller     | -13, 14, 256, 0, 90, -90, 0    | -13, 14, 35, 0, 90, -90, 1     | SpokeControllerEsp32S3_lo.3mf   |
+| WPCCoil        | 0, -16, 0, 90, 0, 0, 1         | 0, -16, 0, 90, 0, 0, 1         | Qi_Coil.3mf   |
+| Controller     | -13, 14, 256, 0, 90, -90, 0     | -13, 14, 35, 0, 90, -90, 1     | SpokeControllerEsp32S3_lo.3mf   |
 
 | from     | to       |
 |--------  |----------|
-| +Controller  | -Controller    |
 | *-Controller    | *+Controller |
+| +Controller  | -Controller    |
 
 </ModelViewer>
 

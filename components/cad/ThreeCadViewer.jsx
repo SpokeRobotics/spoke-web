@@ -644,15 +644,12 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
     if (!initialized) {
       padded.setFromCenterAndSize(new THREE.Vector3(0, 0, 0), new THREE.Vector3(1, 1, 1))
     }
-    const center = padded.getCenter(new THREE.Vector3())
-    const halfSize = padded.getSize(new THREE.Vector3()).multiplyScalar(0.5)
-    padded.min.copy(center).sub(halfSize)
-    padded.max.copy(center).add(halfSize)
-    const sphere = new THREE.Sphere(center.clone(), halfSize.length())
+    // Store the computed bounds directly without any padding manipulation
     if (multi) {
       multi.paddedBounds = padded.clone()
-      multi.paddedCenter = center.clone()
-      multi.paddedSphere = sphere.clone()
+      multi.paddedCenter = padded.getCenter(new THREE.Vector3())
+      const size = padded.getSize(new THREE.Vector3())
+      multi.paddedSphere = new THREE.Sphere(multi.paddedCenter.clone(), size.length() / 2)
     }
     return padded
   }
@@ -667,30 +664,72 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
     const multi = multiSceneRef.current
     if (!multi?.active) return null
     
-    // If scroll animation is enabled, always use the padded bounds (target state)
-    // Don't compute from actual scene geometry which may be in initial/animated state
-    const scrollConfig = multi?.scrollAnimationConfig
-    if (scrollConfig?.enabled && multi?.paddedBounds) {
-      return multi.paddedBounds.clone()
-    }
-    
     const models = multi.models || []
     const sceneGroup = multi.sceneGroup
     sceneGroup?.updateMatrixWorld(true)
     const box = new THREE.Box3()
     const tempBox = new THREE.Box3()
     let initialized = false
+    
+    // Check if scroll animation is enabled to filter by opacity
+    const scrollConfig = multi?.scrollAnimationConfig
+    const filterByOpacity = scrollConfig?.enabled && scrollConfig?.targetState
+    
     models.forEach((container) => {
       if (!container) return
-      // Include all models in bounds regardless of visibility/opacity for consistent camera framing
-      tempBox.makeEmpty()
-      const modelRoot = container.userData?.__modelRoot
-      if (modelRoot) {
-        modelRoot.updateMatrixWorld(true)
-        tempBox.setFromObject(modelRoot)
+      
+      // For scroll animations, we need to use target state positions
+      if (filterByOpacity) {
+        const states = container.userData?.__states || {}
+        const targetState = states[scrollConfig.targetState]
+        if (!targetState) return
+        
+        const opacity = typeof targetState.opacity === 'number' ? targetState.opacity : 1
+        if (opacity <= 0.001) {
+          return // Skip invisible objects
+        }
+        
+        // Use stored local bounds (geometry in its own coordinate system) 
+        // and transform to target state absolute position
+        const modelRoot = container.userData?.__modelRoot
+        if (modelRoot) {
+          // Save current transforms
+          const savedPosition = container.position.clone()
+          const savedQuaternion = container.quaternion.clone()
+          const savedScale = container.scale.clone()
+          
+          // Reset to origin to get local bounds
+          container.position.set(0, 0, 0)
+          container.quaternion.set(0, 0, 0, 1)
+          container.scale.set(1, 1, 1)
+          container.updateMatrixWorld(true)
+          
+          tempBox.makeEmpty()
+          tempBox.setFromObject(modelRoot)
+          
+          // Restore original transforms
+          container.position.copy(savedPosition)
+          container.quaternion.copy(savedQuaternion)
+          container.scale.copy(savedScale)
+          container.updateMatrixWorld(true)
+          
+          // Now transform local bounds to target state absolute position
+          const matrix = new THREE.Matrix4()
+          matrix.compose(targetState.position, targetState.quaternion, new THREE.Vector3(1, 1, 1))
+          tempBox.applyMatrix4(matrix)
+        }
       } else {
-        tempBox.setFromObject(container)
+        // Non-scroll: Use current scene positions
+        tempBox.makeEmpty()
+        const modelRoot = container.userData?.__modelRoot
+        if (modelRoot) {
+          modelRoot.updateMatrixWorld(true)
+          tempBox.setFromObject(modelRoot)
+        } else {
+          tempBox.setFromObject(container)
+        }
       }
+      
       if (tempBox.isEmpty()) return
       if (!initialized) {
         box.copy(tempBox)

@@ -105,6 +105,8 @@ function shapeToBuffers(oc, shape) {
 async function ensureOc() {
   if (oc) return oc
   oc = await loadOc()
+  // Notify client that worker is ready after first successful load
+  self.postMessage({ type: 'ready' })
   return oc
 }
 
@@ -213,12 +215,5 @@ self.addEventListener('message', async (ev) => {
   }
 })
 
-// Auto-init on worker load
-;(async () => {
-  try {
-    await ensureOc()
-    self.postMessage({ type: 'ready' })
-  } catch (e) {
-    self.postMessage({ type: 'error', message: e?.message || String(e) })
-  }
-})()
+// Lazy init: OpenCascade will be loaded only when first message is received.
+// This prevents mobile browser crashes from eager loading on all pages.

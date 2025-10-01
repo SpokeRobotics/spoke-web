@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useCallback, useEffect, useMemo, useRef, useState, forwardRef } from 'react'
-import { Box, Card, IconButton, Text, Button, Flex } from '@radix-ui/themes'
+import { Box, IconButton, Text, Button, Flex } from '@radix-ui/themes'
 import { Wrench, Download, Expand, Minimize2 } from 'lucide-react'
 import * as THREE from 'three'
 import { ThreeCadViewer } from '@/components/cad/ThreeCadViewer'
@@ -12,6 +12,9 @@ import { saveBlobWithPicker } from '@/components/cad/Exporters'
 const TABLE_TAG = 'table'
 
 const toArray = React.Children.toArray
+
+// Module-level cache for loaded models (key: full resolved URL, value: Promise<Object3D>)
+const modelCache = new Map()
 
 const degToRad = (deg) => ((Number(deg) || 0) * Math.PI) / 180
 
@@ -165,10 +168,7 @@ const parseSceneTables = (children) => {
   const stateDisplayOrder = stateHeaders.map((h) => h.trim())
   const stateDisplayMap = {}
   if (!stateOrder.length) {
-    errors.push('Model table must include at least one state column (e.g., "start").')
-  }
-  if (!stateOrder.some((s) => s.toLowerCase() === 'start')) {
-    errors.push('Model table must include a "start" state column.')
+    errors.push('Model table must include at least one state column.')
   }
 
   const models = []
@@ -204,6 +204,12 @@ const parseSceneTables = (children) => {
     transitionMap[stateName.toLowerCase()] = []
   })
 
+  // Track scroll animation states (asterisk markers)
+  let scrollInitialState = null
+  let scrollTargetState = null
+  const asteriskStates = []
+  let firstTransitionState = null // Track first row in transition table
+
   if (transitionTable) {
     const transData = collectTableData(transitionTable)
     const tHeaders = transData.headers.map((h) => h.trim().toLowerCase())
@@ -221,7 +227,20 @@ const parseSceneTables = (children) => {
         errors.push(`Transition table row ${idx + 1} is missing a source state.`)
         return
       }
-      const fromKey = fromNameRaw.toLowerCase()
+      // Detect and strip asterisk in 'from' column
+      const fromCellRaw = (row[0] || '').trim()
+      const fromNameClean = fromNameRaw.replace(/\*/g, '')
+      
+      // Track first transition row as default initial state
+      if (!firstTransitionState) {
+        firstTransitionState = fromNameClean.toLowerCase()
+      }
+      if (fromCellRaw.includes('*')) {
+        const key = fromNameClean.toLowerCase()
+        asteriskStates.push(key)
+        if (!scrollInitialState) scrollInitialState = key
+      }
+      const fromKey = fromNameClean.toLowerCase()
       if (!transitionMap[fromKey]) {
         transitionMap[fromKey] = []
       }
@@ -233,7 +252,13 @@ const parseSceneTables = (children) => {
         text.split(',').forEach((item) => {
           const target = normalizeStateName(item)
           if (!target) return
-          const key = target.toLowerCase()
+          // Detect and strip asterisk in target states
+          const targetClean = target.replace(/\*/g, '')
+          if (item.includes('*') && !scrollTargetState) {
+            const key = targetClean.toLowerCase()
+            scrollTargetState = key
+          }
+          const key = targetClean.toLowerCase()
           parsedTargets.push(key)
           if (!transitionMap[key]) transitionMap[key] = []
         })
@@ -251,17 +276,27 @@ const parseSceneTables = (children) => {
     const filtered = (transitionMap[key] || []).filter((target) => stateSet.has(target))
     transitionMap[key] = Array.from(new Set(filtered))
   })
-  const startKey = loweredOrder[0] || 'start'
+  const firstStateKey = loweredOrder[0]
   loweredOrder.forEach((state) => {
     if (!Array.isArray(transitionMap[state])) {
       transitionMap[state] = []
     }
-    if (state !== startKey && !transitionMap[state].includes(startKey)) {
-      transitionMap[state].push(startKey)
+    // Add first state as fallback transition for all other states
+    if (firstStateKey && state !== firstStateKey && !transitionMap[state].includes(firstStateKey)) {
+      transitionMap[state].push(firstStateKey)
     }
     transitionMap[state] = Array.from(new Set(transitionMap[state]))
   })
-  if (!transitionMap[startKey]) transitionMap[startKey] = []
+  if (firstStateKey && !transitionMap[firstStateKey]) {
+    transitionMap[firstStateKey] = []
+  }
+
+  // Handle scroll animation config
+  const scrollAnimationConfig = (scrollInitialState || scrollTargetState) ? {
+    enabled: true,
+    initialState: scrollInitialState || loweredOrder[0],
+    targetState: scrollTargetState || scrollInitialState || loweredOrder[0],
+  } : null
 
   return {
     sceneDefinition: { models, stateOrder: loweredOrder, stateDisplayOrder: stateDisplayOrder.map((s) => s.trim()), stateDisplayMap },
@@ -269,6 +304,8 @@ const parseSceneTables = (children) => {
     stateOrder: loweredOrder,
     leftover,
     errors,
+    scrollAnimationConfig,
+    firstTransitionState, // First row from transition table
   }
 }
 
@@ -280,7 +317,7 @@ const resolveModelPath = (rawPath, basePrefix) => {
   return getAssetPath(`${base}/${rawPath}`)
 }
 
-const loadModelAsset = async (url, ext) => {
+const loadModelAssetUncached = async (url, ext) => {
   if (ext === 'stl') {
     const mod = await import('three/examples/jsm/loaders/STLLoader.js')
     const STLLoader = mod.STLLoader || mod.default || mod
@@ -325,6 +362,42 @@ const loadModelAsset = async (url, ext) => {
   throw new Error(`Unsupported model extension: .${ext}`)
 }
 
+const loadModelAsset = async (url, ext) => {
+  // Check cache first
+  if (modelCache.has(url)) {
+    const cachedPromise = modelCache.get(url)
+    const cachedObject = await cachedPromise
+    
+    // Clone the cached object for this instance
+    if (cachedObject.userData.__sourceType === 'geometry') {
+      // For STL: clone geometry, create new material and mesh
+      const geometry = cachedObject.geometry.clone()
+      const material = new THREE.MeshStandardMaterial({ color: 0xe0e0e0, metalness: 0.1, roughness: 0.85 })
+      const mesh = new THREE.Mesh(geometry, material)
+      mesh.userData.__sourceType = 'geometry'
+      return mesh
+    } else {
+      // For 3MF/GLTF: deep clone the object hierarchy
+      const cloned = cachedObject.clone(true)
+      // Re-apply material settings since clone() may not preserve all properties
+      cloned.traverse((obj) => {
+        if (obj.isMesh && obj.material) {
+          obj.material.transparent = true
+          obj.material.opacity = 1
+        }
+      })
+      return cloned
+    }
+  }
+  
+  // Cache miss: load and cache the promise
+  const loadPromise = loadModelAssetUncached(url, ext)
+  modelCache.set(url, loadPromise)
+  
+  // Wait for load to complete and return the original
+  return await loadPromise
+}
+
 const cloneObjectForScene = (object) => {
   if (!object) return null
   const clone = object.clone ? object.clone(true) : object
@@ -354,7 +427,7 @@ export const ModelViewer = forwardRef(function ModelViewer(
     height = 280,
     expandedHeight = 460,
     // Whether the Tools (wrench) button is available
-    toolsEnabled = true,
+    toolsEnabled = false,
     // Motion
     spinMode = 'auto', // 'on' | 'off' | 'auto'
     // Visual defaults align with CAD viewer (applied for STL or when not using source materials)
@@ -385,6 +458,8 @@ export const ModelViewer = forwardRef(function ModelViewer(
     transitionMap: parsedTransitionMap,
     leftover: leftoverChildren,
     errors: parseErrors,
+    scrollAnimationConfig,
+    firstTransitionState,
   } = useMemo(() => parseSceneTables(children), [children])
 
   const isMultiScene = !!(sceneDefinition && sceneDefinition.models?.length)
@@ -426,6 +501,12 @@ export const ModelViewer = forwardRef(function ModelViewer(
   const [multiSceneMeta, setMultiSceneMeta] = useState(null)
   const [currentState, setCurrentState] = useState(null)
   const [isTransitioning, setIsTransitioning] = useState(false)
+
+  // Scroll-based animation state
+  const containerElementRef = useRef(null)
+  const userHasInteractedRef = useRef(false) // Track if user manually changed state
+  const isVisibleRef = useRef(false) // Track viewport visibility
+  const hasInitialAnimatedRef = useRef(false) // Track if initial animation has run
 
   const renderedChildren = useMemo(
     () => (isMultiScene ? leftoverChildren : children),
@@ -541,7 +622,8 @@ export const ModelViewer = forwardRef(function ModelViewer(
         const stateOrder = sceneDefinition.stateOrder || []
         const stateDisplayMap = sceneDefinition.stateDisplayMap || {}
         const transitionMap = parsedTransitionMap || {}
-        const initialState = (stateOrder[0] || 'start').toLowerCase()
+        // Use first transition table row if available, otherwise first column in model table
+        const initialState = firstTransitionState || stateOrder[0]?.toLowerCase()
         setMultiSceneMeta({
           stateOrder,
           stateDisplayMap,
@@ -554,6 +636,7 @@ export const ModelViewer = forwardRef(function ModelViewer(
           stateDisplayMap,
           transitionMap,
           initialState,
+          scrollAnimationConfig,
         })
       } catch (err) {
         if (!cancelled) setError(err?.message || String(err))
@@ -563,7 +646,7 @@ export const ModelViewer = forwardRef(function ModelViewer(
     }
     loadScene()
     return () => { cancelled = true }
-  }, [isMultiScene, sceneDefinition, parsedTransitionMap, parseErrorsKey])
+  }, [isMultiScene, sceneDefinition, parsedTransitionMap, parseErrorsKey, scrollAnimationConfig, firstTransitionState])
 
   // Load model when url changes
   useEffect(() => {
@@ -651,35 +734,18 @@ export const ModelViewer = forwardRef(function ModelViewer(
     return () => { cancelled = true }
   }, [resolvedUrl, ext, autoFitOnLoad, recenter, recenterThreshold, isMultiScene])
 
-  const stateButtons = useMemo(() => {
-    if (!multiSceneMeta?.stateOrder?.length) return []
-    const map = multiSceneMeta.transitionMap || {}
-    const activeKey = (currentState || multiSceneMeta.stateOrder[0] || 'start').toLowerCase()
-    const reachable = new Set([activeKey, ...(map[activeKey] || [])])
-    return multiSceneMeta.stateOrder.map((stateKey) => {
-      const normalized = stateKey.toLowerCase()
-      const label = multiSceneMeta.stateDisplayMap?.[normalized] || multiSceneMeta.stateDisplayMap?.[stateKey] || stateKey
-      return {
-        key: normalized,
-        label,
-        isActive: normalized === activeKey,
-        isReachable: reachable.has(normalized),
-      }
-    })
-  }, [multiSceneMeta, currentState])
-
-  const currentStateLabel = useMemo(() => {
-    if (!multiSceneMeta?.stateOrder?.length) return ''
-    const key = (currentState || multiSceneMeta.stateOrder[0] || 'start').toLowerCase()
-    return multiSceneMeta.stateDisplayMap?.[key] || key
-  }, [multiSceneMeta, currentState])
-
-  const handleStateChange = useCallback((targetKey) => {
+  const handleStateChange = useCallback((targetKey, isUserInitiated = true) => {
     const normalized = (targetKey || '').toLowerCase()
     if (!normalized) return
     if (normalized === (currentState || '').toLowerCase()) return
     const viewer = viewerRef.current
     if (!viewer || typeof viewer.transitionMultiState !== 'function') return
+    
+    // Mark user interaction to disable scroll animations
+    if (isUserInitiated) {
+      userHasInteractedRef.current = true
+    }
+    
     setIsTransitioning(true)
     const finalize = (started) => {
       if (started) {
@@ -704,6 +770,114 @@ export const ModelViewer = forwardRef(function ModelViewer(
       setError(err?.message || String(err))
     }
   }, [currentState])
+
+  // Scroll-based animation using IntersectionObserver
+  useEffect(() => {
+    if (!isMultiScene || !scrollAnimationConfig?.enabled) return
+    if (!containerElementRef.current) return
+
+    const config = scrollAnimationConfig
+    const initialState = config.initialState
+    const targetState = config.targetState
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const wasVisible = isVisibleRef.current
+          const isNowVisible = entry.isIntersecting && entry.intersectionRatio >= 0.75
+          isVisibleRef.current = isNowVisible
+
+          // Re-enable auto-transitions if user is in the state that matches visibility
+          // (i.e., if user manually navigates to the "correct" state, resume auto behavior)
+          if (userHasInteractedRef.current) {
+            const desiredState = isNowVisible ? targetState : initialState
+            if (currentState === desiredState) {
+              userHasInteractedRef.current = false
+            } else {
+              return // Still blocked because user is in a different state
+            }
+          }
+
+          // Don't animate if already transitioning
+          if (isTransitioning) return
+
+          // Becoming visible: transition to target state
+          if (!wasVisible && isNowVisible) {
+            if (currentState !== targetState) {
+              handleStateChange(targetState, false)
+            }
+          }
+
+          // Becoming hidden: transition to initial state
+          if (wasVisible && !isNowVisible) {
+            if (currentState !== initialState) {
+              handleStateChange(initialState, false)
+            }
+          }
+        })
+      },
+      { threshold: [0, 0.75, 1.0] }
+    )
+
+    observer.observe(containerElementRef.current)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [isMultiScene, scrollAnimationConfig, currentState, isTransitioning, handleStateChange])
+
+  // Initial animation when models are loaded and visible
+  useEffect(() => {
+    if (!isMultiScene || !scrollAnimationConfig?.enabled) return
+    if (loading || hasInitialAnimatedRef.current) return
+    if (userHasInteractedRef.current) return
+    if (!multiSceneMeta) return
+
+    const config = scrollAnimationConfig
+    const targetState = config.targetState
+
+    // Check if already visible
+    if (containerElementRef.current) {
+      const rect = containerElementRef.current.getBoundingClientRect()
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight
+      const visibleHeight = Math.min(rect.bottom, viewportHeight) - Math.max(rect.top, 0)
+      const visibilityRatio = visibleHeight / rect.height
+      
+      if (visibilityRatio >= 0.75) {
+        isVisibleRef.current = true
+        hasInitialAnimatedRef.current = true
+        // Animate to target state after a brief delay to ensure viewer is ready
+        setTimeout(() => {
+          if (!userHasInteractedRef.current && currentState !== targetState) {
+            handleStateChange(targetState, false)
+          }
+        }, 300)
+      }
+    }
+  }, [isMultiScene, scrollAnimationConfig, loading, multiSceneMeta, currentState, handleStateChange])
+
+  const stateButtons = useMemo(() => {
+    if (!multiSceneMeta?.stateOrder?.length) return []
+    const map = multiSceneMeta.transitionMap || {}
+    const activeKey = (currentState || multiSceneMeta.stateOrder[0])?.toLowerCase()
+    const reachable = new Set([activeKey, ...(map[activeKey] || [])])
+    return multiSceneMeta.stateOrder.map((stateKey) => {
+      const normalized = stateKey.toLowerCase()
+      const label = multiSceneMeta.stateDisplayMap?.[normalized] || multiSceneMeta.stateDisplayMap?.[stateKey] || stateKey
+      return {
+        key: normalized,
+        label,
+        isActive: normalized === activeKey,
+        isReachable: reachable.has(normalized),
+      }
+    })
+  }, [multiSceneMeta, currentState])
+
+  const currentStateLabel = useMemo(() => {
+    if (!multiSceneMeta?.stateOrder?.length) return ''
+    const key = (currentState || multiSceneMeta.stateOrder[0])?.toLowerCase()
+    return multiSceneMeta.stateDisplayMap?.[key] || key
+  }, [multiSceneMeta, currentState])
 
   // Toggle recenter: swap geometry between original and centered (STL only)
   const toggleRecenter = () => {
@@ -812,7 +986,7 @@ export const ModelViewer = forwardRef(function ModelViewer(
   }
 
   return (
-    <Card variant="ghost" className="modelviewer-card">
+    <div ref={containerElementRef} style={{ border: 'none' }}>
       <Box p="0" style={{ position: 'relative' }}>
         {noSrc && (
           <Box mb="2"><Text color="red">ModelViewer: missing src</Text></Box>
@@ -878,13 +1052,13 @@ export const ModelViewer = forwardRef(function ModelViewer(
             <Box
               style={{
                 position: 'absolute',
-                left: 12,
                 right: 12,
-                bottom: 12,
+                top: '50%',
+                transform: 'translateY(-50%)',
                 zIndex: 9,
                 pointerEvents: 'auto',
                 display: 'flex',
-                flexWrap: 'wrap',
+                flexDirection: 'column',
                 gap: 8,
               }}
             >
@@ -969,7 +1143,7 @@ export const ModelViewer = forwardRef(function ModelViewer(
           <Box mt="3">{renderedChildren}</Box>
         )}
       </Box>
-    </Card>
+    </div>
   )
 })
 

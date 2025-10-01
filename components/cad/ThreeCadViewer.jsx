@@ -12,7 +12,7 @@ import { LineSegments2 } from 'three/examples/jsm/lines/LineSegments2.js'
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js'
 import { LineSegmentsGeometry } from 'three/examples/jsm/lines/LineSegmentsGeometry.js'
 
-const VISIBILITY_EASE_POWER = 2.6
+const VISIBILITY_EASE_POWER = 1.5
 
 const easeVisibilityOpacity = (fromOpacity, toOpacity, t) => {
   const start = typeof fromOpacity === 'number' ? fromOpacity : 0
@@ -586,14 +586,31 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
     const padded = new THREE.Box3()
     const rotatedCenter = new THREE.Vector3()
     let initialized = false
+    
+    // If scroll animation is enabled, use only the target state for bounds
+    const scrollConfig = multi?.scrollAnimationConfig
+    const useTargetStateOnly = scrollConfig?.enabled && scrollConfig?.targetState
+    
     models.forEach((container) => {
       if (!container) return
       const states = container.userData?.__states || {}
       const localCenter = container.userData?.__localBoundCenter || new THREE.Vector3()
       const localRadius = container.userData?.__localBoundRadius ?? 0.5
-      Object.values(states).forEach((state) => {
-        if (!state) return
-        rotatedCenter.copy(localCenter).applyQuaternion(state.quaternion).add(state.position)
+      
+      if (useTargetStateOnly) {
+        // For scroll animation: only use objects that are visible (opacity > 0) in the target state
+        const targetState = states[scrollConfig.targetState]
+        if (!targetState) {
+          console.warn('[rebuildMultiSceneBounds] No state found for:', scrollConfig.targetState, 'Available:', Object.keys(states))
+          return
+        }
+        // Check if object is visible in target state (opacity > 0)
+        const opacity = typeof targetState.opacity === 'number' ? targetState.opacity : 1
+        if (opacity <= 0.001) {
+          return // Skip invisible objects
+        }
+        // Use target state position
+        rotatedCenter.copy(localCenter).applyQuaternion(targetState.quaternion).add(targetState.position)
         const radius = Math.max(localRadius, 0.0001)
         const min = new THREE.Vector3(rotatedCenter.x - radius, rotatedCenter.y - radius, rotatedCenter.z - radius)
         const max = new THREE.Vector3(rotatedCenter.x + radius, rotatedCenter.y + radius, rotatedCenter.z + radius)
@@ -605,13 +622,30 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
           padded.min.min(min)
           padded.max.max(max)
         }
-      })
+      } else {
+        // Normal mode: use all states
+        Object.values(states).forEach((state) => {
+          if (!state) return
+          rotatedCenter.copy(localCenter).applyQuaternion(state.quaternion).add(state.position)
+          const radius = Math.max(localRadius, 0.0001)
+          const min = new THREE.Vector3(rotatedCenter.x - radius, rotatedCenter.y - radius, rotatedCenter.z - radius)
+          const max = new THREE.Vector3(rotatedCenter.x + radius, rotatedCenter.y + radius, rotatedCenter.z + radius)
+          if (!initialized) {
+            padded.min.copy(min)
+            padded.max.copy(max)
+            initialized = true
+          } else {
+            padded.min.min(min)
+            padded.max.max(max)
+          }
+        })
+      }
     })
     if (!initialized) {
       padded.setFromCenterAndSize(new THREE.Vector3(0, 0, 0), new THREE.Vector3(1, 1, 1))
     }
     const center = padded.getCenter(new THREE.Vector3())
-    const halfSize = padded.getSize(new THREE.Vector3()).multiplyScalar(0.55)
+    const halfSize = padded.getSize(new THREE.Vector3()).multiplyScalar(0.5)
     padded.min.copy(center).sub(halfSize)
     padded.max.copy(center).add(halfSize)
     const sphere = new THREE.Sphere(center.clone(), halfSize.length())
@@ -632,6 +666,14 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
   const refreshCurrentMultiBounds = () => {
     const multi = multiSceneRef.current
     if (!multi?.active) return null
+    
+    // If scroll animation is enabled, always use the padded bounds (target state)
+    // Don't compute from actual scene geometry which may be in initial/animated state
+    const scrollConfig = multi?.scrollAnimationConfig
+    if (scrollConfig?.enabled && multi?.paddedBounds) {
+      return multi.paddedBounds.clone()
+    }
+    
     const models = multi.models || []
     const sceneGroup = multi.sceneGroup
     sceneGroup?.updateMatrixWorld(true)
@@ -639,7 +681,8 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
     const tempBox = new THREE.Box3()
     let initialized = false
     models.forEach((container) => {
-      if (!container || container.visible === false) return
+      if (!container) return
+      // Include all models in bounds regardless of visibility/opacity for consistent camera framing
       tempBox.makeEmpty()
       const modelRoot = container.userData?.__modelRoot
       if (modelRoot) {
@@ -682,7 +725,7 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
       dir.y = Math.abs(dir.y) + 0.45
     }
     dir.normalize()
-    const distance = Math.max(computeFitDistance(currentBox, camera, 0.9), 0.1)
+    const distance = Math.max(computeFitDistance(currentBox, camera, 0.67), 0.1)
     camera.position.copy(dir.multiplyScalar(distance).add(center))
     camera.updateProjectionMatrix()
     controls.update()
@@ -708,7 +751,7 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
     const R = diag / 2 // sphere radius
     const vFov = (camera.fov * Math.PI) / 180
     const hFov = 2 * Math.atan(Math.tan(vFov / 2) * camera.aspect)
-    const frac = Math.max(0.7, Math.min(0.97, fillFrac))
+    const frac = Math.max(0.5, Math.min(0.97, fillFrac))
     // For sphere diameter 2R to fit within frac*height or frac*width at depth d:
     // height = 2 d tan(vFov/2); width = 2 d tan(hFov/2)
     // => d >= R / (frac * tan(fov/2)) for each axis.
@@ -1025,9 +1068,9 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
     const INTERACTION_EVENTS = ['pointerdown', 'wheel', 'touchstart']
     const onUserInteracted = () => {
       if (spinModeRef.current !== 'auto') return
-      // pause spinning for 20s from last interaction
+      // pause spinning for 80s from last interaction
       const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()
-      pauseUntilRef.current = now + 20000
+      pauseUntilRef.current = now + 80000
       spinRef.current = false
       if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current)
       const delay = Math.max(0, pauseUntilRef.current - now)
@@ -1051,7 +1094,7 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
         }
       }
       if (spinRef.current && modelGroupRef.current && !multiSceneRef.current.active) {
-        const dTheta = 0.005
+        const dTheta = 0.00125
         modelGroupRef.current.rotation.y += dTheta
       }
       if (multiSceneRef.current.active) {
@@ -1086,7 +1129,7 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
           }
         }
         if (multiSceneRef.current.sceneGroup && spinRef.current) {
-          multiSceneRef.current.sceneGroup.rotation.y += 0.005
+          multiSceneRef.current.sceneGroup.rotation.y += 0.00125
         }
       }
       // Auto-center disabled to allow normal dragging
@@ -1556,7 +1599,7 @@ useEffect(() => {
       const controls = controlsRef.current
       if (camera && controls) {
         controls.target.copy(center)
-        const distance = computeFitDistance(box, camera, 0.75)
+        const distance = computeFitDistance(box, camera, 0.67)
         const dir = new THREE.Vector3().subVectors(camera.position, controls.target).normalize()
         camera.position.copy(dir.multiplyScalar(distance).add(controls.target))
         camera.near = Math.max(0.01, Math.min(camera.near, size / 100))
@@ -1586,6 +1629,7 @@ useEffect(() => {
       multi.stateOrder = definition.stateOrder || []
       multi.transitionMap = definition.transitionMap || {}
       multi.currentState = definition.initialState || (multi.stateOrder[0] || 'start')
+      multi.scrollAnimationConfig = definition.scrollAnimationConfig || null
 
       // Clear single-model group
       ;[group, wire, edgesGroup, outlineGroup].forEach((g) => {
@@ -1777,7 +1821,7 @@ useEffect(() => {
       const controls = controlsRef.current
       if (camera && controls) {
         controls.target.copy(center)
-        const distance = computeFitDistance(box, camera, 0.75)
+        const distance = computeFitDistance(box, camera, 0.67)
         const dir = new THREE.Vector3().subVectors(camera.position, controls.target).normalize()
         camera.position.copy(dir.multiplyScalar(distance).add(controls.target))
         camera.near = Math.max(0.01, Math.min(camera.near, size / 100))
@@ -1860,7 +1904,7 @@ useEffect(() => {
       const controls = controlsRef.current
       if (camera && controls) {
         controls.target.copy(center)
-        const distance = computeFitDistance(box, camera, 0.75)
+        const distance = computeFitDistance(box, camera, 0.67)
         const dir = new THREE.Vector3().subVectors(camera.position, controls.target).normalize()
         camera.position.copy(dir.multiplyScalar(distance).add(controls.target))
         camera.near = Math.max(0.01, Math.min(camera.near, size / 100))
@@ -2318,7 +2362,7 @@ useEffect(() => {
       }
       case 'GRID': {
         // Coarser grid helper; keep white-ish background for contrast, no fog
-        const grid = new THREE.GridHelper(200, 20, dark ? 0x666666 : 0x999999, dark ? 0x333333 : 0xbbbbbb)
+        const grid = new THREE.GridHelper(200, 20, dark ? 0x888888 : 0xeeeeee, dark ? 0x555555 : 0xeeeeee)
         grid.material.opacity = 0.35
         grid.material.transparent = true
         grid.position.y = -100
@@ -2326,7 +2370,7 @@ useEffect(() => {
         r.grid = grid
         const ground = new THREE.Mesh(
           new THREE.PlaneGeometry(1000, 1000),
-          new THREE.MeshBasicMaterial({ color: dark ? 0x0e0e10 : 0xf8f8f8 })
+          new THREE.MeshBasicMaterial({ color: dark ? 0x0a0a0a : 0xc0c0c0 })
         )
         ground.rotation.x = -Math.PI / 2
         ground.position.y = -100
@@ -2335,7 +2379,7 @@ useEffect(() => {
         r.ground = ground
         // Record floor unit size to scale grid accordingly
         r.floorSize = 1000
-        scene.background = new THREE.Color(dark ? 0x0b0b0c : 0xffffff)
+        scene.background = new THREE.Color(dark ? 0x080808 : 0xe0e0e0)
         scene.fog = null
         // size/position grid under current model
         syncGridToModel()
@@ -2344,8 +2388,8 @@ useEffect(() => {
         break
       }
       case 'HORIZON': {
-        const top = dark ? 0x1a2a44 : 0xcfe7ff
-        const bottom = dark ? 0x2b2b2b : 0xe9e4d8
+        const top = dark ? 0x1a2a44 : 0xe0e0e0
+        const bottom = dark ? 0x2b2b2b : 0xc0c0c0
         const tex = createVerticalGradientTexture(top, bottom)
         scene.background = tex
         r.gradientTex = tex
@@ -2359,7 +2403,7 @@ useEffect(() => {
         ground.renderOrder = -10
         scene.add(ground)
         r.ground = ground
-        scene.fog = new THREE.Fog(bottom, 80, 220)
+        scene.fog = new THREE.Fog(bottom, 200, 1000)
         break
       }
       default: {

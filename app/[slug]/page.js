@@ -1,7 +1,9 @@
-import { Section, Box, Heading, Text } from '@radix-ui/themes'
+import { Section, Box, Heading, Text, Button, Flex, Grid } from '@radix-ui/themes'
+import NextLink from 'next/link'
 import { Mdx } from '@/lib/mdx'
 import { Mermaid } from '@/components/Mermaid'
 import MDXImage from '@/components/MDXImage'
+import FeatureBox from '@/components/FeatureBox'
 import { getTopLevelContentSlugs } from '@/lib/markdown'
 import { notFound } from 'next/navigation'
 import fs from 'fs'
@@ -127,6 +129,15 @@ export default async function TopLevelContentPage({ params }) {
                       backLabel={pageTitle}
                     />
                   ),
+                  FeatureBox,
+                  // Expose Radix primitives and NextLink for MDX usage
+                  Heading,
+                  Text,
+                  Box,
+                  Flex,
+                  Grid,
+                  Button,
+                  NextLink,
                 }}
               />
             </div>

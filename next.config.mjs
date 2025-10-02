@@ -7,7 +7,7 @@ import rehypeAutolinkHeadings from 'rehype-autolink-headings'
 /** @type {import('next').NextConfig} */
 const isProd = process.env.NODE_ENV === 'production'
 // Allow configuring basePath/assetPrefix via env for GitHub Pages.
-// Example: NEXT_PUBLIC_BASE_PATH=/spoko-web
+// Example: NEXT_PUBLIC_BASE_PATH=/spoke-robotics/spoke-web
 const repoBasePath = process.env.NEXT_PUBLIC_BASE_PATH || ''
 const nextConfig = {
   ...(isProd && { output: 'export' }),

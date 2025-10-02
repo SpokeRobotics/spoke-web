@@ -552,6 +552,104 @@ html {
   }
 }
 
+/* Home Navbar styles (minimal version for home page) */
+.home-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  width: 100%;
+  border-bottom: 1px solid var(--theme-colors-neutral-neutral-6);
+  background-color: #000; /* black */
+  color: #fff;
+  backdrop-filter: saturate(180%) blur(8px);
+}
+.home-navbar-inner {
+  display: flex;
+  align-items: center;
+  height: var(--theme-tokens-space-navbar-height, 60px); /* tokenized navbar height */
+}
+.home-navbar-brand {
+  display: flex;
+  align-items: center;
+  margin-right: 24px;
+  flex: 1 1 auto; /* allow the brand row to span available width */
+  justify-content: space-between; /* logo left, links right */
+}
+.home-navbar-logo {
+  /* Ensure logo renders at its intrinsic SVG size */
+  max-width: none;
+  width: 140px;  /* give SVG without intrinsic size a concrete width on desktop */
+  height: auto;
+  display: block;
+}
+.home-navbar-links {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-left: 24px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.home-navbar-links a {
+  color: rgba(255,255,255,0.6);
+  text-decoration: none;
+  transition: color .15s ease;
+}
+.home-navbar-links a:hover { color: rgba(255,255,255,0.85); }
+
+/* Home navbar theme toggle */
+.home-navbar-links .themetoggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.6);
+  transition: color .15s ease, opacity .15s ease;
+  cursor: pointer;
+}
+.home-navbar-links .themetoggle:hover {
+  color: rgba(255,255,255,0.85);
+}
+.home-navbar-links .themetoggle svg {
+  display: block;
+}
+.home-navbar-links .themetoggle:focus-visible {
+  outline: 2px solid rgba(255,255,255,0.4);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Home navbar responsive behavior */
+@media (max-width: 767.98px) {
+  .home-navbar-inner {
+    flex-wrap: wrap;
+    height: auto;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    row-gap: 8px;
+  }
+  .home-navbar-brand {
+    width: 100%;
+    margin-right: 0;
+    justify-content: space-between;
+  }
+  .home-navbar-logo {
+    width: 120px; /* keep logo reasonable on mobile */
+    height: auto;
+  }
+  .home-navbar-links {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-left: 0;
+    padding: 8px 0 0 0;
+  }
+}
+
 /* Footer minimal styles so it doesn't look broken */
 .site-footer {
   border-top: 1px solid var(--theme-colors-neutral-neutral-6);

@@ -127,12 +127,12 @@ npm run figma:react     # Generate React stubs from design nodes (experimental)
 The project is configured for static export when `NODE_ENV=production`:
 
 - `next.config.mjs` sets `output: 'export'`, `trailingSlash: true`, and unoptimized images for static hosts.
-- Configure base path for GitHub Pages via env: `NEXT_PUBLIC_BASE_PATH=/spoko-web`.
+- Configure base path for GitHub Pages via env: `NEXT_PUBLIC_BASE_PATH=/spoke-web`.
 - Build outputs to `out/`.
 
 Steps:
 
-1. Set env if deploying to project pages (e.g., `/spoko-web`).
+1. Set env if deploying to project pages (e.g., `/spoke-web`).
 2. `npm run build`
 3. Deploy the `out/` directory to your static host.
 

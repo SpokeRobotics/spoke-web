@@ -116,7 +116,7 @@ async function main() {
       <div class="bg"></div>
       <div class="overlay"></div>
       <h1>SPOKE ROBOTICS</h1>
-      <div class="badge">spokerobotics.com</div>
+      <div class="badge">spoke-robotics.com</div>
     </div>
   </body>
 </html>`

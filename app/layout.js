@@ -1,6 +1,7 @@
 import { IBM_Plex_Mono } from 'next/font/google'
-import { Navbar } from '@/components/Navbar'
+import { NavbarWrapper } from '@/components/NavbarWrapper'
 import { Footer } from '@/components/Footer'
+import { getTopLevelContentFiles } from '@/lib/markdown'
 import '@/styles/globals.css'
 import '@radix-ui/themes/styles.css'
 import RadixThemeProvider from '@/components/providers/RadixThemeProvider'
@@ -33,13 +34,16 @@ export const metadata = {
   },
 }
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  // Get top-level content files for dynamic navigation
+  const topLevelPages = await getTopLevelContentFiles()
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={ibmPlexMono.className}>
         <RadixThemeProvider>
           <div className="app-root">
-            <Navbar />
+            <NavbarWrapper topLevelPages={topLevelPages} />
             <main className="app-main">{children}</main>
             <Footer />
           </div>

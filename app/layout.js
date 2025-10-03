@@ -28,8 +28,8 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    site: '@spokerobotics',
-    creator: '@spokerobotics',
+    site: '@spoke-robotics',
+    creator: '@spoke-robotics',
     images: ['/og/og-image.png'],
   },
 }

@@ -8,8 +8,10 @@ import MobileTOC from '@/components/MobileTOC'
 export function NavbarWrapper({ topLevelPages = [] }) {
   const pathname = usePathname()
   
-  // Home page navbar - minimal with no links
-  if (pathname === '/') {
+  // Minimal navbar for home page and confirmation page
+  const isMinimalNav = pathname === '/' || pathname === '/confirmation' || pathname === '/confirmation/'
+  
+  if (isMinimalNav) {
     return (
       <header className="home-navbar">
         <div className="container home-navbar-inner">

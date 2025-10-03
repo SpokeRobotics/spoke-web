@@ -9,7 +9,7 @@ import RadixThemeProvider from '@/components/providers/RadixThemeProvider'
 const ibmPlexMono = IBM_Plex_Mono({ subsets: ['latin'], weight: ['400','500','600','700'] })
 
 export const metadata = {
-  metadataBase: new URL('https://spokerobotics.com'),
+  metadataBase: new URL('https://spoke-robotics.com'),
   title: 'SPOKE ROBOTICS',
   description: 'SPOKE ROBOTICS: Open, modular robotics platform.',
   alternates: {

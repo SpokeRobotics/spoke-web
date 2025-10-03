@@ -1,6 +1,6 @@
 import { IBM_Plex_Mono } from 'next/font/google'
 import { NavbarWrapper } from '@/components/NavbarWrapper'
-import { Footer } from '@/components/Footer'
+import { FooterWrapper } from '@/components/FooterWrapper'
 import { getTopLevelContentFiles } from '@/lib/markdown'
 import '@/styles/globals.css'
 import '@radix-ui/themes/styles.css'
@@ -45,7 +45,7 @@ export default async function RootLayout({ children }) {
           <div className="app-root">
             <NavbarWrapper topLevelPages={topLevelPages} />
             <main className="app-main">{children}</main>
-            <Footer />
+            <FooterWrapper />
           </div>
         </RadixThemeProvider>
       </body>

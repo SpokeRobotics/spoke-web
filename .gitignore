@@ -1,3 +1,6 @@
+# Lib Build Id
+lib/content-version.js
+
 # Dependencies
 node_modules/
 npm-debug.log*

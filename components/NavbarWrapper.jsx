@@ -8,8 +8,8 @@ import MobileTOC from '@/components/MobileTOC'
 export function NavbarWrapper({ topLevelPages = [] }) {
   const pathname = usePathname()
   
-  // Minimal navbar for home page and confirmation page
-  const isMinimalNav = pathname === '/' || pathname === '/confirmation' || pathname === '/confirmation/'
+  // Minimal navbar for home page, confirmation page, and connect page
+  const isMinimalNav = pathname === '/' || pathname === '/confirmation' || pathname === '/confirmation/' || pathname === '/connect' || pathname === '/connect/'
   
   if (isMinimalNav) {
     return (

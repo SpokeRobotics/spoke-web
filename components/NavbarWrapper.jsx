@@ -19,7 +19,7 @@ export function NavbarWrapper({ topLevelPages = [] }) {
             <Link href="/" style={{ display: 'flex', alignItems: 'center', marginRight: 24 }}>
               <img
                 className="home-navbar-logo"
-                src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/assets/spoke-nav-60-WonB.png`}
+                src={`${process.env.NEXT_PUBLIC_BASE_PATH || ''}/assets/spoke-nav-02.png`}
                 alt="Spoke Logo"
                 decoding="async"
                 loading="eager"

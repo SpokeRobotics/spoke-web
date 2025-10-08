@@ -17,12 +17,12 @@ const ibmPlexMono = IBM_Plex_Mono({
  * - Listens to a custom `theme-change` event for live updates from `ThemeToggle`.
  */
 export default function RadixThemeProvider({ children }) {
-  const [appearance, setAppearance] = useState('light')
+  const [appearance, setAppearance] = useState('dark')
 
   useEffect(() => {
     // Initialize from existing localStorage convention
     const saved = typeof window !== 'undefined' ? localStorage.getItem('theme') : null
-    const initial = saved === 'dark' ? 'dark' : 'light'
+    const initial = saved === 'light' ? 'light' : 'dark'
     setAppearance(initial)
 
     const handler = (e) => {

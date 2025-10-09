@@ -454,7 +454,6 @@ html {
   top: 0;
   z-index: 40;
   width: 100%;
-  border-bottom: 1px solid var(--theme-colors-neutral-neutral-6);
   background-color: #000; /* black */
   color: #fff;
   backdrop-filter: saturate(180%) blur(8px);
@@ -558,7 +557,6 @@ html {
   top: 0;
   z-index: 40;
   width: 100%;
-  border-bottom: 1px solid var(--theme-colors-neutral-neutral-6);
   background-color: #000; /* black */
   color: #fff;
   backdrop-filter: saturate(180%) blur(8px);

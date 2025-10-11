@@ -1,0 +1,13 @@
+{
+  "$id": "spoke://docs/part-wpc-board",
+  "$type": "spoke/part/electronics",
+  "title": "Wireless Power Receiver",
+  "model": {
+    "url": "/models/SpokeWirelessPowerReceiver_lo.3mf",
+    "offset": [-13, -13, -22],
+    "rotation": [-90, 0, 0]
+  },
+  "meta": {
+    "origin": "site"
+  }
+}

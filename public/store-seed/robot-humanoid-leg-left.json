@@ -1,7 +1,0 @@
-{
-  "$id": "spoke://docs/robot-humanoid-leg-left",
-  "$type": "spoke/object/leg",
-  "title": "Left Leg",
-  "segments": ["thigh", "shin"],
-  "meta": { "origin": "site" }
-}

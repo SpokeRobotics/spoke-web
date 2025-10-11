@@ -1,0 +1,13 @@
+{
+  "$id": "spoke://docs/part-frame",
+  "$type": "spoke/part/frame",
+  "title": "Frame 96x64x32",
+  "model": {
+    "url": "/models/Cuboid_96x_64_32_4mm_Frame.3mf",
+    "offset": [0, 0, 0],
+    "rotation": [0, 0, 0]
+  },
+  "meta": {
+    "origin": "site"
+  }
+}

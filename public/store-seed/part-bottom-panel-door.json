@@ -1,0 +1,13 @@
+{
+  "$id": "spoke://docs/part-bottom-panel-door",
+  "$type": "spoke/part/panel",
+  "title": "Bottom Panel with Door",
+  "model": {
+    "url": "/models/RectPanel_96x_64_PcbMount_28_MagCon_4mm_WPCDoor.3mf",
+    "offset": [0, -16, 0],
+    "rotation": [180, 0, 0]
+  },
+  "meta": {
+    "origin": "site"
+  }
+}

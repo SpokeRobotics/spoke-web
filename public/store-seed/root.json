@@ -1,11 +1,23 @@
 {
   "$id": "spoke://docs/root",
-  "title": "Store Root",
-  "$type": "spoke/object",
-  "name": "Root",
-  "children": [
-    "spoke://docs/robot-wheeled",
-    "spoke://docs/robot-humanoid"
+  "$type": "spoke/collection",
+  "title": "Root Collection",
+  "parts": [
+    "spoke://docs/part-frame",
+    "spoke://docs/part-front-panel",
+    "spoke://docs/part-rear-panel",
+    "spoke://docs/part-top-panel",
+    "spoke://docs/part-bottom-panel",
+    "spoke://docs/part-bottom-panel-door",
+    "spoke://docs/part-left-panel",
+    "spoke://docs/part-right-panel",
+    "spoke://docs/part-left-battery",
+    "spoke://docs/part-right-battery",
+    "spoke://docs/part-charger",
+    "spoke://docs/part-wpc-board",
+    "spoke://docs/part-wpc-coil",
+    "spoke://docs/part-controller",
+    "spoke://docs/part-mag-connector"
   ],
   "meta": { "origin": "site" }
 }

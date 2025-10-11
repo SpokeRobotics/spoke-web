@@ -1,7 +1,0 @@
-{
-  "$id": "spoke://docs/robot-humanoid-arm-left",
-  "$type": "spoke/object/arm",
-  "title": "Left Arm",
-  "hand": "spoke://docs/robot-humanoid-hand-left",
-  "meta": { "origin": "site" }
-}

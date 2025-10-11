@@ -1,0 +1,13 @@
+{
+  "$id": "spoke://docs/part-mag-connector",
+  "$type": "spoke/part/connector",
+  "title": "Magnetic Connector 8mm",
+  "model": {
+    "url": "/models/MagneticConnector8mm.3mf",
+    "offset": [-21, -17, -33],
+    "rotation": [180, 0, 0]
+  },
+  "meta": {
+    "origin": "site"
+  }
+}

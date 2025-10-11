@@ -1,7 +1,0 @@
-{
-  "$id": "spoke://docs/robot-wheeled-battery",
-  "$type": "spoke/object/battery-pack",
-  "title": "Battery Pack 4S",
-  "capacityWh": 200,
-  "meta": { "origin": "site" }
-}

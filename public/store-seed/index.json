@@ -1,24 +1,21 @@
 {
   "docs": [
     { "path": "root.json", "$id": "spoke://docs/root" },
-    { "path": "robot-wheeled.json", "$id": "spoke://docs/robot-wheeled" },
-    { "path": "robot-wheeled-body.json", "$id": "spoke://docs/robot-wheeled-body" },
-    { "path": "robot-wheeled-battery.json", "$id": "spoke://docs/robot-wheeled-battery" },
-    { "path": "robot-wheeled-wheel-fl.json", "$id": "spoke://docs/robot-wheeled-wheel-fl" },
-    { "path": "robot-wheeled-wheel-fr.json", "$id": "spoke://docs/robot-wheeled-wheel-fr" },
-    { "path": "robot-wheeled-wheel-rl.json", "$id": "spoke://docs/robot-wheeled-wheel-rl" },
-    { "path": "robot-wheeled-wheel-rr.json", "$id": "spoke://docs/robot-wheeled-wheel-rr" },
-
-    { "path": "robot-humanoid.json", "$id": "spoke://docs/robot-humanoid" },
-    { "path": "robot-humanoid-head.json", "$id": "spoke://docs/robot-humanoid-head" },
-    { "path": "robot-humanoid-camera.json", "$id": "spoke://docs/robot-humanoid-camera" },
-    { "path": "robot-humanoid-torso.json", "$id": "spoke://docs/robot-humanoid-torso" },
-    { "path": "robot-humanoid-arm-left.json", "$id": "spoke://docs/robot-humanoid-arm-left" },
-    { "path": "robot-humanoid-arm-right.json", "$id": "spoke://docs/robot-humanoid-arm-right" },
-    { "path": "robot-humanoid-hand-left.json", "$id": "spoke://docs/robot-humanoid-hand-left" },
-    { "path": "robot-humanoid-hand-right.json", "$id": "spoke://docs/robot-humanoid-hand-right" },
-    { "path": "robot-humanoid-leg-left.json", "$id": "spoke://docs/robot-humanoid-leg-left" },
-    { "path": "robot-humanoid-leg-right.json", "$id": "spoke://docs/robot-humanoid-leg-right" }
+    { "path": "part-frame.json", "$id": "spoke://docs/part-frame" },
+    { "path": "part-front-panel.json", "$id": "spoke://docs/part-front-panel" },
+    { "path": "part-rear-panel.json", "$id": "spoke://docs/part-rear-panel" },
+    { "path": "part-top-panel.json", "$id": "spoke://docs/part-top-panel" },
+    { "path": "part-bottom-panel.json", "$id": "spoke://docs/part-bottom-panel" },
+    { "path": "part-bottom-panel-door.json", "$id": "spoke://docs/part-bottom-panel-door" },
+    { "path": "part-left-panel.json", "$id": "spoke://docs/part-left-panel" },
+    { "path": "part-right-panel.json", "$id": "spoke://docs/part-right-panel" },
+    { "path": "part-left-battery.json", "$id": "spoke://docs/part-left-battery" },
+    { "path": "part-right-battery.json", "$id": "spoke://docs/part-right-battery" },
+    { "path": "part-charger.json", "$id": "spoke://docs/part-charger" },
+    { "path": "part-wpc-board.json", "$id": "spoke://docs/part-wpc-board" },
+    { "path": "part-wpc-coil.json", "$id": "spoke://docs/part-wpc-coil" },
+    { "path": "part-controller.json", "$id": "spoke://docs/part-controller" },
+    { "path": "part-mag-connector.json", "$id": "spoke://docs/part-mag-connector" }
   ],
   "blobs": []
 }

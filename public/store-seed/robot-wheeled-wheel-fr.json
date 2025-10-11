@@ -1,7 +1,0 @@
-{
-  "$id": "spoke://docs/robot-wheeled-wheel-fr",
-  "$type": "spoke/object/wheel",
-  "title": "Front Right Wheel",
-  "diameterMm": 120,
-  "meta": { "origin": "site" }
-}

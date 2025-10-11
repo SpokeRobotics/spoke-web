@@ -68,6 +68,22 @@ export default function TestPage() {
               <NextLink href="/test/designer/ace-check">Open Ace Check</NextLink>
             </Button>
           </DocCard>
+
+          <DocCard>
+            <Heading size="4" mb="1">SystemViewer Test</Heading>
+            <Text color="gray" size="2" mb="3">Interactive test page showing robot assembly with electronic components from the store.</Text>
+            <Button asChild>
+              <NextLink href="/test/designer/system-viewer">Open Test Page</NextLink>
+            </Button>
+          </DocCard>
+
+          <DocCard>
+            <Heading size="4" mb="1">SystemViewer Docs</Heading>
+            <Text color="gray" size="2" mb="3">Complete documentation with multiple examples showing different robot configurations.</Text>
+            <Button asChild>
+              <NextLink href="/test/docs/system_viewer">Open Docs</NextLink>
+            </Button>
+          </DocCard>
         </Grid>
 
         <Separator my="5" size="4" />

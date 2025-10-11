@@ -1,7 +1,0 @@
-{
-  "$id": "spoke://docs/robot-humanoid-head",
-  "$type": "spoke/object/head",
-  "title": "Head Unit",
-  "sensors": ["spoke://docs/robot-humanoid-camera"],
-  "meta": { "origin": "site" }
-}

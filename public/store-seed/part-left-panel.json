@@ -1,0 +1,13 @@
+{
+  "$id": "spoke://docs/part-left-panel",
+  "$type": "spoke/part/panel",
+  "title": "Left Panel 96x32",
+  "model": {
+    "url": "/models/RectPanel_96x_32_Cell_18650_4mm_1.3mf",
+    "offset": [32, 0, 0],
+    "rotation": [0, 0, -90]
+  },
+  "meta": {
+    "origin": "site"
+  }
+}

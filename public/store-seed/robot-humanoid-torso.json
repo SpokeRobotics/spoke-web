@@ -1,6 +1,0 @@
-{
-  "$id": "spoke://docs/robot-humanoid-torso",
-  "$type": "spoke/object/torso",
-  "title": "Upper Torso",
-  "meta": { "origin": "site" }
-}

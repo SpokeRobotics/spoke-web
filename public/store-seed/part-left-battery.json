@@ -1,0 +1,13 @@
+{
+  "$id": "spoke://docs/part-left-battery",
+  "$type": "spoke/part/battery",
+  "title": "Left Battery 18650",
+  "model": {
+    "url": "/models/18650Li-IonCell_1.3mf",
+    "offset": [20, 0, -33],
+    "rotation": [90, 0, 0]
+  },
+  "meta": {
+    "origin": "site"
+  }
+}

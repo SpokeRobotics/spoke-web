@@ -1,7 +1,0 @@
-{
-  "$id": "spoke://docs/robot-wheeled-body",
-  "$type": "spoke/object/body",
-  "title": "Composite Body",
-  "panels": ["spoke://docs/robot-wheeled-battery"],
-  "meta": { "origin": "site" }
-}

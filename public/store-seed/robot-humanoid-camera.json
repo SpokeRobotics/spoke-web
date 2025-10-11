@@ -1,7 +1,0 @@
-{
-  "$id": "spoke://docs/robot-humanoid-camera",
-  "$type": "spoke/object/camera",
-  "title": "Stereo Camera",
-  "resolution": "1920x1080",
-  "meta": { "origin": "site" }
-}

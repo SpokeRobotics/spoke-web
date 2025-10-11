@@ -1775,7 +1775,36 @@ useEffect(() => {
         stateOrder: multi.stateOrder || [],
         transitionMap: multi.transitionMap || {},
         stateDisplayNames: multi.stateDisplayNames || {},
+        models: multi.models || [], // Expose the model containers
       }
+    },
+    updateStateVisibility: (stateUpdates, targetStates = null) => {
+      // Update visibility/opacity in specific states without changing positions
+      // stateUpdates: { modelIndex: { visible: true/false, opacity: 0-1 } }
+      // targetStates: array of state keys to update, or null for all states
+      const multi = multiSceneRef.current
+      if (!multi.active || !multi.models) return false
+      
+      Object.entries(stateUpdates).forEach(([modelIndex, update]) => {
+        const container = multi.models[parseInt(modelIndex)]
+        if (!container) return
+        
+        const states = container.userData.__states || {}
+        const stateKeys = targetStates || Object.keys(states)
+        
+        stateKeys.forEach(stateKey => {
+          const state = states[stateKey]
+          if (!state) return
+          if (update.visible !== undefined) {
+            state.visible = update.visible
+          }
+          if (update.opacity !== undefined) {
+            state.opacity = update.opacity
+          }
+        })
+      })
+      
+      return true
     },
     // Replace model with an Object3D (e.g., GLTF/3MF) preserving its materials
     setObject: (object3D) => {

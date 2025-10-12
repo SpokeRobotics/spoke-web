@@ -292,6 +292,7 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
   const pauseUntilRef = useRef(0)
   const pauseTimerRef = useRef(null)
   const axesRef = useRef(null) // origin axes helper
+  const systemOriginAxesRef = useRef(null) // large system origin crosshair
   const axesWidgetRef = useRef(null)
   const axesWidgetCameraRef = useRef(null)
   const axesWidgetResourcesRef = useRef({ current: [] })
@@ -1030,6 +1031,13 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
     }
     axesRef.current = axes
 
+    // System origin axes - large crosshair at 0,0,0 in the model's coordinate frame
+    // Add to multiSceneGroup so it rotates with the model during spin
+    const systemOriginAxes = new THREE.AxesHelper(500) // Very long axes
+    systemOriginAxes.visible = !!axesHelperVisible
+    multiSceneGroup.add(systemOriginAxes)
+    systemOriginAxesRef.current = systemOriginAxes
+
     axesWidgetResourcesRef.current.current = []
     const widget = createAxesWidget(axesWidgetResourcesRef.current)
     if (widget && widget.root) {
@@ -1402,6 +1410,9 @@ useEffect(() => {
     if (widget && widget.root) widget.root.visible = visible
     const overlayCanvas = axesCanvasRef.current
     if (overlayCanvas) overlayCanvas.style.display = visible ? 'block' : 'none'
+    // Toggle system origin crosshair
+    const systemOriginAxes = systemOriginAxesRef.current
+    if (systemOriginAxes) systemOriginAxes.visible = visible
   }, [axesHelperVisible])
 
   useEffect(() => {
@@ -1756,7 +1767,17 @@ useEffect(() => {
         if (axes.parent) axes.parent.remove(axes)
         multiGroup.add(axes)
         axes.position.set(0, 0, 0)
+        axes.scale.setScalar(1)
         axes.visible = !!originVisible
+      }
+      axesRef.current = axes
+
+      // Re-add system origin axes to multiGroup for multi-scene mode
+      const systemAxes = systemOriginAxesRef.current
+      if (systemAxes) {
+        if (systemAxes.parent) systemAxes.parent.remove(systemAxes)
+        multiGroup.add(systemAxes)
+        systemAxes.position.set(0, 0, 0)
       }
 
       rebuildMultiSceneBounds()

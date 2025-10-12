@@ -33,40 +33,6 @@ All structural panels assembled:
 
 </SystemViewer>
 
-## Power System
-
-Frame, batteries, and power electronics:
-
-<SystemViewer height={480}>
-
-| type | location |
-|--------|----------|
-| spoke://docs/part-frame | 0,0,0,0,0,0 |
-| spoke://docs/part-battery | 20,0,0,0,0,0 |
-| spoke://docs/part-battery | -20,0,0,180,0,0 |
-| spoke://docs/part-charger | 0,-14,0,0,0,0 |
-| spoke://docs/part-mag-connector | 0,0,0,0,0,0 |
-
-</SystemViewer>
-
-## Wireless Power
-
-Complete wireless power system:
-
-<SystemViewer height={480}>
-
-| type | location |
-|--------|----------|
-| spoke://docs/part-frame | 0,0,0,0,0,0 |
-| spoke://docs/part-battery | 20,0,0,0,0,0 |
-| spoke://docs/part-battery | -20,0,0,180,0,0 |
-| spoke://docs/part-charger | 0,-14,12,0,0,0 |
-| spoke://docs/part-wpc-board | 0,-14,-30,0,0,0 |
-| spoke://docs/part-wpc-coil | 0,-16,0,180,0,0 |
-| spoke://docs/part-mag-connector | 0,0,0,0,0,0 |
-
-</SystemViewer>
-
 ## Complete System
 
 All parts assembled (tools enabled by default):

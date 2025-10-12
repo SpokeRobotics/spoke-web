@@ -132,6 +132,14 @@ export function SystemViewer({
   const [objectOriginVisible, setObjectOriginVisible] = useState(false) // Show object origins
   const [systemOriginVisible, setSystemOriginVisible] = useState(false) // Show system origin
   
+  // Visual settings (can be overridden by props or controlled by toolbar)
+  const [currentSpinMode, setCurrentSpinMode] = useState('auto')
+  const [currentBackgroundMode, setCurrentBackgroundMode] = useState(backgroundMode)
+  const [currentShadingMode, setCurrentShadingMode] = useState(shadingMode)
+  const [currentStyleMode, setCurrentStyleMode] = useState(styleMode)
+  const [ambientLevel, setAmbientLevel] = useState(1.5)
+  const [directionalLevel, setDirectionalLevel] = useState(1.5)
+  
   // Parse objects from props or children table
   const { objectIds: parsedIds, leftover: leftoverChildren } = useMemo(
     () => {
@@ -365,19 +373,56 @@ export function SystemViewer({
     viewerRef.current.transitionMultiState?.(targetState, 900)
   }, [explodeMode])
   
+  // Toolbar control handlers
+  const handleCycleSpin = useCallback(() => {
+    setCurrentSpinMode(mode => mode === 'on' ? 'off' : mode === 'off' ? 'auto' : 'on')
+  }, [])
+  
+  const handleCycleBackground = useCallback(() => {
+    setCurrentBackgroundMode(mode => {
+      const modes = ['WHITE', 'GRID', 'BLACK']
+      const idx = modes.indexOf(mode)
+      return modes[(idx + 1) % modes.length]
+    })
+  }, [])
+  
+  const handleCycleStyle = useCallback(() => {
+    setCurrentStyleMode(mode => {
+      const modes = ['BASIC', 'STUDIO', 'OUTLINE', 'TOON']
+      const idx = modes.indexOf(mode)
+      return modes[(idx + 1) % modes.length]
+    })
+  }, [])
+  
+  const handleCycleAmbient = useCallback(() => {
+    setAmbientLevel(level => {
+      const levels = [0, 0.5, 1.0, 1.5, 2.0, 3.0]
+      const idx = levels.findIndex(l => Math.abs(l - level) < 0.01)
+      return levels[(idx + 1) % levels.length]
+    })
+  }, [])
+  
+  const handleCycleDirectional = useCallback(() => {
+    setDirectionalLevel(level => {
+      const levels = [0, 0.5, 1.0, 1.5, 2.0, 3.0]
+      const idx = levels.findIndex(l => Math.abs(l - level) < 0.01)
+      return levels[(idx + 1) % levels.length]
+    })
+  }, [])
+  
   return (
     <Box p="0" style={{ position: 'relative' }}>
       {/* 3D Viewer Container */}
       <div style={{ position: 'relative', width: '100%', height: viewTools ? expandedHeight : height }}>
         <ThreeCadViewer
           ref={viewerRef}
-          spinMode="auto"
-          backgroundMode={backgroundMode}
-          shadingMode={shadingMode}
-          styleMode={styleMode}
+          spinMode={currentSpinMode}
+          backgroundMode={currentBackgroundMode}
+          shadingMode={currentShadingMode}
+          styleMode={currentStyleMode}
           useSourceMaterials={true}
-          ambientLevel={1.5}
-          directionalLevel={1.5}
+          ambientLevel={ambientLevel}
+          directionalLevel={directionalLevel}
           originVisible={objectOriginVisible}
           axesHelperVisible={systemOriginVisible}
         />
@@ -412,25 +457,25 @@ export function SystemViewer({
             }}
           >
             <Toolbar
-              spinMode="auto"
+              spinMode={currentSpinMode}
               frameMode="HIDE"
-              shadingMode={shadingMode}
+              shadingMode={currentShadingMode}
               originVisible={objectOriginVisible}
-              onCycleSpin={() => {}}
+              onCycleSpin={handleCycleSpin}
               onToggleFrame={() => {}}
               onToggleShading={() => {}}
               onToggleOrigin={() => setObjectOriginVisible(v => !v)}
               systemOriginVisible={systemOriginVisible}
               onToggleSystemOrigin={() => setSystemOriginVisible(v => !v)}
               showCadControls={false}
-              styleMode={styleMode}
-              onCycleStyle={() => {}}
-              backgroundMode={backgroundMode}
-              onCycleBackground={() => {}}
-              ambientLevel={1.5}
-              directionalLevel={1.5}
-              onCycleAmbientLevel={() => {}}
-              onCycleDirectionalLevel={() => {}}
+              styleMode={currentStyleMode}
+              onCycleStyle={handleCycleStyle}
+              backgroundMode={currentBackgroundMode}
+              onCycleBackground={handleCycleBackground}
+              ambientLevel={ambientLevel}
+              directionalLevel={directionalLevel}
+              onCycleAmbientLevel={handleCycleAmbient}
+              onCycleDirectionalLevel={handleCycleDirectional}
             />
           </Box>
         )}

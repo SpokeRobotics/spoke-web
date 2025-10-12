@@ -1,20 +1,23 @@
 {
-  "$id": "spoke://docs/root",
-  "$type": "spoke/collection",
+  "id": "spoke://docs/root",
   "name": "Root Collection",
-  "parts": [
-    "spoke://docs/part-frame",
-    "spoke://docs/part-panel-64x32",
-    "spoke://docs/part-panel-96x32",
-    "spoke://docs/part-top-panel",
-    "spoke://docs/part-bottom-panel",
-    "spoke://docs/part-bottom-panel-door",
-    "spoke://docs/part-battery",
-    "spoke://docs/part-charger",
-    "spoke://docs/part-wpc-board",
-    "spoke://docs/part-wpc-coil",
-    "spoke://docs/part-controller",
-    "spoke://docs/part-mag-connector"
+  "types": [
+    "spoke://types/frame-96x64x32",
+    "spoke://types/panel-64x32",
+    "spoke://types/panel-96x32",
+    "spoke://types/top-panel-96x64",
+    "spoke://types/bottom-panel-96x64",
+    "spoke://types/bottom-panel-door",
+    "spoke://types/battery-18650",
+    "spoke://types/spoke-charger",
+    "spoke://types/wpc-board",
+    "spoke://types/wpc-coil",
+    "spoke://types/esp32-controller",
+    "spoke://types/mag-connector-8mm",
+    "spoke://types/core-robot"
+  ],
+  "instances": [
+    "spoke://instances/core-assembly"
   ],
   "meta": { "origin": "site" }
 }

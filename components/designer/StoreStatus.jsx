@@ -41,22 +41,40 @@ export default function StoreStatus() {
       // Delete all docs
       const headers = await listDocs("");
       for (const h of headers) {
-        try { await store.deleteDoc(h.$id); } catch {}
+        const docId = h.id || h.$id;
+        if (docId) {
+          try { await store.deleteDoc(docId); } catch {}
+        }
       }
       // Load seed index
       const res = await fetch(withBase("/store-seed/index.json"), { cache: "no-store" });
       if (!res.ok) throw new Error(`Failed to fetch store-seed index: ${res.status}`);
       const index = await res.json();
       const seedDocs = Array.isArray(index?.docs) ? index.docs : [];
-      // Put each seed doc
+      // Put each seed doc (handling arrays)
       for (const entry of seedDocs) {
         if (!entry?.path) continue;
         const r = await fetch(withBase(`/store-seed/${entry.path}`), { cache: "no-store" });
         if (!r.ok) throw new Error(`Failed to fetch seed doc ${entry.path}: ${r.status}`);
-        const doc = await r.json();
-        if (!doc?.$id) doc.$id = entry.$id || undefined;
-        if (!doc?.$id) throw new Error(`Seed doc missing $id for path ${entry.path}`);
-        await store.putDoc(doc);
+        const data = await r.json();
+        
+        // Handle array of docs (for batch loading)
+        const docArray = entry.array && Array.isArray(data) ? data : [data];
+        
+        for (const doc of docArray) {
+          // Normalize: use "id" field, fallback to "$id", or use entry.$id
+          const docId = doc.id || doc.$id || entry.$id;
+          if (!docId) {
+            console.warn(`[StoreStatus] Doc in ${entry.path} has no id field`);
+            continue;
+          }
+          
+          // Ensure both id and $id are set for backward compatibility
+          doc.id = docId;
+          doc.$id = docId;
+          
+          await store.putDoc(doc);
+        }
       }
       try { if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("store:docSaved", { detail: { reset: true } })); } catch {}
       await refresh();

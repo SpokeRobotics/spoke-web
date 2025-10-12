@@ -20,30 +20,47 @@ export default function SystemViewerPage() {
         <Separator my="5" size="4" />
 
         <Box mb="5">
-          <Heading size="6" mb="3">Complete Robot with Electronics</Heading>
+          <Heading size="6" mb="3">Example 1: Instance (Real Assembly)</Heading>
           <Text as="p" mb="3">
-            Body structure plus electronic components loaded from the designer store:
+            Render the actual core robot instance with all its parts positioned via slot templates:
+          </Text>
+          
+          <SystemViewer 
+            objects={["spoke://instances/core-assembly"]}
+            height={520}
+          />
+        </Box>
+
+        <Separator my="5" size="4" />
+
+        <Box mb="5">
+          <Heading size="6" mb="3">Example 2: Type Preview (Auto-Instantiate)</Heading>
+          <Text as="p" mb="3">
+            Preview a type by auto-instantiating it with templates. System creates temporary instances:
+          </Text>
+          
+          <SystemViewer 
+            objects={["spoke://types/core-robot"]}
+            height={520}
+          />
+        </Box>
+
+        <Separator my="5" size="4" />
+
+        <Box mb="5">
+          <Heading size="6" mb="3">Example 3: Manual Composition (Types + Locations)</Heading>
+          <Text as="p" mb="3">
+            Manually compose a scene using types with custom positions. Great for documentation:
           </Text>
           
           <SystemViewer 
             objects={[
-              { id: "spoke://docs/part-frame", location: { dx: 0, dy: 0, dz: 0, rx: 0, ry: 0, rz: 0 } },
-              { id: "spoke://docs/part-panel-64x32", location: { dx: 0, dy: 0, dz: 48, rx: 90, ry: 0, rz: 90 } },
-              { id: "spoke://docs/part-panel-64x32", location: { dx: 0, dy: 0, dz: -48, rx: -90, ry: 0, rz: 90 } },
-              { id: "spoke://docs/part-top-panel", location: { dx: 0, dy: 16, dz: 0, rx: 0, ry: 0, rz: 0 } },
-              { id: "spoke://docs/part-bottom-panel", location: { dx: 0, dy: -16, dz: 0, rx: 180, ry: 0, rz: 0 } },
-              { id: "spoke://docs/part-bottom-panel-door", location: { dx: 0, dy: -16, dz: 0, rx: 0, ry: 0, rz: 0 } },
-              { id: "spoke://docs/part-panel-96x32", location: { dx: 32, dy: 0, dz: 0, rx: 0, ry: 0, rz: -90 } },
-              { id: "spoke://docs/part-panel-96x32", location: { dx: -32, dy: 0, dz: 0, rx: 0, ry: 0, rz: 90 } },
-              { id: "spoke://docs/part-battery", location: { dx: 20, dy: 0, dz: 0, rx: 0, ry: 0, rz: 0 } },
-              { id: "spoke://docs/part-battery", location: { dx: -20, dy: 0, dz: 0, rx: 180, ry: 0, rz: 0 } },
-              { id: "spoke://docs/part-charger", location: { dx: -12, dy: -13, dz: -18, rx: 0, ry: 0, rz: -90 } },
-              { id: "spoke://docs/part-wpc-board", location: { dx: -13, dy: -13, dz: -22, rx: 0, ry: 0, rz: 0 } },
-              { id: "spoke://docs/part-wpc-coil", location: { dx: 0, dy: 0, dz: 0, rx: 0, ry: 0, rz: 0 } },
-              { id: "spoke://docs/part-controller", location: { dx: 0, dy: 14, dz: 0, rx: 180, ry: 0, rz: 0 } },
-              { id: "spoke://docs/part-mag-connector", location: { dx: -21, dy: -17, dz: -33, rx: 180, ry: 0, rz: 0 } }
+              { id: "spoke://types/frame-96x64x32", location: { dx: 0, dy: 0, dz: 0, rx: 0, ry: 0, rz: 0 } },
+              { id: "spoke://types/battery-18650", location: { dx: 20, dy: 0, dz: 0, rx: 0, ry: 0, rz: 0 } },
+              { id: "spoke://types/battery-18650", location: { dx: -20, dy: 0, dz: 0, rx: 180, ry: 0, rz: 0 } },
+              { id: "spoke://types/esp32-controller", location: { dx: 0, dy: 14, dz: 0, rx: 180, ry: 0, rz: 0 } }
             ]}
-            height={520}
+            height={420}
           />
         </Box>
 
@@ -52,21 +69,44 @@ export default function SystemViewerPage() {
         <Box>
           <Heading size="5" mb="3">Key Features</Heading>
           <ul style={{ marginTop: 8, lineHeight: 1.8 }}>
-            <li><strong>Store Integration:</strong> Objects defined in store with <code>model</code> section</li>
-            <li><strong>Type Inheritance:</strong> Instances can reference type definitions via <code>$type</code></li>
+            <li><strong>Type/Instance Support:</strong> Render instances or auto-instantiate types with templates</li>
+            <li><strong>Flexible Input:</strong> Instance IDs, type IDs, or manual type+location arrays</li>
+            <li><strong>Slot Templates:</strong> Automatic child positioning via type slot templates</li>
+            <li><strong>Type Inheritance:</strong> Hierarchical type chains with slot merging</li>
             <li><strong>Live Updates:</strong> Changes to store objects automatically update the viewer</li>
-            <li><strong>Flexible Input:</strong> Accept object IDs via props or markdown table</li>
-            <li><strong>3D Controls:</strong> Full ThreeCadViewer controls (rotate, zoom, pan)</li>
-            <li><strong>Auto-positioning:</strong> Objects positioned using model offset/rotation</li>
+            <li><strong>3D Controls:</strong> Full ThreeCadViewer controls (rotate, zoom, pan, explode)</li>
           </ul>
         </Box>
 
         <Separator my="5" size="4" />
 
         <Box>
-          <Heading size="5" mb="3">Store Object Structure</Heading>
+          <Heading size="5" mb="3">Object Model</Heading>
           <Text as="p" mb="2">
-            Store objects for SystemViewer should have this structure:
+            <strong>Type Definition:</strong> Reusable template with slot definitions
+          </Text>
+          <pre style={{ 
+            background: 'var(--gray-3)', 
+            padding: 16, 
+            borderRadius: 6,
+            overflow: 'auto',
+            fontSize: 13,
+            lineHeight: 1.6,
+            marginBottom: 16
+          }}>
+{`{
+  "id": "spoke://types/battery-18650",
+  "name": "18650 Battery",
+  "slots": {},
+  "model": {
+    "url": "/models/18650Li-IonCell_1.3mf",
+    "offset": [0, 0, -33],
+    "rotation": [90, 0, 0]
+  }
+}`}
+          </pre>
+          <Text as="p" mb="2">
+            <strong>Instance:</strong> Concrete object with type reference and specific properties
           </Text>
           <pre style={{ 
             background: 'var(--gray-3)', 
@@ -77,17 +117,12 @@ export default function SystemViewerPage() {
             lineHeight: 1.6
           }}>
 {`{
-  "$id": "spoke://docs/part-frame",
-  "$type": "spoke/part/frame",
-  "title": "Frame 96x64x32",
-  "model": {
-    "url": "/models/Cuboid_96x_64_32_4mm_Frame.3mf",
-    "offset": [0, 0, 0],
-    "rotation": [0, 0, 0]
-  },
-  "meta": {
-    "origin": "site"
-  }
+  "id": "spoke://instances/battery-left",
+  "type": "spoke://types/battery-18650",
+  "name": "Battery Left",
+  "parent": "spoke://instances/my-robot",
+  "parentSlot": "batteries",
+  "location": "-20,0,0,180,0,0"
 }`}
           </pre>
         </Box>

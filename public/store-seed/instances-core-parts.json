@@ -1,0 +1,137 @@
+[
+  {
+    "id": "spoke://instances/frame-main",
+    "type": "spoke://types/frame-96x64x32",
+    "name": "Frame",
+    "parent": "spoke://instances/core-assembly",
+    "parentSlot": "frame",
+    "location": "0,0,0,0,0,0",
+    "meta": { "origin": "site" }
+  },
+  {
+    "id": "spoke://instances/panel-front",
+    "type": "spoke://types/panel-64x32",
+    "name": "Front Panel 64x32",
+    "parent": "spoke://instances/core-assembly",
+    "parentSlot": "frontPanels",
+    "location": "0,0,48,90,0,90",
+    "meta": { "origin": "site" }
+  },
+  {
+    "id": "spoke://instances/panel-back",
+    "type": "spoke://types/panel-64x32",
+    "name": "Back Panel 64x32",
+    "parent": "spoke://instances/core-assembly",
+    "parentSlot": "frontPanels",
+    "location": "0,0,-48,-90,0,90",
+    "meta": { "origin": "site" }
+  },
+  {
+    "id": "spoke://instances/panel-top",
+    "type": "spoke://types/top-panel-96x64",
+    "name": "Top Panel",
+    "parent": "spoke://instances/core-assembly",
+    "parentSlot": "topPanel",
+    "location": "0,16,0,0,0,0",
+    "meta": { "origin": "site" }
+  },
+  {
+    "id": "spoke://instances/panel-bottom",
+    "type": "spoke://types/bottom-panel-96x64",
+    "name": "Bottom Panel",
+    "parent": "spoke://instances/core-assembly",
+    "parentSlot": "bottomPanel",
+    "location": "0,-16,0,180,0,0",
+    "meta": { "origin": "site" }
+  },
+  {
+    "id": "spoke://instances/panel-bottom-door",
+    "type": "spoke://types/bottom-panel-door",
+    "name": "Bottom Panel Door",
+    "parent": "spoke://instances/core-assembly",
+    "parentSlot": "bottomPanelDoor",
+    "location": "0,-16,0,0,0,0",
+    "meta": { "origin": "site" }
+  },
+  {
+    "id": "spoke://instances/panel-right",
+    "type": "spoke://types/panel-96x32",
+    "name": "Right Panel 96x32",
+    "parent": "spoke://instances/core-assembly",
+    "parentSlot": "sidePanels",
+    "location": "32,0,0,0,0,-90",
+    "meta": { "origin": "site" }
+  },
+  {
+    "id": "spoke://instances/panel-left",
+    "type": "spoke://types/panel-96x32",
+    "name": "Left Panel 96x32",
+    "parent": "spoke://instances/core-assembly",
+    "parentSlot": "sidePanels",
+    "location": "-32,0,0,0,0,90",
+    "meta": { "origin": "site" }
+  },
+  {
+    "id": "spoke://instances/battery-right",
+    "type": "spoke://types/battery-18650",
+    "name": "Battery Right",
+    "parent": "spoke://instances/core-assembly",
+    "parentSlot": "batteries",
+    "location": "20,0,0,0,0,0",
+    "meta": { "origin": "site" }
+  },
+  {
+    "id": "spoke://instances/battery-left",
+    "type": "spoke://types/battery-18650",
+    "name": "Battery Left",
+    "parent": "spoke://instances/core-assembly",
+    "parentSlot": "batteries",
+    "location": "-20,0,0,180,0,0",
+    "meta": { "origin": "site" }
+  },
+  {
+    "id": "spoke://instances/charger-main",
+    "type": "spoke://types/spoke-charger",
+    "name": "Charger",
+    "parent": "spoke://instances/core-assembly",
+    "parentSlot": "charger",
+    "location": "0,-14,12,0,0,0",
+    "meta": { "origin": "site" }
+  },
+  {
+    "id": "spoke://instances/wpc-board-main",
+    "type": "spoke://types/wpc-board",
+    "name": "WPC Board",
+    "parent": "spoke://instances/core-assembly",
+    "parentSlot": "wpcBoard",
+    "location": "0,-14,-30,0,0,0",
+    "meta": { "origin": "site" }
+  },
+  {
+    "id": "spoke://instances/wpc-coil-main",
+    "type": "spoke://types/wpc-coil",
+    "name": "WPC Coil",
+    "parent": "spoke://instances/core-assembly",
+    "parentSlot": "wpcCoil",
+    "location": "0,-16,0,180,0,0",
+    "meta": { "origin": "site" }
+  },
+  {
+    "id": "spoke://instances/controller-main",
+    "type": "spoke://types/esp32-controller",
+    "name": "Controller",
+    "parent": "spoke://instances/core-assembly",
+    "parentSlot": "controller",
+    "location": "0,14,0,180,0,0",
+    "meta": { "origin": "site" }
+  },
+  {
+    "id": "spoke://instances/mag-connector-main",
+    "type": "spoke://types/mag-connector-8mm",
+    "name": "Mag Connector",
+    "parent": "spoke://instances/core-assembly",
+    "parentSlot": "magConnector",
+    "location": "-21,-17,-33,180,0,0",
+    "meta": { "origin": "site" }
+  }
+]

@@ -149,7 +149,19 @@ export function SystemViewer({
           if (typeof obj === 'string') {
             return { id: obj, location: { dx: 0, dy: 0, dz: 0, rx: 0, ry: 0, rz: 0 } }
           }
-          return obj
+          // Ensure location has all fields
+          const location = obj.location || {}
+          return {
+            id: obj.id,
+            location: {
+              dx: location.dx ?? 0,
+              dy: location.dy ?? 0,
+              dz: location.dz ?? 0,
+              rx: location.rx ?? 0,
+              ry: location.ry ?? 0,
+              rz: location.rz ?? 0
+            }
+          }
         })
         return { objectIds: normalized, leftover: children }
       }

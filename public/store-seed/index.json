@@ -1,19 +1,21 @@
 {
   "docs": [
-    { "path": "root.json", "$id": "spoke://docs/root" },
-    { "path": "part-frame.json", "$id": "spoke://docs/part-frame" },
-    { "path": "part-panel-64x32.json", "$id": "spoke://docs/part-panel-64x32" },
-    { "path": "part-panel-96x32.json", "$id": "spoke://docs/part-panel-96x32" },
-    { "path": "part-top-panel.json", "$id": "spoke://docs/part-top-panel" },
-    { "path": "part-bottom-panel.json", "$id": "spoke://docs/part-bottom-panel" },
-    { "path": "part-bottom-panel-door.json", "$id": "spoke://docs/part-bottom-panel-door" },
-    { "path": "part-battery.json", "$id": "spoke://docs/part-battery" },
-    { "path": "part-charger.json", "$id": "spoke://docs/part-charger" },
-    { "path": "part-wpc-board.json", "$id": "spoke://docs/part-wpc-board" },
-    { "path": "part-wpc-coil.json", "$id": "spoke://docs/part-wpc-coil" },
-    { "path": "part-controller.json", "$id": "spoke://docs/part-controller" },
-    { "path": "part-mag-connector.json", "$id": "spoke://docs/part-mag-connector" },
-    { "path": "assembly-core.json", "$id": "spoke://docs/assembly-core" }
+    { "path": "root.json" },
+    { "path": "part-frame.json" },
+    { "path": "part-panel-64x32.json" },
+    { "path": "part-panel-96x32.json" },
+    { "path": "part-top-panel.json" },
+    { "path": "part-bottom-panel.json" },
+    { "path": "part-bottom-panel-door.json" },
+    { "path": "part-battery.json" },
+    { "path": "part-charger.json" },
+    { "path": "part-wpc-board.json" },
+    { "path": "part-wpc-coil.json" },
+    { "path": "part-controller.json" },
+    { "path": "part-mag-connector.json" },
+    { "path": "type-core-robot.json" },
+    { "path": "instances-core-parts.json", "array": true },
+    { "path": "instance-core-assembly.json" }
   ],
   "blobs": []
 }

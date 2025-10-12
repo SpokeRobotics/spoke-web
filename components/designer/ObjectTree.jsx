@@ -146,16 +146,38 @@ export default function ObjectTree({ query = "", onSelect, onOpen }) {
       const doc = await safeGetDoc(id);
       const slots = [];
       if (doc) {
-        for (const [key, val] of Object.entries(doc)) {
-          if (key.startsWith("$")) continue;
-          if (Array.isArray(val) && val.length > 0) {
-            // Extract IDs - support both string arrays and object arrays with .type property
-            const refs = val.map((item) => {
-              if (typeof item === "string") return item;
-              if (item && typeof item === "object" && typeof item.type === "string") return item.type;
-              return null;
-            }).filter(Boolean);
-            const mapped = refs.map((ref) => byId[ref]).filter(Boolean);
+        // Load slots defined by the object's type (if it has one)
+        const typeRef = doc.type || doc.$type;
+        let effectiveSlots = {};
+        
+        if (typeRef && typeRef.startsWith('spoke://types/')) {
+          // Load type-defined slots using type-system utilities
+          try {
+            const { getEffectiveSlots } = await import('@/lib/store/type-system');
+            effectiveSlots = await getEffectiveSlots(typeRef);
+          } catch (err) {
+            console.warn('[ObjectTree] Failed to load type slots:', err);
+          }
+        }
+        
+        // Check both type-defined slots and duck-typed properties
+        const slotNames = new Set([
+          ...Object.keys(effectiveSlots),
+          ...Object.keys(doc).filter(k => !k.startsWith("$") && !k.startsWith("_"))
+        ]);
+        
+        for (const key of slotNames) {
+          if (key === 'id' || key === 'type' || key === 'name' || key === 'parent' || key === 'parentSlot' || key === 'location' || key === 'model' || key === 'meta') continue;
+          
+          const val = doc[key];
+          if (!val) continue;
+          
+          // Handle both single references and arrays
+          const refs = Array.isArray(val) ? val : [val];
+          const childRefs = refs.filter(ref => typeof ref === 'string' && ref.startsWith('spoke://'));
+          
+          if (childRefs.length > 0) {
+            const mapped = childRefs.map((ref) => byId[ref]).filter(Boolean);
             if (mapped.length) slots.push({ slot: key, items: mapped });
           }
         }

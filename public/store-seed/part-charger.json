@@ -1,7 +1,7 @@
 {
-  "$id": "spoke://docs/part-charger",
-  "$type": "spoke/part/electronics",
+  "id": "spoke://types/spoke-charger",
   "name": "Spoke Charger",
+  "slots": {},
   "model": {
     "url": "/models/SpokeCharger_lo.3mf",
     "offset": [ -12, 0, -27],

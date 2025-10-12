@@ -1,7 +1,7 @@
 {
-  "$id": "spoke://docs/part-panel-96x32",
-  "$type": "spoke/part/panel",
+  "id": "spoke://types/panel-96x32",
   "name": "Panel 96x32",
+  "slots": {},
   "model": {
     "url": "/models/RectPanel_96x_32_Cell_18650_4mm_1.3mf",
     "offset": [0, 0, 0],

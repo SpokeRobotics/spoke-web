@@ -1,7 +1,7 @@
 {
-  "$id": "spoke://docs/part-panel-64x32",
-  "$type": "spoke/part/panel",
+  "id": "spoke://types/panel-64x32",
   "name": "Panel 64x32",
+  "slots": {},
   "model": {
     "url": "/models/RectPanel_64_32_4mm_1.3mf",
     "offset": [0, 0, 0],

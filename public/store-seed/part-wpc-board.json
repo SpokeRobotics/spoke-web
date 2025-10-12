@@ -1,7 +1,7 @@
 {
-  "$id": "spoke://docs/part-wpc-board",
-  "$type": "spoke/part/electronics",
+  "id": "spoke://types/wpc-board",
   "name": "Wireless Power Receiver",
+  "slots": {},
   "model": {
     "url": "/models/SpokeWirelessPowerReceiver_lo.3mf",
     "offset": [-13, 0, 9],

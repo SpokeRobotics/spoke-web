@@ -1,0 +1,70 @@
+{
+  "id": "spoke://types/core-robot",
+  "name": "Core Robot Type",
+  "slots": {
+    "frame": {
+      "type": "spoke://types/frame-96x64x32",
+      "required": true,
+      "template": { "name": "Frame", "location": "0,0,0,0,0,0" }
+    },
+    "frontPanels": {
+      "type": "spoke://types/panel-64x32",
+      "array": true,
+      "template": [
+        { "name": "Front Panel 64x32", "location": "0,0,48,90,0,90" },
+        { "name": "Back Panel 64x32", "location": "0,0,-48,-90,0,90" }
+      ]
+    },
+    "sidePanels": {
+      "type": "spoke://types/panel-96x32",
+      "array": true,
+      "template": [
+        { "name": "Right Panel 96x32", "location": "32,0,0,0,0,-90" },
+        { "name": "Left Panel 96x32", "location": "-32,0,0,0,0,90" }
+      ]
+    },
+    "topPanel": {
+      "type": "spoke://types/top-panel-96x64",
+      "template": { "name": "Top Panel", "location": "0,16,0,0,0,0" }
+    },
+    "bottomPanel": {
+      "type": "spoke://types/bottom-panel-96x64",
+      "template": { "name": "Bottom Panel", "location": "0,-16,0,180,0,0" }
+    },
+    "bottomPanelDoor": {
+      "type": "spoke://types/bottom-panel-door",
+      "template": { "name": "Bottom Panel Door", "location": "0,-16,0,0,0,0" }
+    },
+    "batteries": {
+      "type": "spoke://types/battery-18650",
+      "array": true,
+      "template": [
+        { "name": "Battery Right", "location": "20,0,0,0,0,0" },
+        { "name": "Battery Left", "location": "-20,0,0,180,0,0" }
+      ]
+    },
+    "charger": {
+      "type": "spoke://types/spoke-charger",
+      "template": { "name": "Charger", "location": "0,-14,12,0,0,0" }
+    },
+    "wpcBoard": {
+      "type": "spoke://types/wpc-board",
+      "template": { "name": "WPC Board", "location": "0,-14,-30,0,0,0" }
+    },
+    "wpcCoil": {
+      "type": "spoke://types/wpc-coil",
+      "template": { "name": "WPC Coil", "location": "0,-16,0,180,0,0" }
+    },
+    "controller": {
+      "type": "spoke://types/esp32-controller",
+      "template": { "name": "Controller", "location": "0,14,0,180,0,0" }
+    },
+    "magConnector": {
+      "type": "spoke://types/mag-connector-8mm",
+      "template": { "name": "Mag Connector", "location": "-21,-17,-33,180,0,0" }
+    }
+  },
+  "meta": {
+    "origin": "site"
+  }
+}

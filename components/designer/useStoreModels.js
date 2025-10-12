@@ -2,11 +2,12 @@
  * Hook to load and watch 3D models from store documents
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { store } from '@/lib/store/adapter'
 import { batchResolveModels } from '@/lib/store/model-resolver'
 import { loadModelAsset, getFileExtension, resolveModelPath } from '@/lib/models/loader'
 import { applyTransform } from '@/lib/models/transform'
+import { createInstanceFromType, getEffectiveSlots } from '@/lib/store/type-system'
 import * as THREE from 'three'
 
 /**
@@ -22,6 +23,7 @@ export function useStoreModels(objectIds, options = {}) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [lastLoadKey, setLastLoadKey] = useState('')
+  const tempInstancesRef = useRef(new Set()) // Track temp instances for cleanup
   
   const loadModels = useCallback(async () => {
     if (!objectIds || objectIds.length === 0) {
@@ -34,8 +36,35 @@ export function useStoreModels(objectIds, options = {}) {
       setLoading(true)
       setError(null)
       
+      // Process object IDs - auto-instantiate types
+      const processedIds = []
+      const newTempInstances = new Set()
+      
+      for (const id of objectIds) {
+        if (typeof id === 'string' && id.startsWith('spoke://types/')) {
+          // Auto-instantiate from type
+          const tempId = `spoke://temp/preview-${id.split('/').pop()}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+          
+          try {
+            await createInstanceFromType(tempId, id, { 
+              name: `Preview: ${id.split('/').pop()}` 
+            })
+            newTempInstances.add(tempId)
+            processedIds.push(tempId)
+          } catch (err) {
+            console.warn(`[useStoreModels] Failed to instantiate type ${id}:`, err)
+            // Continue with other objects
+          }
+        } else {
+          processedIds.push(id)
+        }
+      }
+      
+      // Update temp instances ref
+      tempInstancesRef.current = newTempInstances
+      
       // Resolve model configs from store
-      const resolved = await batchResolveModels(objectIds)
+      const resolved = await batchResolveModels(processedIds)
       
       // Load 3D assets
       const loadedModels = []
@@ -115,6 +144,20 @@ export function useStoreModels(objectIds, options = {}) {
   const reload = useCallback(() => {
     loadModels()
   }, [loadModels])
+  
+  // Cleanup temp instances on unmount
+  useEffect(() => {
+    return () => {
+      // Delete all temp instances when component unmounts
+      tempInstancesRef.current.forEach(async (tempId) => {
+        try {
+          await store.deleteDoc(tempId)
+        } catch (err) {
+          // Ignore errors during cleanup
+        }
+      })
+    }
+  }, [])
   
   return {
     models,

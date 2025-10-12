@@ -1,7 +1,7 @@
 {
-  "$id": "spoke://docs/part-mag-connector",
-  "$type": "spoke/part/connector",
+  "id": "spoke://types/mag-connector-8mm",
   "name": "Magnetic Connector 8mm",
+  "slots": {},
   "model": {
     "url": "/models/MagneticConnector8mm.3mf",
     "offset": [0,0,0],

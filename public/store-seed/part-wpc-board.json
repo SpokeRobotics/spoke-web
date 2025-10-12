@@ -4,7 +4,7 @@
   "title": "Wireless Power Receiver",
   "model": {
     "url": "/models/SpokeWirelessPowerReceiver_lo.3mf",
-    "offset": [-13, -13, -22],
+    "offset": [-13, 0, 9],
     "rotation": [-90, 0, 0]
   },
   "meta": {

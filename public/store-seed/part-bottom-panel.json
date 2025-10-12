@@ -4,8 +4,8 @@
   "title": "Bottom Panel 96x64",
   "model": {
     "url": "/models/RectPanel_96x_64_PcbMount_28_MagCon_4mm_.3mf",
-    "offset": [0, -16, 0],
-    "rotation": [180, 0, 0]
+    "offset": [0, 0, 0],
+    "rotation": [0, 0, 0]
   },
   "meta": {
     "origin": "site"

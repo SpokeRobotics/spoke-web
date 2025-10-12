@@ -1,11 +1,11 @@
 {
-  "$id": "spoke://docs/part-front-panel",
+  "$id": "spoke://docs/part-panel-64x32",
   "$type": "spoke/part/panel",
-  "title": "Front Panel 64x32",
+  "title": "Panel 64x32",
   "model": {
     "url": "/models/RectPanel_64_32_4mm_1.3mf",
-    "offset": [0, 0, 48],
-    "rotation": [90, 0, 90]
+    "offset": [0, 0, 0],
+    "rotation": [0, 0, 0]
   },
   "meta": {
     "origin": "site"

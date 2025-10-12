@@ -14,6 +14,8 @@ export function Toolbar({
   onToggleShading,
   onToggleOrigin,
   onToggleAxes,
+  systemOriginVisible,
+  onToggleSystemOrigin,
   boundingBoxesVisible = false,
   onToggleBoundingBoxes,
   styleMode,
@@ -94,6 +96,11 @@ export function Toolbar({
       <Button onClick={onToggleOrigin}>
         ORIGINS: {originVisible ? 'ON' : 'OFF'}
       </Button>
+      {typeof onToggleSystemOrigin === 'function' && (
+        <Button onClick={onToggleSystemOrigin}>
+          SYSTEM ORIGIN: {systemOriginVisible ? 'ON' : 'OFF'}
+        </Button>
+      )}
       {typeof onToggleBoundingBoxes === 'function' && (
         <Button onClick={onToggleBoundingBoxes}>
           BBOX: {boundingBoxesVisible ? 'ON' : 'OFF'}

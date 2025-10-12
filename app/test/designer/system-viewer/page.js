@@ -1,17 +1,21 @@
-import { Section, Box, Heading, Text, Separator } from '@radix-ui/themes'
+import { Section, Box, Heading, Text, Separator, Flex } from '@radix-ui/themes'
 import SystemViewer from '@/components/designer/SystemViewer.jsx'
+import ResetStoreButton from '@/components/designer/ResetStoreButton'
 
 export default function SystemViewerPage() {
   return (
     <Section size="4">
       <Box className="container">
-        <Box mb="5">
-          <Heading size="8">Designer: SystemViewer</Heading>
-          <Text as="p" color="gray" size="4">
-            Display and manipulate robot parts from the store with 3D visualization.
-            Unlike ModelViewer which uses static files, SystemViewer sources objects from the designer store.
-          </Text>
-        </Box>
+        <Flex mb="5" justify="between" align="start" gap="3">
+          <Box>
+            <Heading size="8">Designer: SystemViewer</Heading>
+            <Text as="p" color="gray" size="4">
+              Display and manipulate robot parts from the store with 3D visualization.
+              Unlike ModelViewer which uses static files, SystemViewer sources objects from the designer store.
+            </Text>
+          </Box>
+          <ResetStoreButton size="1" />
+        </Flex>
 
         <Separator my="5" size="4" />
 
@@ -23,21 +27,21 @@ export default function SystemViewerPage() {
           
           <SystemViewer 
             objects={[
-              "spoke://docs/part-frame",
-              "spoke://docs/part-front-panel",
-              "spoke://docs/part-rear-panel",
-              "spoke://docs/part-top-panel",
-              "spoke://docs/part-bottom-panel",
-              "spoke://docs/part-bottom-panel-door",
-              "spoke://docs/part-left-panel",
-              "spoke://docs/part-right-panel",
-              "spoke://docs/part-left-battery",
-              "spoke://docs/part-right-battery",
-              "spoke://docs/part-charger",
-              "spoke://docs/part-wpc-board",
-              "spoke://docs/part-wpc-coil",
-              "spoke://docs/part-controller",
-              "spoke://docs/part-mag-connector"
+              { id: "spoke://docs/part-frame", location: { dx: 0, dy: 0, dz: 0, rx: 0, ry: 0, rz: 0 } },
+              { id: "spoke://docs/part-panel-64x32", location: { dx: 0, dy: 0, dz: 48, rx: 90, ry: 0, rz: 90 } },
+              { id: "spoke://docs/part-panel-64x32", location: { dx: 0, dy: 0, dz: -48, rx: -90, ry: 0, rz: 90 } },
+              { id: "spoke://docs/part-top-panel", location: { dx: 0, dy: 16, dz: 0, rx: 0, ry: 0, rz: 0 } },
+              { id: "spoke://docs/part-bottom-panel", location: { dx: 0, dy: -16, dz: 0, rx: 180, ry: 0, rz: 0 } },
+              { id: "spoke://docs/part-bottom-panel-door", location: { dx: 0, dy: -16, dz: 0, rx: 0, ry: 0, rz: 0 } },
+              { id: "spoke://docs/part-panel-96x32", location: { dx: 32, dy: 0, dz: 0, rx: 0, ry: 0, rz: -90 } },
+              { id: "spoke://docs/part-panel-96x32", location: { dx: -32, dy: 0, dz: 0, rx: 0, ry: 0, rz: 90 } },
+              { id: "spoke://docs/part-battery", location: { dx: 20, dy: 0, dz: 0, rx: 0, ry: 0, rz: 0 } },
+              { id: "spoke://docs/part-battery", location: { dx: -20, dy: 0, dz: 0, rx: 180, ry: 0, rz: 0 } },
+              { id: "spoke://docs/part-charger", location: { dx: -12, dy: -13, dz: -18, rx: 0, ry: 0, rz: -90 } },
+              { id: "spoke://docs/part-wpc-board", location: { dx: -13, dy: -13, dz: -22, rx: 0, ry: 0, rz: 0 } },
+              { id: "spoke://docs/part-wpc-coil", location: { dx: 0, dy: 0, dz: 0, rx: 0, ry: 0, rz: 0 } },
+              { id: "spoke://docs/part-controller", location: { dx: 0, dy: 14, dz: 0, rx: 180, ry: 0, rz: 0 } },
+              { id: "spoke://docs/part-mag-connector", location: { dx: 0, dy: 0, dz: 0, rx: 0, ry: 0, rz: 0 } }
             ]}
             height={520}
           />

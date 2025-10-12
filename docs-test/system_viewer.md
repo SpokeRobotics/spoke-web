@@ -3,31 +3,16 @@ title: SystemViewer Examples
 description: Examples of using SystemViewer to display robot parts from the store
 ---
 
+<Flex justify="between" align="center" mb="4">
+<Box>
+
 # SystemViewer Test Data
 
+</Box>
+<ResetStoreButton size="1" />
+</Flex>
+
 This file contains test examples for the SystemViewer component, which displays 3D models from store objects.
-
-## Basic Frame
-
-<SystemViewer height={380}>
-
-| object |
-|--------|
-| spoke://docs/part-frame |
-
-</SystemViewer>
-
-## Frame with Batteries
-
-<SystemViewer height={420}>
-
-| object |
-|--------|
-| spoke://docs/part-frame |
-| spoke://docs/part-left-battery |
-| spoke://docs/part-right-battery |
-
-</SystemViewer>
 
 ## Body Assembly
 
@@ -35,15 +20,16 @@ All structural panels assembled:
 
 <SystemViewer height={480}>
 
-| object |
-|--------|
-| spoke://docs/part-frame |
-| spoke://docs/part-front-panel |
-| spoke://docs/part-rear-panel |
-| spoke://docs/part-top-panel |
-| spoke://docs/part-bottom-panel |
-| spoke://docs/part-left-panel |
-| spoke://docs/part-right-panel |
+| type | location |
+|--------|----------|
+| spoke://docs/part-frame | 0,0,0,0,0,0 |
+| spoke://docs/part-panel-64x32 | 0,0,48,90,0,90 |
+| spoke://docs/part-panel-64x32 | 0,0,-48,-90,0,90 |
+| spoke://docs/part-top-panel | 0,16,0,0,0,0 |
+| spoke://docs/part-bottom-panel | 0,-16,0,180,0,0 |
+| spoke://docs/part-bottom-panel-door | 0,-16,0,0,0,0 |
+| spoke://docs/part-panel-96x32 | 32,0,0,0,0,-90 |
+| spoke://docs/part-panel-96x32 | -32,0,0,0,0,90 |
 
 </SystemViewer>
 
@@ -53,13 +39,13 @@ Frame, batteries, and power electronics:
 
 <SystemViewer height={480}>
 
-| object |
-|--------|
-| spoke://docs/part-frame |
-| spoke://docs/part-left-battery |
-| spoke://docs/part-right-battery |
-| spoke://docs/part-charger |
-| spoke://docs/part-mag-connector |
+| type | location |
+|--------|----------|
+| spoke://docs/part-frame | 0,0,0,0,0,0 |
+| spoke://docs/part-battery | 20,0,0,0,0,0 |
+| spoke://docs/part-battery | -20,0,0,180,0,0 |
+| spoke://docs/part-charger | 0,-14,0,0,0,0 |
+| spoke://docs/part-mag-connector | 0,0,0,0,0,0 |
 
 </SystemViewer>
 
@@ -69,40 +55,41 @@ Complete wireless power system:
 
 <SystemViewer height={480}>
 
-| object |
-|--------|
-| spoke://docs/part-frame |
-| spoke://docs/part-left-battery |
-| spoke://docs/part-right-battery |
-| spoke://docs/part-charger |
-| spoke://docs/part-wpc-board |
-| spoke://docs/part-wpc-coil |
-| spoke://docs/part-mag-connector |
+| type | location |
+|--------|----------|
+| spoke://docs/part-frame | 0,0,0,0,0,0 |
+| spoke://docs/part-battery | 20,0,0,0,0,0 |
+| spoke://docs/part-battery | -20,0,0,180,0,0 |
+| spoke://docs/part-charger | 0,-14,12,0,0,0 |
+| spoke://docs/part-wpc-board | 0,-14,-30,0,0,0 |
+| spoke://docs/part-wpc-coil | 0,-16,0,180,0,0 |
+| spoke://docs/part-mag-connector | 0,0,0,0,0,0 |
 
 </SystemViewer>
 
 ## Complete System
 
-All parts assembled:
+All parts assembled (tools enabled by default):
 
-<SystemViewer height={520} toolsEnabled={true}>
+<SystemViewer height={420} expandedHeight={620}>
 
-| object |
-|--------|
-| spoke://docs/part-frame |
-| spoke://docs/part-front-panel |
-| spoke://docs/part-rear-panel |
-| spoke://docs/part-top-panel |
-| spoke://docs/part-bottom-panel-door |
-| spoke://docs/part-left-panel |
-| spoke://docs/part-right-panel |
-| spoke://docs/part-left-battery |
-| spoke://docs/part-right-battery |
-| spoke://docs/part-charger |
-| spoke://docs/part-wpc-board |
-| spoke://docs/part-wpc-coil |
-| spoke://docs/part-controller |
-| spoke://docs/part-mag-connector |
+| type | location |
+|--------|----------|
+| spoke://docs/part-frame | 0,0,0,0,0,0 |
+| spoke://docs/part-panel-64x32 | 0,0,48,90,0,90 |
+| spoke://docs/part-panel-64x32 | 0,0,-48,-90,0,90 |
+| spoke://docs/part-top-panel | 0,16,0,0,0,0 |
+| spoke://docs/part-bottom-panel | 0,-16,0,180,0,0 |
+| spoke://docs/part-bottom-panel-door | 0,-16,0,0,0,0 |
+| spoke://docs/part-panel-96x32 | 32,0,0,0,0,-90 |
+| spoke://docs/part-panel-96x32 | -32,0,0,0,0,90 |
+| spoke://docs/part-battery | 20,0,0,0,0,0 |
+| spoke://docs/part-battery | -20,0,0,180,0,0 |
+| spoke://docs/part-charger | 0,-14,12,0,0,0 |
+| spoke://docs/part-wpc-board | 0,-14,-30,0,0,0 |
+| spoke://docs/part-wpc-coil | 0,-16,0,180,0,0 |
+| spoke://docs/part-controller | 0,14,0,180,0,0 |
+| spoke://docs/part-mag-connector | 0,0,0,0,0,0 |
 
 </SystemViewer>
 
@@ -112,9 +99,9 @@ All parts assembled:
 
 <SystemViewer height={320}>
 
-| object |
-|--------|
-| spoke://docs/part-front-panel |
+| type | location |
+|--------|----------|
+| spoke://docs/part-panel-64x32 | 0,0,0,0,0,0 |
 
 </SystemViewer>
 
@@ -122,9 +109,9 @@ All parts assembled:
 
 <SystemViewer height={320}>
 
-| object |
-|--------|
-| spoke://docs/part-controller |
+| type | location |
+|--------|----------|
+| spoke://docs/part-controller | 0,0,0,0,0,0 |
 
 </SystemViewer>
 
@@ -132,11 +119,56 @@ All parts assembled:
 
 <SystemViewer height={320}>
 
-| object |
-|--------|
-| spoke://docs/part-left-battery |
+| type | location |
+|--------|----------|
+| spoke://docs/part-battery | 0,0,0,0,0,0 |
 
 </SystemViewer>
+
+### Charger with Frame
+
+<SystemViewer height={380}>
+
+| type | location |
+|--------|----------|
+| spoke://docs/part-frame | 0,0,0,0,0,0 |
+| spoke://docs/part-charger | 0,0,0,0,0,0 |
+
+</SystemViewer>
+
+### WPC Board with Frame
+
+<SystemViewer height={380}>
+
+| type | location |
+|--------|----------|
+| spoke://docs/part-frame | 0,0,0,0,0,0 |
+| spoke://docs/part-wpc-board | 0,0,0,0,0,0 |
+
+</SystemViewer>
+
+### Controller with Frame
+
+<SystemViewer height={380}>
+
+| type | location |
+|--------|----------|
+| spoke://docs/part-frame | 0,0,0,0,0,0 |
+| spoke://docs/part-controller | 0,0,0,0,0,0 |
+
+</SystemViewer>
+
+### WPC Coil with Frame
+
+<SystemViewer height={380}>
+
+| type | location |
+|--------|----------|
+| spoke://docs/part-frame | 0,0,0,0,0,0 |
+| spoke://docs/part-wpc-coil | 0,0,0,0,0,0 |
+
+</SystemViewer>
+
 
 ## Notes
 

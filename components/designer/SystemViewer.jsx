@@ -5,20 +5,22 @@
  * Similar to ModelViewer but sources objects from the store
  */
 
-import React, { useRef, useMemo, useEffect, useState, useCallback } from 'react'
-import { Box, Text, Button, Flex } from '@radix-ui/themes'
-import * as THREE from 'three'
-import { ThreeCadViewer } from '@/components/cad/ThreeCadViewer'
-import { useStoreModels } from '@/components/designer/useStoreModels'
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { Box, Button, Flex, Text, IconButton } from '@radix-ui/themes';
+import { Wrench } from 'lucide-react';
+import * as THREE from 'three';
+import { ThreeCadViewer } from '@/components/cad/ThreeCadViewer';
+import { Toolbar } from '@/components/cad/Toolbar';
+import { getDoc } from '@/lib/store/resolver';
+import { useStoreModels } from './useStoreModels';
 
-const toArray = React.Children.toArray
+const toArray = React.Children.toArray;
 
 /**
- * Extract object IDs from markdown table
- * Table format:
- * | object |
- * |--------|
- * | spoke://docs/part-frame |
+ * Parse table from children to extract object references with locations
+ * Format: | type | location |
+ * Location format: dx,dy,dz,rx,ry,rz (all optional, default to 0)
+ * Multiple rows can reference the same type with different locations (instances)
  */
 function parseObjectTable(children) {
   const elements = toArray(children)
@@ -46,9 +48,21 @@ function parseObjectTable(children) {
         const cells = toArray(rowEl.props?.children)
         if (cells.length > 0) {
           const firstCell = cells[0]
-          const text = extractCellText(firstCell?.props?.children)
-          if (text && text.startsWith('spoke://')) {
-            objectIds.push(text.trim())
+          const objectId = extractCellText(firstCell?.props?.children)
+          if (objectId && objectId.startsWith('spoke://')) {
+            // Check for location in second column
+            let location = null
+            if (cells.length > 1) {
+              const locationText = extractCellText(cells[1]?.props?.children)
+              if (locationText) {
+                location = parseLocation(locationText)
+              }
+            }
+            
+            objectIds.push({ 
+              id: objectId.trim(), 
+              location: location || { dx: 0, dy: 0, dz: 0, rx: 0, ry: 0, rz: 0 }
+            })
           }
         }
       })
@@ -58,6 +72,21 @@ function parseObjectTable(children) {
   const leftover = elements.filter((node) => node !== tableElement)
   
   return { objectIds, leftover }
+}
+
+/**
+ * Parse location string "dx,dy,dz,rx,ry,rz" into object
+ */
+function parseLocation(text) {
+  const parts = text.split(',').map(s => parseFloat(s.trim()) || 0)
+  return {
+    dx: parts[0] || 0,
+    dy: parts[1] || 0,
+    dz: parts[2] || 0,
+    rx: parts[3] || 0,
+    ry: parts[4] || 0,
+    rz: parts[5] || 0,
+  }
 }
 
 function extractCellText(value) {
@@ -99,19 +128,30 @@ export function SystemViewer({
   const [visibleTypes, setVisibleTypes] = useState(new Set()) // Set of visible type names
   const sceneInitializedRef = useRef(false) // Track if scene has been set up
   const filterStateToggle = useRef('a') // Toggle between 'a' and 'b' for filter transitions
+  const [viewTools, setViewTools] = useState(false) // Tools panel visibility
+  const [objectOriginVisible, setObjectOriginVisible] = useState(false) // Show object origins
+  const [systemOriginVisible, setSystemOriginVisible] = useState(false) // Show system origin
   
   // Parse objects from props or children table
   const { objectIds: parsedIds, leftover: leftoverChildren } = useMemo(
     () => {
       if (objects && Array.isArray(objects)) {
-        return { objectIds: objects, leftover: children }
+        // Normalize objects array to handle both string and {id, location} format
+        const normalized = objects.map(obj => {
+          if (typeof obj === 'string') {
+            return { id: obj, location: { dx: 0, dy: 0, dz: 0, rx: 0, ry: 0, rz: 0 } }
+          }
+          return obj
+        })
+        return { objectIds: normalized, leftover: children }
       }
       return parseObjectTable(children)
     },
     [objects, children]
   )
   
-  const objectIds = objects && Array.isArray(objects) ? objects : parsedIds
+  const objectSpecs = parsedIds // Array of { id, location }
+  const objectIds = objectSpecs.map(spec => spec.id) // Extract just IDs for loading
   
   // Load models from store
   const { models, loading, error } = useStoreModels(objectIds, {
@@ -119,10 +159,18 @@ export function SystemViewer({
     autoLoad: true,
   })
   
+  // Attach location data to loaded models
+  const modelsWithLocation = useMemo(() => {
+    return models.map((model, index) => ({
+      ...model,
+      location: objectSpecs[index]?.location || { dx: 0, dy: 0, dz: 0, rx: 0, ry: 0, rz: 0 }
+    }))
+  }, [models, objectSpecs])
+  
   // Extract unique types from models
   const availableTypes = useMemo(() => {
     const types = new Set()
-    models.forEach(m => {
+    modelsWithLocation.forEach(m => {
       if (m.doc.$type) {
         // Extract final part from "spoke/part/electronics" -> "electronics"
         const parts = m.doc.$type.split('/')
@@ -131,7 +179,7 @@ export function SystemViewer({
       }
     })
     return Array.from(types).sort()
-  }, [models])
+  }, [modelsWithLocation])
   
   // Initialize visible types when models load
   useEffect(() => {
@@ -155,63 +203,87 @@ export function SystemViewer({
   
   // Initialize scene when models first load
   useEffect(() => {
-    if (!viewerRef.current || models.length === 0 || sceneInitializedRef.current) return
+    if (!viewerRef.current || modelsWithLocation.length === 0 || sceneInitializedRef.current) return
     
     const EXPLODE_SCALE = 2.5 // How much to scale positions in exploded mode
     
     // Build multi-scene definition for ThreeCadViewer
     const sceneDefinition = {
-      models: models.map(m => {
-        // Convert position array to Vector3
-        const pos = new THREE.Vector3(
+      models: modelsWithLocation.map(m => {
+        // Create a wrapper Group to handle the two-level transform hierarchy:
+        // - Inner object: Apply To transform (seed offset/rotation) 
+        // - Outer group: Apply Tm transform (table location)
+        const wrapper = new THREE.Group()
+        
+        // Apply To transform to the actual model object
+        const originPos = new THREE.Vector3(
           m.position?.[0] ?? 0,
           m.position?.[1] ?? 0,
           m.position?.[2] ?? 0
         )
-        
-        // Exploded position: scale from origin
-        const explodedPos = pos.clone().multiplyScalar(EXPLODE_SCALE)
-        
-        // Convert rotation (degrees) to quaternion
-        // NOTE: Rotation order is ZYX to match ModelViewer multi-scene format
-        const rot = new THREE.Euler(
+        const originRot = new THREE.Euler(
           THREE.MathUtils.degToRad(m.rotation?.[0] ?? 0),
           THREE.MathUtils.degToRad(m.rotation?.[1] ?? 0),
           THREE.MathUtils.degToRad(m.rotation?.[2] ?? 0),
           'ZYX'
         )
-        const quat = new THREE.Quaternion().setFromEuler(rot)
+        m.object.position.copy(originPos)
+        m.object.quaternion.setFromEuler(originRot)
         
-        // Extract type for visibility filtering - store in userData
+        // Add model to wrapper
+        wrapper.add(m.object)
+        
+        // Apply Tm transform to the wrapper (this operates in To's frame)
+        const locationPos = new THREE.Vector3(
+          m.location.dx,
+          m.location.dy,
+          m.location.dz
+        )
+        const locationRot = new THREE.Euler(
+          THREE.MathUtils.degToRad(m.location.rx),
+          THREE.MathUtils.degToRad(m.location.ry),
+          THREE.MathUtils.degToRad(m.location.rz),
+          'ZYX'
+        )
+        const locationQuat = new THREE.Quaternion().setFromEuler(locationRot)
+        
+        // Normal position/rotation for wrapper
+        const normalPos = locationPos.clone()
+        const normalQuat = locationQuat.clone()
+        
+        // Exploded position: scale from origin
+        const explodedPos = locationPos.clone().multiplyScalar(EXPLODE_SCALE)
+        
+        // Extract type for visibility filtering - store in userData on wrapper
         const parts = (m.doc.$type || '').split('/')
         const typeName = parts[parts.length - 1] || ''
-        m.object.userData.typeName = typeName
+        wrapper.userData.typeName = typeName
         
         return {
           name: m.doc.title || m.$id,
-          object: m.object,
+          object: wrapper,
           states: {
             normal_a: {
-              position: pos,
-              quaternion: quat,
+              position: normalPos,
+              quaternion: normalQuat,
               visible: true,
               opacity: 1,
             },
             normal_b: {
-              position: pos,
-              quaternion: quat,
+              position: normalPos.clone(),
+              quaternion: normalQuat.clone(),
               visible: true,
               opacity: 1,
             },
             exploded_a: {
               position: explodedPos,
-              quaternion: quat,
+              quaternion: normalQuat.clone(),
               visible: true,
               opacity: 1,
             },
             exploded_b: {
-              position: explodedPos,
-              quaternion: quat,
+              position: explodedPos.clone(),
+              quaternion: normalQuat.clone(),
               visible: true,
               opacity: 1,
             }
@@ -236,7 +308,7 @@ export function SystemViewer({
     
     viewerRef.current.setMultiScene?.(sceneDefinition)
     sceneInitializedRef.current = true
-  }, [models, autoFitOnLoad])
+  }, [modelsWithLocation, autoFitOnLoad])
   
   // Update visibility when filters change - use ThreeCadViewer's animation system
   useEffect(() => {
@@ -296,7 +368,7 @@ export function SystemViewer({
   return (
     <Box p="0" style={{ position: 'relative' }}>
       {/* 3D Viewer Container */}
-      <div style={{ position: 'relative', width: '100%', height: height }}>
+      <div style={{ position: 'relative', width: '100%', height: viewTools ? expandedHeight : height }}>
         <ThreeCadViewer
           ref={viewerRef}
           spinMode="auto"
@@ -306,68 +378,114 @@ export function SystemViewer({
           useSourceMaterials={true}
           ambientLevel={1.5}
           directionalLevel={1.5}
-          originVisible={false}
-          axesHelperVisible={false}
+          originVisible={objectOriginVisible}
+          axesHelperVisible={systemOriginVisible}
         />
         
-        {/* Explode Mode Controls - Right side */}
-        {!loading && models.length > 0 && (
-          <Box
+        {/* Wrench Button - Top right */}
+        {toolsEnabled && (
+          <IconButton
+            variant={viewTools ? 'solid' : 'soft'}
+            radius="full"
+            onClick={() => setViewTools(v => !v)}
+            aria-label={viewTools ? 'Hide Tools' : 'Show Tools'}
             style={{
               position: 'absolute',
-              right: 12,
-              top: '50%',
-              transform: 'translateY(-50%)',
-              zIndex: 10,
-              pointerEvents: 'auto',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 8,
+              top: 8,
+              right: 8,
+              zIndex: 11,
             }}
           >
-            <Button
-              variant={explodeMode === 'normal' ? 'solid' : 'surface'}
-              disabled={explodeMode === 'normal'}
-              onClick={() => handleExplodeModeChange('normal')}
-              size="2"
-            >
-              Normal
-            </Button>
-            <Button
-              variant={explodeMode === 'exploded' ? 'solid' : 'surface'}
-              disabled={explodeMode === 'exploded'}
-              onClick={() => handleExplodeModeChange('exploded')}
-              size="2"
-            >
-              Exploded
-            </Button>
-          </Box>
+            <Wrench size={18} />
+          </IconButton>
         )}
         
-        {/* Type Filter Controls - Top left */}
-        {!loading && availableTypes.length > 0 && (
+        {/* Toolbar - Top left (when tools visible) */}
+        {viewTools && (
           <Box
             style={{
               position: 'absolute',
               top: 8,
               left: 8,
               zIndex: 10,
-              pointerEvents: 'auto',
+              paddingRight: 96,
             }}
           >
-            <Flex gap="2" wrap="wrap">
-              {availableTypes.map(typeName => (
-                <Button
-                  key={typeName}
-                  variant={visibleTypes.has(typeName) ? 'solid' : 'soft'}
-                  onClick={() => toggleType(typeName)}
-                  size="1"
-                  style={{ textTransform: 'capitalize' }}
-                >
-                  {typeName}
-                </Button>
-              ))}
+            <Toolbar
+              spinMode="auto"
+              frameMode="HIDE"
+              shadingMode={shadingMode}
+              originVisible={objectOriginVisible}
+              onCycleSpin={() => {}}
+              onToggleFrame={() => {}}
+              onToggleShading={() => {}}
+              onToggleOrigin={() => setObjectOriginVisible(v => !v)}
+              systemOriginVisible={systemOriginVisible}
+              onToggleSystemOrigin={() => setSystemOriginVisible(v => !v)}
+              showCadControls={false}
+              styleMode={styleMode}
+              onCycleStyle={() => {}}
+              backgroundMode={backgroundMode}
+              onCycleBackground={() => {}}
+              ambientLevel={1.5}
+              directionalLevel={1.5}
+              onCycleAmbientLevel={() => {}}
+              onCycleDirectionalLevel={() => {}}
+            />
+          </Box>
+        )}
+        
+        {/* Explode Mode Controls & Type Filters - Right side bottom */}
+        {!loading && modelsWithLocation.length > 0 && (
+          <Box
+            style={{
+              position: 'absolute',
+              right: 12,
+              bottom: 12,
+              zIndex: 10,
+              pointerEvents: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-end',
+              gap: 8,
+            }}
+          >
+            {/* Normal/Exploded Buttons */}
+            <Flex direction="column" gap="2">
+              <Button
+                variant={explodeMode === 'normal' ? 'solid' : 'surface'}
+                disabled={explodeMode === 'normal'}
+                onClick={() => handleExplodeModeChange('normal')}
+                size="2"
+              >
+                Normal
+              </Button>
+              <Button
+                variant={explodeMode === 'exploded' ? 'solid' : 'surface'}
+                disabled={explodeMode === 'exploded'}
+                onClick={() => handleExplodeModeChange('exploded')}
+                size="2"
+              >
+                Exploded
+              </Button>
             </Flex>
+            
+            {/* Type Filter Controls - below Normal/Exploded with gap */}
+            {availableTypes.length > 0 && (
+              <Flex gap="2" wrap="wrap" style={{ maxWidth: 200, justifyContent: 'flex-end' }}>
+                {availableTypes.map(typeName => (
+                  <Button
+                    key={typeName}
+                    variant={visibleTypes.has(typeName) ? 'solid' : 'soft'}
+                    onClick={() => toggleType(typeName)}
+                    size="1"
+                    style={{ textTransform: 'capitalize' }}
+                  >
+                    {typeName}
+                  </Button>
+                ))}
+              </Flex>
+            )}
           </Box>
         )}
         
@@ -384,7 +502,7 @@ export function SystemViewer({
           </Box>
         )}
         
-        {!loading && !error && models.length === 0 && objectIds.length > 0 && (
+        {!loading && !error && modelsWithLocation.length === 0 && objectIds.length > 0 && (
           <Box style={{ position: 'absolute', bottom: 8, left: 8, padding: 8, background: 'rgba(0,0,0,0.7)', color: 'white', borderRadius: 4, pointerEvents: 'none', zIndex: 10 }}>
             <Text size="1">No models found</Text>
           </Box>

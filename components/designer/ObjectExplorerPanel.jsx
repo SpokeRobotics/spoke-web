@@ -199,68 +199,6 @@ export default function ObjectExplorerPanel() {
             <Button size="1" color="red" disabled={!selectedId} onClick={() => { if (!selectedId) return; setShowDelConfirm(true); }}>Delete</Button>
             <Separator orientation="vertical" size="4" />
             <Button size="1" color="crimson" variant="surface" onClick={() => setShowResetConfirm(true)} disabled={busyReset}>Reset</Button>
-            {/* Quick Actions */}
-            <Separator orientation="vertical" size="4" />
-            <Text size="1" color="gray" style={{ marginRight: 4 }}>Quick Actions:</Text>
-            <Button size="1" variant="soft" disabled={!selectedId} onClick={async () => {
-              if (!selectedId) return;
-              const parent = await safeGetDoc(selectedId);
-              if (!parent) return alert("Select a parent object first");
-              // Create a new wheel
-              const base = "spoke://docs/wheel";
-              const headers = await listDocs("");
-              const existing = new Set(headers.map(h => h.$id));
-              let n = 1; while (existing.has(`${base}-${n}`)) n++;
-              const $id = `${base}-${n}`;
-              const doc = { $id, $type: "spoke/object/wheel", title: `Wheel ${n}`, diameterMm: 120, meta: { origin: "user", version: 1, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } };
-              await store.putDoc(doc);
-              parent.wheels = Array.isArray(parent.wheels) ? parent.wheels : [];
-              if (!parent.wheels.includes($id)) parent.wheels = [...parent.wheels, $id];
-              parent.meta = { ...(parent.meta||{}), version: (parent.meta?.version||0) + 1, updatedAt: new Date().toISOString() };
-              await store.putDoc(parent);
-              try { window.dispatchEvent(new CustomEvent("store:docSaved", { detail: { $id } })); } catch {}
-              try { window.dispatchEvent(new CustomEvent("store:docSaved", { detail: { $id: parent.$id } })); } catch {}
-            }}>Add Wheel</Button>
-            <Button size="1" variant="soft" disabled={!selectedId} onClick={async () => {
-              if (!selectedId) return;
-              const parent = await safeGetDoc(selectedId);
-              if (!parent) return alert("Select a parent object first");
-              const base = "spoke://docs/arm";
-              const headers = await listDocs("");
-              const existing = new Set(headers.map(h => h.$id));
-              let n = 1; while (existing.has(`${base}-${n}`)) n++;
-              const $id = `${base}-${n}`;
-              const handId = `${$id}-hand`;
-              const hand = { $id: handId, $type: "spoke/object/hand", title: `Hand ${n}`, fingers: 5, meta: { origin: "user", version: 1, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } };
-              const arm = { $id, $type: "spoke/object/arm", title: `Arm ${n}`, hand: handId, meta: { origin: "user", version: 1, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } };
-              await store.putDoc(hand);
-              await store.putDoc(arm);
-              parent.arms = Array.isArray(parent.arms) ? parent.arms : [];
-              if (!parent.arms.includes($id)) parent.arms = [...parent.arms, $id];
-              parent.meta = { ...(parent.meta||{}), version: (parent.meta?.version||0) + 1, updatedAt: new Date().toISOString() };
-              await store.putDoc(parent);
-              try { window.dispatchEvent(new CustomEvent("store:docSaved", { detail: { $id: handId } })); } catch {}
-              try { window.dispatchEvent(new CustomEvent("store:docSaved", { detail: { $id } })); } catch {}
-              try { window.dispatchEvent(new CustomEvent("store:docSaved", { detail: { $id: parent.$id } })); } catch {}
-            }}>Add Arm</Button>
-            <Button size="1" variant="soft" disabled={!selectedId} onClick={async () => {
-              if (!selectedId) return;
-              const parent = await safeGetDoc(selectedId);
-              if (!parent) return alert("Select a parent object first");
-              const base = "spoke://docs/leg";
-              const headers = await listDocs("");
-              const existing = new Set(headers.map(h => h.$id));
-              let n = 1; while (existing.has(`${base}-${n}`)) n++;
-              const $id = `${base}-${n}`;
-              const doc = { $id, $type: "spoke/object/leg", title: `Leg ${n}`, segments: ["thigh", "shin"], meta: { origin: "user", version: 1, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } };
-              await store.putDoc(doc);
-              parent.legs = Array.isArray(parent.legs) ? parent.legs : [];
-              if (!parent.legs.includes($id)) parent.legs = [...parent.legs, $id];
-              parent.meta = { ...(parent.meta||{}), version: (parent.meta?.version||0) + 1, updatedAt: new Date().toISOString() };
-              await store.putDoc(parent);
-              try { window.dispatchEvent(new CustomEvent("store:docSaved", { detail: { $id } })); } catch {}
-              try { window.dispatchEvent(new CustomEvent("store:docSaved", { detail: { $id: parent.$id } })); } catch {}
-            }}>Add Leg</Button>
           </Flex>
           {(showDelConfirm || showResetConfirm) && (
             <Box style={{ width: "100%", marginTop: 6 }}>

@@ -1,7 +1,7 @@
 {
   "$id": "spoke://docs/root",
   "$type": "spoke/collection",
-  "title": "Root Collection",
+  "name": "Root Collection",
   "parts": [
     "spoke://docs/part-frame",
     "spoke://docs/part-panel-64x32",

@@ -59,7 +59,7 @@ export function useStoreModels(objectIds, options = {}) {
         // Store the raw object without transforms
         // The caller (SystemViewer) will handle transforms via state definitions
         if (object3D) {
-          object3D.name = doc.title || $id
+          object3D.name = doc.name || $id
           object3D.userData.$id = $id
           object3D.userData.$type = doc.$type
         }

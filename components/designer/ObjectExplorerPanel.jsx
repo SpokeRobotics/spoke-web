@@ -345,7 +345,7 @@ export default function ObjectExplorerPanel() {
                     const now = new Date().toISOString();
                     const doc = { $id, meta: { version: 1, createdAt: now, updatedAt: now, origin: "user" } };
                     if (newType.trim()) doc.$type = newType.trim();
-                    if (newTitle.trim()) doc.title = newTitle.trim();
+                    if (newTitle.trim()) doc.name = newTitle.trim();
                     await store.putDoc(doc);
                     if (attachParent.trim() && attachSlot.trim()) {
                       const parent = await safeGetDoc(attachParent.trim());

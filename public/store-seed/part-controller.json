@@ -1,7 +1,7 @@
 {
   "$id": "spoke://docs/part-controller",
   "$type": "spoke/part/electronics",
-  "title": "ESP32-S3 Controller",
+  "name": "ESP32-S3 Controller",
   "model": {
     "url": "/models/SpokeControllerEsp32S3_lo.3mf",
     "offset": [13, 0, 35],

@@ -9,7 +9,7 @@ export default function AceProbe() {
   const [details, setDetails] = useState("");
   const [AceComponent, setAceComponent] = useState(null);
 
-  const sample = useMemo(() => JSON.stringify({ $id: "spoke://docs/sample", title: "Sample", meta: { origin: "user" } }, null, 2), []);
+  const sample = useMemo(() => JSON.stringify({ $id: "spoke://docs/sample", name: "Sample", meta: { origin: "user" } }, null, 2), []);
 
   const tryLoad = async () => {
     setStatus("loading");

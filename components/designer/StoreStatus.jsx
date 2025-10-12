@@ -85,7 +85,7 @@ export default function StoreStatus() {
         <Box>
           {docs?.slice(0, 10).map((d) => (
             <Flex key={d.$id} align="center" justify="between" style={{ padding: "4px 0" }}>
-              <Text size="2">{d.title || d.$id}</Text>
+              <Text size="2">{d.name || d.$id}</Text>
               {d.$type && <Code>{(d.$type || "").split("/").pop()}</Code>}
             </Flex>
           ))}

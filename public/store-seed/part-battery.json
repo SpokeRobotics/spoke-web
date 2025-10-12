@@ -1,7 +1,7 @@
 {
   "$id": "spoke://docs/part-battery",
   "$type": "spoke/part/battery",
-  "title": "Battery 18650",
+  "name": "Battery 18650",
   "model": {
     "url": "/models/18650Li-IonCell_1.3mf",
     "offset": [0, 0, -33],

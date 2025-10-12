@@ -279,7 +279,7 @@ export function SystemViewer({
         wrapper.userData.typeName = typeName
         
         return {
-          name: m.doc.title || m.$id,
+          name: m.doc.name || m.$id,
           object: wrapper,
           states: {
             normal_a: {

@@ -1,7 +1,7 @@
 {
   "$id": "spoke://docs/part-wpc-coil",
   "$type": "spoke/part/electronics",
-  "title": "Qi Wireless Coil",
+  "name": "Qi Wireless Coil",
   "model": {
     "url": "/models/Qi_Coil.3mf",
     "offset": [0, 0, 0],

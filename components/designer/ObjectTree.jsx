@@ -130,7 +130,7 @@ export default function ObjectTree({ query = "", onSelect, onOpen }) {
     const q = query.trim().toLowerCase();
     if (!q) return items;
     return items.filter((it) =>
-      (it.title || "").toLowerCase().includes(q) ||
+      (it.name || "").toLowerCase().includes(q) ||
       (it.$id || "").toLowerCase().includes(q) ||
       (it.$type || "").toLowerCase().includes(q)
     );
@@ -141,7 +141,6 @@ export default function ObjectTree({ query = "", onSelect, onOpen }) {
   const byId = useMemo(() => Object.fromEntries(items.map((d) => [d.$id, d])), [items]);
 
   const loadSlotsFor = useCallback(async (id) => {
-    if (slotsById[id]) return; // already loaded
     setLoadingExpand((s) => ({ ...s, [id]: true }));
     try {
       const doc = await safeGetDoc(id);
@@ -149,8 +148,14 @@ export default function ObjectTree({ query = "", onSelect, onOpen }) {
       if (doc) {
         for (const [key, val] of Object.entries(doc)) {
           if (key.startsWith("$")) continue;
-          if (Array.isArray(val) && val.every((v) => typeof v === "string")) {
-            const mapped = val.map((ref) => byId[ref]).filter(Boolean);
+          if (Array.isArray(val) && val.length > 0) {
+            // Extract IDs - support both string arrays and object arrays with .type property
+            const refs = val.map((item) => {
+              if (typeof item === "string") return item;
+              if (item && typeof item === "object" && typeof item.type === "string") return item.type;
+              return null;
+            }).filter(Boolean);
+            const mapped = refs.map((ref) => byId[ref]).filter(Boolean);
             if (mapped.length) slots.push({ slot: key, items: mapped });
           }
         }
@@ -159,12 +164,22 @@ export default function ObjectTree({ query = "", onSelect, onOpen }) {
     } finally {
       setLoadingExpand((s) => ({ ...s, [id]: false }));
     }
-  }, [byId, slotsById]);
+  }, [byId]);
 
   const toggleExpand = useCallback((id) => {
-    setExpandedIds((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
-    if (!slotsById[id]) loadSlotsFor(id);
-  }, [loadSlotsFor, slotsById]);
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      const wasExpanded = next.has(id);
+      if (wasExpanded) {
+        next.delete(id);
+      } else {
+        next.add(id);
+        // Load slots when expanding
+        loadSlotsFor(id);
+      }
+      return next;
+    });
+  }, [loadSlotsFor]);
 
   useEffect(() => {
     if (!expandedIds || expandedIds.size === 0) return;
@@ -262,7 +277,7 @@ export default function ObjectTree({ query = "", onSelect, onOpen }) {
                       >
                         {isExpanded ? "▾" : "▸"}
                       </Text>
-                      <Text size="2">{it.title || it.$id}</Text>
+                      <Text size="2">{it.name || it.$id}</Text>
                     </Flex>
                     {it.$type && <Badge variant="soft" color="indigo">{(it.$type || "").split("/").pop()}</Badge>}
                   </Flex>
@@ -288,8 +303,8 @@ export default function ObjectTree({ query = "", onSelect, onOpen }) {
                             {slot.charAt(0).toUpperCase() + slot.slice(1)}
                           </Text>
                           <Flex direction="column" gap="2" style={{ marginLeft: 24 }}>
-                            {slotItems.map((child) => (
-                              <React.Fragment key={`${it.$id}-${slot}-${child.$id}`}>
+                            {slotItems.map((child, index) => (
+                              <React.Fragment key={`${it.$id}-${slot}-${index}`}>
                                 <Flex
                                   align="center"
                                   justify="between"
@@ -308,7 +323,7 @@ export default function ObjectTree({ query = "", onSelect, onOpen }) {
                                   }}
                                 >
                                   <Flex align="center" gap="2">
-                                    <Text size="2">{child.title || child.$id}</Text>
+                                    <Text size="2">{child.name || child.$id}</Text>
                                   </Flex>
                                   {child.$type && <Badge variant="soft" color="indigo">{(child.$type || "").split("/").pop()}</Badge>}
                                 </Flex>
@@ -345,7 +360,7 @@ export default function ObjectTree({ query = "", onSelect, onOpen }) {
                   }}
                 >
                   <Flex align="center" gap="2">
-                    <Text size="2">{it.title || it.$id}</Text>
+                    <Text size="2">{it.name || it.$id}</Text>
                   </Flex>
                   {it.$type && <Badge variant="soft" color="indigo">{it.$type.split("/").pop()}</Badge>}
                 </Flex>

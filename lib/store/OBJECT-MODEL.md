@@ -13,8 +13,8 @@ Types define reusable structures that can be instantiated. They live in the `spo
 **Example: Leaf Type (No Children)**
 ```json
 {
-  "id": "spoke://types/battery-18650",
-  "name": "18650 Battery",
+  "id": "spoke://types/cell-18650",
+  "name": "18650 Cell",
   "slots": {},
   "model": {
     "url": "/models/18650Li-IonCell_1.3mf",
@@ -34,8 +34,8 @@ Types define reusable structures that can be instantiated. They live in the `spo
       "type": "spoke://types/frame",
       "required": true
     },
-    "batteries": {
-      "type": "spoke://types/battery-18650",
+    "cells": {
+      "type": "spoke://types/cell-18650",
       "array": true
     },
     "controller": {
@@ -52,11 +52,11 @@ Instances are concrete objects created from types. They live in the `spoke://ins
 **Example: Leaf Instance**
 ```json
 {
-  "id": "spoke://instances/battery-left",
-  "type": "spoke://types/battery-18650",
-  "name": "Battery Left",
+  "id": "spoke://instances/cell-left",
+  "type": "spoke://types/cell-18650",
+  "name": "Cell Left",
   "parent": "spoke://instances/my-robot",
-  "parentSlot": "batteries",
+  "parentSlot": "cells",
   "location": "-20,0,0,180,0,0"
 }
 ```
@@ -69,9 +69,9 @@ Instances are concrete objects created from types. They live in the `spoke://ins
   "name": "My Custom Robot",
   "parent": null,
   "frame": "spoke://instances/main-frame",
-  "batteries": [
-    "spoke://instances/battery-left",
-    "spoke://instances/battery-right"
+  "cells": [
+    "spoke://instances/cell-left",
+    "spoke://instances/cell-right"
   ],
   "controller": "spoke://instances/esp32-1"
 }
@@ -102,18 +102,18 @@ Templates provide default values for instances created in a slot. They solve the
 **Array Slot Template:**
 ```json
 {
-  "batteries": {
-    "type": "spoke://types/battery-18650",
+  "cells": {
+    "type": "spoke://types/cell-18650",
     "array": true,
     "template": [
-      { "name": "Battery Right", "location": "20,0,0,0,0,0" },
-      { "name": "Battery Left", "location": "-20,0,0,180,0,0" }
+      { "name": "Cell Right", "location": "20,0,0,0,0,0" },
+      { "name": "Cell Left", "location": "-20,0,0,180,0,0" }
     ]
   }
 }
 ```
 
-Templates are applied **at instance creation time**. Each robot gets its own battery instances with the template values.
+Templates are applied **at instance creation time**. Each robot gets its own cell instances with the template values.
 
 ### 5. Type Inheritance
 
@@ -128,21 +128,21 @@ Types can inherit from other types. Child types inherit parent slots and can:
   "id": "spoke://types/robot-base",
   "slots": {
     "frame": { "type": "spoke://types/frame" },
-    "battery": { "type": "spoke://types/battery" }
+    "powerCell": { "type": "spoke://types/power-cell" }
   }
 }
 
-// Derived type (adds sensors, refines battery)
+// Derived type (adds sensors, refines powerCell)
 {
   "id": "spoke://types/robot-advanced",
   "type": "spoke://types/robot-base",
   "slots": {
     "sensors": { "type": "spoke://types/sensor", "array": true },
-    "battery": { "type": "spoke://types/super-battery", "required": true }
+    "powerCell": { "type": "spoke://types/super-cell", "required": true }
   }
 }
 
-// Effective slots = { frame, battery (refined), sensors }
+// Effective slots = { frame, powerCell (refined), sensors }
 ```
 
 ### 6. Parent Links
@@ -212,7 +212,7 @@ import {
 // Get all slots for a type (including inherited)
 const slots = await getEffectiveSlots('spoke://types/robot-advanced')
 
-// Returns: { frame: {...}, battery: {...}, sensors: {...} }
+// Returns: { frame: {...}, powerCell: {...}, sensors: {...} }
 ```
 
 ### Create Instance
@@ -223,9 +223,9 @@ const instance = {
   name: 'My Robot',
   parent: null,
   frame: 'spoke://instances/frame-1',
-  batteries: [
-    'spoke://instances/battery-1',
-    'spoke://instances/battery-2'
+  cells: [
+    'spoke://instances/cell-1',
+    'spoke://instances/cell-2'
   ]
 }
 
@@ -279,20 +279,20 @@ const robot = await createInstanceFromType(
 )
 
 // robot now has:
-// - batteries: ['spoke://instances/my-new-robot-batteries-0', 'spoke://instances/my-new-robot-batteries-1']
-// - Each battery instance has the template's name and location
+// - cells: ['spoke://instances/my-new-robot-cells-0', 'spoke://instances/my-new-robot-cells-1']
+// - Each cell instance has the template's name and location
 ```
 
 ### Instantiate a Single Slot
 ```javascript
 // Create instances for a specific slot
 const slots = await getEffectiveSlots('spoke://types/core-robot')
-const batteryIds = await instantiateSlot(
+const cellIds = await instantiateSlot(
   'spoke://instances/my-robot',
-  'batteries',
-  slots.batteries
+  'cells',
+  slots.cells
 )
-// Returns: ['spoke://instances/my-robot-batteries-0', 'spoke://instances/my-robot-batteries-1']
+// Returns: ['spoke://instances/my-robot-cells-0', 'spoke://instances/my-robot-cells-1']
 ```
 
 ## Complete Example
@@ -303,36 +303,36 @@ import { putInstance, getEffectiveSlots, validateInstance } from '@/lib/store/ty
 
 // 1. Create type definitions
 await store.putDoc({
-  id: 'spoke://types/battery',
-  name: 'Battery',
+  id: 'spoke://types/cell',
+  name: 'Cell',
   slots: {},
-  model: { url: '/models/battery.3mf', offset: [0,0,0], rotation: [0,0,0] }
+  model: { url: '/models/cell.3mf', offset: [0,0,0], rotation: [0,0,0] }
 })
 
 await store.putDoc({
   id: 'spoke://types/robot',
   name: 'Robot',
   slots: {
-    batteries: { type: 'spoke://types/battery', array: true, required: true }
+    cells: { type: 'spoke://types/cell', array: true, required: true }
   }
 })
 
 // 2. Create instances
-const battery1 = {
-  id: 'spoke://instances/bat-1',
-  type: 'spoke://types/battery',
-  name: 'Battery 1',
+const cell1 = {
+  id: 'spoke://instances/cell-1',
+  type: 'spoke://types/cell',
+  name: 'Cell 1',
   location: '10,0,0,0,0,0'
 }
-await store.putDoc(battery1)
+await store.putDoc(cell1)
 
-const battery2 = {
-  id: 'spoke://instances/bat-2',
-  type: 'spoke://types/battery',
-  name: 'Battery 2',
+const cell2 = {
+  id: 'spoke://instances/cell-2',
+  type: 'spoke://types/cell',
+  name: 'Cell 2',
   location: '-10,0,0,0,0,0'
 }
-await store.putDoc(battery2)
+await store.putDoc(cell2)
 
 // 3. Create composite instance (automatically maintains parent links)
 await putInstance({
@@ -340,7 +340,7 @@ await putInstance({
   type: 'spoke://types/robot',
   name: 'My Robot',
   parent: null,
-  batteries: ['spoke://instances/bat-1', 'spoke://instances/bat-2']
+  cells: ['spoke://instances/cell-1', 'spoke://instances/cell-2']
 })
 
 // 4. Validate
@@ -350,9 +350,9 @@ const errors = await validateInstance(
 console.log('Valid:', errors.length === 0)
 
 // 5. Check parent links
-const bat1 = await store.getDoc('spoke://instances/bat-1')
-console.log(bat1.parent)      // 'spoke://instances/my-robot'
-console.log(bat1.parentSlot)  // 'batteries'
+const cell1Doc = await store.getDoc('spoke://instances/cell-1')
+console.log('Parent:', cell1Doc.parent) // 'spoke://instances/my-robot'
+console.log('ParentSlot:', cell1Doc.parentSlot) // 'cells'
 ```
 
 ## Design Principles
@@ -371,17 +371,17 @@ console.log(bat1.parentSlot)  // 'batteries'
 ### Old Model
 ```json
 {
-  "$id": "spoke://docs/part-battery",
-  "$type": "spoke/part/battery",
-  "title": "Battery"
+  "$id": "spoke://docs/part-cell",
+  "$type": "spoke/part/cell",
+  "title": "Cell"
 }
 ```
 
 ### New Model
 ```json
 {
-  "id": "spoke://types/battery",
-  "name": "Battery",
+  "id": "spoke://types/cell",
+  "name": "Cell",
   "slots": {}
 }
 ```

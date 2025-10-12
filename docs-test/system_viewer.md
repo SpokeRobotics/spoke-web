@@ -78,8 +78,8 @@ All parts assembled using types with manual positions (tools enabled by default)
 | spoke://types/bottom-panel-door | 0,-16,0,0,0,0 |
 | spoke://types/panel-96x32 | 32,0,0,0,0,-90 |
 | spoke://types/panel-96x32 | -32,0,0,0,0,90 |
-| spoke://types/battery-18650 | 20,0,0,0,0,0 |
-| spoke://types/battery-18650 | -20,0,0,180,0,0 |
+| spoke://types/cell-18650 | 20,0,0,0,0,0 |
+| spoke://types/cell-18650 | -20,0,0,180,0,0 |
 | spoke://types/spoke-charger | 0,-14,12,0,0,0 |
 | spoke://types/wpc-board | 0,-14,-30,0,0,0 |
 | spoke://types/wpc-coil | 0,-16,0,180,0,0 |
@@ -110,13 +110,13 @@ All parts assembled using types with manual positions (tools enabled by default)
 
 </SystemViewer>
 
-### Battery Only
+### Cell Only
 
 <SystemViewer height={320}>
 
 | type | location |
 |--------|----------|
-| spoke://types/battery-18650 | 0,0,0,0,0,0 |
+| spoke://types/cell-18650 | 0,0,0,0,0,0 |
 
 </SystemViewer>
 

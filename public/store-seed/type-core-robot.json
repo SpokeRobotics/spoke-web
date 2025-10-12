@@ -35,12 +35,12 @@
       "type": "spoke://types/bottom-panel-door",
       "template": { "name": "Bottom Panel Door", "location": "0,-16,0,0,0,0" }
     },
-    "batteries": {
-      "type": "spoke://types/battery-18650",
+    "cells": {
+      "type": "spoke://types/cell-18650",
       "array": true,
       "template": [
-        { "name": "Battery Right", "location": "20,0,0,0,0,0" },
-        { "name": "Battery Left", "location": "-20,0,0,180,0,0" }
+        { "name": "Cell Right", "location": "20,0,0,0,0,0" },
+        { "name": "Cell Left", "location": "-20,0,0,180,0,0" }
       ]
     },
     "charger": {

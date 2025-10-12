@@ -1,6 +1,6 @@
 {
-  "id": "spoke://types/battery-18650",
-  "name": "Battery 18650",
+  "id": "spoke://types/cell-18650",
+  "name": "18650 Cell",
   "slots": {},
   "model": {
     "url": "/models/18650Li-IonCell_1.3mf",

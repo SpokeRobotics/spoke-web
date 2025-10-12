@@ -15,9 +15,9 @@
   "topPanel": "spoke://instances/panel-top",
   "bottomPanel": "spoke://instances/panel-bottom",
   "bottomPanelDoor": "spoke://instances/panel-bottom-door",
-  "batteries": [
-    "spoke://instances/battery-right",
-    "spoke://instances/battery-left"
+  "cells": [
+    "spoke://instances/cell-right",
+    "spoke://instances/cell-left"
   ],
   "charger": "spoke://instances/charger-main",
   "wpcBoard": "spoke://instances/wpc-board-main",

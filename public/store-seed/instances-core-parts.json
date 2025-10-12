@@ -72,20 +72,20 @@
     "meta": { "origin": "site" }
   },
   {
-    "id": "spoke://instances/battery-right",
-    "type": "spoke://types/battery-18650",
-    "name": "Battery Right",
+    "id": "spoke://instances/cell-right",
+    "type": "spoke://types/cell-18650",
+    "name": "Cell Right",
     "parent": "spoke://instances/core-assembly",
-    "parentSlot": "batteries",
+    "parentSlot": "cells",
     "location": "20,0,0,0,0,0",
     "meta": { "origin": "site" }
   },
   {
-    "id": "spoke://instances/battery-left",
-    "type": "spoke://types/battery-18650",
-    "name": "Battery Left",
+    "id": "spoke://instances/cell-left",
+    "type": "spoke://types/cell-18650",
+    "name": "Cell Left",
     "parent": "spoke://instances/core-assembly",
-    "parentSlot": "batteries",
+    "parentSlot": "cells",
     "location": "-20,0,0,180,0,0",
     "meta": { "origin": "site" }
   },

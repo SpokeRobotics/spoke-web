@@ -56,8 +56,8 @@ export default function SystemViewerPage() {
           <SystemViewer 
             objects={[
               { id: "spoke://types/frame-96x64x32", location: { dx: 0, dy: 0, dz: 0, rx: 0, ry: 0, rz: 0 } },
-              { id: "spoke://types/battery-18650", location: { dx: 20, dy: 0, dz: 0, rx: 0, ry: 0, rz: 0 } },
-              { id: "spoke://types/battery-18650", location: { dx: -20, dy: 0, dz: 0, rx: 180, ry: 0, rz: 0 } },
+              { id: "spoke://types/cell-18650", location: { dx: 20, dy: 0, dz: 0, rx: 0, ry: 0, rz: 0 } },
+              { id: "spoke://types/cell-18650", location: { dx: -20, dy: 0, dz: 0, rx: 180, ry: 0, rz: 0 } },
               { id: "spoke://types/esp32-controller", location: { dx: 0, dy: 14, dz: 0, rx: 180, ry: 0, rz: 0 } }
             ]}
             height={420}
@@ -95,8 +95,8 @@ export default function SystemViewerPage() {
             marginBottom: 16
           }}>
 {`{
-  "id": "spoke://types/battery-18650",
-  "name": "18650 Battery",
+  "id": "spoke://types/cell-18650",
+  "name": "18650 Cell",
   "slots": {},
   "model": {
     "url": "/models/18650Li-IonCell_1.3mf",
@@ -117,11 +117,11 @@ export default function SystemViewerPage() {
             lineHeight: 1.6
           }}>
 {`{
-  "id": "spoke://instances/battery-left",
-  "type": "spoke://types/battery-18650",
-  "name": "Battery Left",
+  "id": "spoke://instances/cell-left",
+  "type": "spoke://types/cell-18650",
+  "name": "Cell Left",
   "parent": "spoke://instances/my-robot",
-  "parentSlot": "batteries",
+  "parentSlot": "cells",
   "location": "-20,0,0,180,0,0"
 }`}
           </pre>

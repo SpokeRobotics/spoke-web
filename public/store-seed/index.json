@@ -7,7 +7,7 @@
     { "path": "part-top-panel.json" },
     { "path": "part-bottom-panel.json" },
     { "path": "part-bottom-panel-door.json" },
-    { "path": "part-battery.json" },
+    { "path": "part-cell.json" },
     { "path": "part-charger.json" },
     { "path": "part-wpc-board.json" },
     { "path": "part-wpc-coil.json" },

@@ -161,19 +161,29 @@ export function SystemViewer({
   const objectSpecs = parsedIds // Array of { id, location }
   const objectIds = objectSpecs.map(spec => spec.id) // Extract just IDs for loading
   
-  // Load models from store
-  const { models, loading, error } = useStoreModels(objectIds, {
-    basePrefix: '/models',
-    autoLoad: true,
-  })
+  // Track if we're in the browser (client-side)
+  const [isMounted, setIsMounted] = useState(false)
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+  
+  // Load models from store (only on client-side after mount)
+  const { models, loading, error } = useStoreModels(
+    isMounted ? objectIds : [],
+    {
+      basePrefix: '/models',
+      autoLoad: true,
+    }
+  )
   
   // Attach location data to loaded models
   const modelsWithLocation = useMemo(() => {
+    if (!isMounted) return [] // Don't show models until mounted
     return models.map((model, index) => ({
       ...model,
       location: objectSpecs[index]?.location || { dx: 0, dy: 0, dz: 0, rx: 0, ry: 0, rz: 0 }
     }))
-  }, [models, objectSpecs])
+  }, [models, objectSpecs, isMounted])
   
   // Extract unique types from models
   const availableTypes = useMemo(() => {

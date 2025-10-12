@@ -154,7 +154,7 @@ export default function ObjectExplorerPanel() {
         if (Array.isArray(v)) keys.push(k);
       }
     }
-    const defaults = ["children", "parts", "slots", "items"];
+    const defaults = ["parts", "slots", "items"];
     const set = new Set([...keys, ...defaults]);
     const list = [...set];
     const filtered = q ? list.filter((s) => s.toLowerCase().includes(q)) : list;
@@ -323,7 +323,7 @@ export default function ObjectExplorerPanel() {
                     if (e.key === "ArrowDown") { e.preventDefault(); setSlotIdx((i) => (i + 1) % slotSuggestions.length); return; }
                     if (e.key === "ArrowUp") { e.preventDefault(); setSlotIdx((i) => (i - 1 + slotSuggestions.length) % slotSuggestions.length); return; }
                   }}
-                  placeholder="Slot name (e.g., children)"
+                  placeholder="Slot name (e.g., parts)"
                   style={{ width: 180, padding: 6 }}
                 />
                 {!!slotSuggestions.length && (

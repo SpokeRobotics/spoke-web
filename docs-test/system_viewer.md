@@ -148,7 +148,7 @@ All parts assembled (tools enabled by default):
 
 ## Hierarchical Core Assembly
 
-Using the new hierarchical assembly object with `.children`:
+Using the new hierarchical assembly object with `.parts`:
 
 <SystemViewer height={420} expandedHeight={620}>
 
@@ -165,4 +165,4 @@ Using the new hierarchical assembly object with `.children`:
 - Each object is a store document with a `model` section containing URL and offset/rotation
 - Objects can be modified in the Designer and changes will reflect in the viewer
 - Type inheritance is supported - instances can reference type definitions
-- Hierarchical assemblies can contain `.children` with their own `type` and `location` properties
+- Hierarchical assemblies can contain `.parts` with their own `type` and `location` properties

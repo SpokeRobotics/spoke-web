@@ -2,7 +2,7 @@
   "$id": "spoke://docs/assembly-core",
   "$type": "spoke/assembly",
   "title": "Core Assembly",
-  "children": [
+  "parts": [
     {
       "type": "spoke://docs/part-frame",
       "location": "0,0,0,0,0,0"

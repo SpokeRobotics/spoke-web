@@ -41,7 +41,7 @@ export default function SystemViewerPage() {
               { id: "spoke://docs/part-wpc-board", location: { dx: -13, dy: -13, dz: -22, rx: 0, ry: 0, rz: 0 } },
               { id: "spoke://docs/part-wpc-coil", location: { dx: 0, dy: 0, dz: 0, rx: 0, ry: 0, rz: 0 } },
               { id: "spoke://docs/part-controller", location: { dx: 0, dy: 14, dz: 0, rx: 180, ry: 0, rz: 0 } },
-              { id: "spoke://docs/part-mag-connector", location: { dx: 0, dy: 0, dz: 0, rx: 0, ry: 0, rz: 0 } }
+              { id: "spoke://docs/part-mag-connector", location: { dx: -21, dy: -17, dz: -33, rx: 180, ry: 0, rz: 0 } }
             ]}
             height={520}
           />

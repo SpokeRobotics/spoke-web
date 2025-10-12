@@ -12,7 +12,8 @@
     { "path": "part-wpc-board.json", "$id": "spoke://docs/part-wpc-board" },
     { "path": "part-wpc-coil.json", "$id": "spoke://docs/part-wpc-coil" },
     { "path": "part-controller.json", "$id": "spoke://docs/part-controller" },
-    { "path": "part-mag-connector.json", "$id": "spoke://docs/part-mag-connector" }
+    { "path": "part-mag-connector.json", "$id": "spoke://docs/part-mag-connector" },
+    { "path": "assembly-core.json", "$id": "spoke://docs/assembly-core" }
   ],
   "blobs": []
 }

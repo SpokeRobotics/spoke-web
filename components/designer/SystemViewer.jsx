@@ -181,7 +181,8 @@ export function SystemViewer({
     if (!isMounted) return [] // Don't show models until mounted
     return models.map((model, index) => ({
       ...model,
-      location: objectSpecs[index]?.location || { dx: 0, dy: 0, dz: 0, rx: 0, ry: 0, rz: 0 }
+      // Use location from model (hierarchical expansion) if available, otherwise from objectSpecs (table)
+      location: model.location || objectSpecs[index]?.location || { dx: 0, dy: 0, dz: 0, rx: 0, ry: 0, rz: 0 }
     }))
   }, [models, objectSpecs, isMounted])
   

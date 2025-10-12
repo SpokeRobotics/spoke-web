@@ -40,7 +40,7 @@ export function useStoreModels(objectIds, options = {}) {
       // Load 3D assets
       const loadedModels = []
       for (const item of resolved) {
-        const { $id, doc, model, position, rotation } = item
+        const { $id, doc, model, position, rotation, location } = item
         
         if (!model || !model.url) {
           console.warn(`[useStoreModels] No model URL for ${$id}`)
@@ -71,6 +71,7 @@ export function useStoreModels(objectIds, options = {}) {
           model,
           position,
           rotation,
+          location, // Pass through location from hierarchical expansion
         })
       }
       

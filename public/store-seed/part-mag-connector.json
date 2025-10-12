@@ -4,8 +4,8 @@
   "title": "Magnetic Connector 8mm",
   "model": {
     "url": "/models/MagneticConnector8mm.3mf",
-    "offset": [-21, -17, -33],
-    "rotation": [180, 0, 0]
+    "offset": [0,0,0],
+    "rotation": [0, 0, 0]
   },
   "meta": {
     "origin": "site"

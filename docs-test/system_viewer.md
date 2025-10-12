@@ -55,7 +55,7 @@ All parts assembled (tools enabled by default):
 | spoke://docs/part-wpc-board | 0,-14,-30,0,0,0 |
 | spoke://docs/part-wpc-coil | 0,-16,0,180,0,0 |
 | spoke://docs/part-controller | 0,14,0,180,0,0 |
-| spoke://docs/part-mag-connector | 0,0,0,0,0,0 |
+| spoke://docs/part-mag-connector | -21,-17,-33,180,0,0 |
 
 </SystemViewer>
 
@@ -135,6 +135,28 @@ All parts assembled (tools enabled by default):
 
 </SystemViewer>
 
+### Mag Connector with Frame
+
+<SystemViewer height={380}>
+
+| type | location |
+|--------|----------|
+| spoke://docs/part-frame | 0,0,0,0,0,0 |
+| spoke://docs/part-mag-connector | 0,0,0,0,0,0 |
+
+</SystemViewer>
+
+## Hierarchical Core Assembly
+
+Using the new hierarchical assembly object with `.children`:
+
+<SystemViewer height={420} expandedHeight={620}>
+
+| type | location |
+|--------|----------|
+| spoke://docs/assembly-core | 0,0,0,0,0,0 |
+
+</SystemViewer>
 
 ## Notes
 
@@ -143,3 +165,4 @@ All parts assembled (tools enabled by default):
 - Each object is a store document with a `model` section containing URL and offset/rotation
 - Objects can be modified in the Designer and changes will reflect in the viewer
 - Type inheritance is supported - instances can reference type definitions
+- Hierarchical assemblies can contain `.children` with their own `type` and `location` properties

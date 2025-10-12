@@ -10,6 +10,7 @@ import MDXImage from '@/components/MDXImage'
 import FeatureBox from '@/components/FeatureBox'
 import { extractAndMaybeRemoveFirstH1FromMdxSource } from '@/lib/title'
 import { CONTENT_VERSION } from '@/lib/content-version'
+import HomeThemeProvider from '@/components/providers/HomeThemeProvider'
 
 export default async function Home() {
   // In development, disable caching so markdown edits reflect immediately.
@@ -45,7 +46,7 @@ export default async function Home() {
     const pageTitle = derivedTitle || 'Home'
 
     return (
-      <>
+      <HomeThemeProvider>
         <Section size="4">
           <Box className="container" data-content-version={CONTENT_VERSION}>
             <div className="prose dark:prose-invert max-w-none">
@@ -73,7 +74,7 @@ export default async function Home() {
           </Box>
         </Section>
         <FloatingTOC />
-      </>
+      </HomeThemeProvider>
     )
   } catch (e) {
     if (process.env.NODE_ENV !== 'production') {
@@ -84,26 +85,28 @@ export default async function Home() {
 
   // Fallback to existing hard-coded content
   return (
-    <Section size="4">
-      <Box className="container" data-content-version={CONTENT_VERSION}>
-        {process.env.NODE_ENV !== 'production' && (
-          <Text size="1" color="gray" mb="2">[Dev] Fallback homepage JSX</Text>
-        )}
-        <Box style={{ textAlign: 'center' }}>
-          <Heading size="9" mb="2">Welcome to Spoke</Heading>
-          <Text as="p" size="4" color="gray">
-            A modern design system and development toolkit.
-          </Text>
-          <Flex mt="6" gap="3" justify="center" wrap="wrap">
-            <Button asChild>
-              <NextLink href="/test">Go to Test</NextLink>
-            </Button>
-            <Button asChild variant="soft">
-              <NextLink href="/docs">View Documentation</NextLink>
-            </Button>
-          </Flex>
+    <HomeThemeProvider>
+      <Section size="4">
+        <Box className="container" data-content-version={CONTENT_VERSION}>
+          {process.env.NODE_ENV !== 'production' && (
+            <Text size="1" color="gray" mb="2">[Dev] Fallback homepage JSX</Text>
+          )}
+          <Box style={{ textAlign: 'center' }}>
+            <Heading size="9" mb="2">Welcome to Spoke</Heading>
+            <Text as="p" size="4" color="gray">
+              A modern design system and development toolkit.
+            </Text>
+            <Flex mt="6" gap="3" justify="center" wrap="wrap">
+              <Button asChild>
+                <NextLink href="/test">Go to Test</NextLink>
+              </Button>
+              <Button asChild variant="soft">
+                <NextLink href="/docs">View Documentation</NextLink>
+              </Button>
+            </Flex>
+          </Box>
         </Box>
-      </Box>
-    </Section>
+      </Section>
+    </HomeThemeProvider>
   )
 }

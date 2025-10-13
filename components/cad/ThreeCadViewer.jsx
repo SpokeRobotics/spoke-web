@@ -369,6 +369,35 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
   const targetHelperMeshRef = useRef(null)
   const centerHelperMeshRef = useRef(null)
 
+  // Safe disposers for helper meshes
+  const disposeTargetHelperRef = () => {
+    try {
+      const th = targetHelperMeshRef.current
+      const scene = sceneRef.current
+      if (th) {
+        try { th.geometry?.dispose?.() } catch {}
+        try { Array.isArray(th.material) ? th.material.forEach(m => m?.dispose?.()) : th.material?.dispose?.() } catch {}
+        try { scene && scene.remove(th) } catch {}
+      }
+    } finally {
+      targetHelperMeshRef.current = null
+    }
+  }
+
+  const disposeModelCenterHelperRef = () => {
+    try {
+      const ch = centerHelperMeshRef.current
+      const scene = sceneRef.current
+      if (ch) {
+        try { ch.geometry?.dispose?.() } catch {}
+        try { Array.isArray(ch.material) ? ch.material.forEach(m => m?.dispose?.()) : ch.material?.dispose?.() } catch {}
+        try { scene && scene.remove(ch) } catch {}
+      }
+    } finally {
+      centerHelperMeshRef.current = null
+    }
+  }
+
   const resetAnimation = () => {
     const anim = animationRef.current
     anim.playing = false
@@ -520,12 +549,13 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
       const localCenter = container.userData?.__localBoundCenter || new THREE.Vector3()
       const localRadius = container.userData?.__localBoundRadius ?? 50
       const stateKeys = Object.keys(states)
-      console.log('[ThreeCadViewer] Model', idx, 'has', stateKeys.length, 'states:', stateKeys, 'localRadius:', localRadius)
+      // console.log('[ThreeCadViewer] Model', idx, 'has', stateKeys.length, 'states:', stateKeys, 'localRadius:', localRadius)
       
       if (useTargetStateOnly) {
         // For scroll animation: only use objects that are visible (opacity > 0) in the target state
         const targetState = states[scrollConfig.targetState]
         if (!targetState) {
+          // console.warn('[rebuildMultiSceneBounds] No state found for:', scrollConfig.targetState, 'Available:', Object.keys(states))
           console.warn('[rebuildMultiSceneBounds] No state found for:', scrollConfig.targetState, 'Available:', Object.keys(states))
           return
         }
@@ -689,7 +719,7 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
     const boxSize = currentBox.getSize(new THREE.Vector3())
     const center = multi.currentCenter ? multi.currentCenter.clone() : currentBox.getCenter(new THREE.Vector3())
     const sphere = multi.currentSphere || new THREE.Sphere(center.clone(), currentBox.getSize(new THREE.Vector3()).length() / 2)
-    try { console.debug('[ThreeCadViewer] frame:start', { size: { x: Number(boxSize.x.toFixed(2)), y: Number(boxSize.y.toFixed(2)), z: Number(boxSize.z.toFixed(2)) }, center: { x: Number(center.x.toFixed(2)), y: Number(center.y.toFixed(2)), z: Number(center.z.toFixed(2)) } }) } catch {}
+    
     
     // Determine viewing direction
     // If the user has interacted, preserve their orientation.
@@ -744,9 +774,7 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
     camera.updateProjectionMatrix()
     controls.update()
     adjustCameraPlanes(currentBox)
-    try { console.debug('[ThreeCadViewer] frame:end', { camera: { x: Number(camera.position.x.toFixed(2)), y: Number(camera.position.y.toFixed(2)), z: Number(camera.position.z.toFixed(2)) }, target: { x: Number(controls.target.x.toFixed(2)), y: Number(controls.target.y.toFixed(2)), z: Number(controls.target.z.toFixed(2)) } }) } catch {}
-    // Emit per-refit metrics to observe viewport/aspect and target projection after model replacement
-    try { logMetrics('refit') } catch {}
+    
   }
 
   const getActiveBounds = () => {
@@ -1130,8 +1158,7 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
       if (composerNow) composerNow.render()
       else renderer.render(scene, camera)
     } catch {}
-    // Emit initial metrics once after first render
-    logMetrics('init')
+    // Initial metrics disabled
 
     // Debug helper hook removed
 
@@ -1183,8 +1210,9 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
             const { object, from, to, materials = [], fromOpacity = 1, toOpacity = 1 } = mix
             object.position.lerpVectors(from.position, to.position, t)
             object.quaternion.slerpQuaternions(from.quaternion, to.quaternion, t)
-            const opacity = easeVisibilityOpacity(fromOpacity, toOpacity, t)
-            if (materials.length) {
+            const sameVisible = fromOpacity === 1 && toOpacity === 1
+            const opacity = sameVisible ? 1 : easeVisibilityOpacity(fromOpacity, toOpacity, t)
+            if (materials.length && !sameVisible) {
               materials.forEach((mat) => {
                 if (!mat) return
                 mat.opacity = opacity
@@ -1794,12 +1822,9 @@ useEffect(() => {
         if (isValidBox) {
           localCenter = localBox.getCenter(new THREE.Vector3())
           localRadius = boxSize.length() / 2
-          try { console.debug('[ThreeCadViewer] bounds:model', { idx, name: entry.name, size: { x: Number(boxSize.x.toFixed(2)), y: Number(boxSize.y.toFixed(2)), z: Number(boxSize.z.toFixed(2)) }, center: { x: Number(localCenter.x.toFixed(2)), y: Number(localCenter.y.toFixed(2)), z: Number(localCenter.z.toFixed(2)) } }) } catch {}
         } else {
-          // Model has no geometry - use defaults
-          try { console.warn('[ThreeCadViewer] bounds:model-fallback', { idx, name: entry.name }) } catch {}
           localCenter = new THREE.Vector3(0, 0, 0)
-          localRadius = 50 // 50mm radius (100mm cube equivalent)
+          localRadius = 50
         }
         
         container.userData.__localBoundCenter = localCenter
@@ -1838,8 +1863,7 @@ useEffect(() => {
       multiGroup.visible = true
       multiGroup.rotation.set(0, 0, 0)
       const scene = sceneRef.current
-      console.log('[ThreeCadViewer] setMultiScene - multiGroup visible:', multiGroup.visible, 'children:', multiGroup.children.length)
-      console.log('[ThreeCadViewer] setMultiScene - multiGroup in scene:', multiGroup.parent === scene, 'scene children:', scene?.children.map(c => c.name || c.type))
+      
 
       if (axes) {
         if (axes.parent) axes.parent.remove(axes)
@@ -1860,11 +1884,7 @@ useEffect(() => {
 
       // console.log('[ThreeCadViewer] setMultiScene - calling rebuildMultiSceneBounds')
       const _b = rebuildMultiSceneBounds()
-      try {
-        const sz = _b.getSize(new THREE.Vector3())
-        const ct = _b.getCenter(new THREE.Vector3())
-        console.debug('[ThreeCadViewer] bounds:scene-initial', { size: { x: Number(sz.x.toFixed(2)), y: Number(sz.y.toFixed(2)), z: Number(sz.z.toFixed(2)) }, center: { x: Number(ct.x.toFixed(2)), y: Number(ct.y.toFixed(2)), z: Number(ct.z.toFixed(2)) } })
-      } catch {}
+      try { const sz = _b.getSize(new THREE.Vector3()); const ct = _b.getCenter(new THREE.Vector3()); } catch {}
       // console.log('[ThreeCadViewer] setMultiScene - applying initial state:', multi.currentState)
       applyMultiState(multi.currentState, true, false)
       resetAnimation()
@@ -2241,7 +2261,7 @@ useEffect(() => {
     })
     if (!mixes.length) return Promise.resolve(false)
 
-    try { console.debug('[ThreeCadViewer] transition:start', { from: fromKey, to: toKey, duration }) } catch {}
+    
 
     anim.playing = true
     anim.start = now
@@ -2258,7 +2278,6 @@ useEffect(() => {
       applyMultiState(toKey, true)
       resetAnimation()
       // Do not reframe camera here; preserve current view across transitions
-      try { console.debug('[ThreeCadViewer] transition:end', { to: toKey }) } catch {}
       onComplete?.()
     }
     return Promise.resolve(true)

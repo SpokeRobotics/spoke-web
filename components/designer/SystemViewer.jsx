@@ -128,6 +128,7 @@ export function SystemViewer({
   const [visibleTypes, setVisibleTypes] = useState(new Set()) // Set of visible type names
   const sceneInitializedRef = useRef(false) // Track if scene has been set up
   const filterStateToggle = useRef('a') // Toggle between 'a' and 'b' for filter transitions
+  const skipNextFilterTransitionRef = useRef(false) // Skip one filter transition after auto-init
   const [viewTools, setViewTools] = useState(false) // Tools panel visibility
   const [objectOriginVisible, setObjectOriginVisible] = useState(false) // Show object origins
   const [systemOriginVisible, setSystemOriginVisible] = useState(false) // Show system origin
@@ -181,9 +182,11 @@ export function SystemViewer({
   const [expectedObjectIdsKey, setExpectedObjectIdsKey] = useState(objectIdsKey)
   
   useEffect(() => {
-    console.log('[SystemViewer] Object IDs changed, resetting scene')
     sceneInitializedRef.current = false
     setExpectedObjectIdsKey(objectIdsKey)
+    // Reset type filters and transition toggle for a fresh selection
+    setVisibleTypes(new Set())
+    filterStateToggle.current = 'a'
   }, [objectIdsKey])
   
   // Track if we're in the browser (client-side)
@@ -211,11 +214,8 @@ export function SystemViewer({
     const isStale = expectedObjectIdsKey !== objectIdsKey || loading
     
     if (isStale) {
-      console.log('[SystemViewer] Filtering stale models - expected:', expectedObjectIdsKey, 'current:', objectIdsKey, 'loading:', loading)
       return []
     }
-    
-    console.log('[SystemViewer] Creating modelsWithLocation from', models.length, 'models, objectIds:', objectIds.length)
     
     return models.map((model, index) => ({
       ...model,
@@ -241,6 +241,8 @@ export function SystemViewer({
   useEffect(() => {
     if (availableTypes.length > 0 && visibleTypes.size === 0) {
       setVisibleTypes(new Set(availableTypes))
+      // Avoid triggering a transition right after auto-initialization
+      skipNextFilterTransitionRef.current = true
     }
   }, [availableTypes, visibleTypes.size])
   
@@ -259,13 +261,8 @@ export function SystemViewer({
   
   // Initialize scene when models first load
   useEffect(() => {
-    console.log('[SystemViewer] Scene init check - viewer:', !!viewerRef.current, 'models:', modelsWithLocation.length, 'initialized:', sceneInitializedRef.current, 'objectIds:', objectIds.length)
-    console.log('[SystemViewer] Model details:', modelsWithLocation.map(m => ({ id: m.$id, hasObject: !!m.object, name: m.doc?.name })))
-    
     if (!viewerRef.current || modelsWithLocation.length === 0) return
     if (sceneInitializedRef.current) return
-    
-    console.log('[SystemViewer] Initializing scene with', modelsWithLocation.length, 'models')
     
     const EXPLODE_SCALE = 2.5 // How much to scale positions in exploded mode
     
@@ -369,14 +366,32 @@ export function SystemViewer({
       initialState: 'normal_a',
     }
     
-    console.log('[SystemViewer] Calling setMultiScene with definition:', {
-      modelCount: sceneDefinition.models.length,
-      initialState: sceneDefinition.initialState
-    })
     viewerRef.current.setMultiScene?.(sceneDefinition)
     sceneInitializedRef.current = true
-    console.log('[SystemViewer] Scene initialized successfully')
   }, [modelsWithLocation, autoFitOnLoad, objectIds])
+
+  // After scene is initialized or models change, force-sync visibility on both toggles without animation
+  useEffect(() => {
+    if (!sceneInitializedRef.current || !viewerRef.current) return
+    const viewer = viewerRef.current
+    const info = viewer.getMultiSceneInfo?.()
+    if (!info || !info.models) return
+    // Determine which types should be visible: if none initialized yet, allow all available
+    const typesSet = visibleTypes.size > 0 ? visibleTypes : new Set(availableTypes)
+    const stateUpdates = {}
+    info.models.forEach((container, index) => {
+      const modelRoot = container.userData?.__modelRoot
+      const typeName = modelRoot?.userData?.typeName || ''
+      const shouldBeVisible = typesSet.has(typeName)
+      stateUpdates[index] = { visible: shouldBeVisible, opacity: shouldBeVisible ? 1 : 0 }
+    })
+    // Write both normal toggles to the same visibility so future flips don't introduce opacity changes
+    viewer.updateStateVisibility?.(stateUpdates, ['normal_a', 'normal_b'])
+    // Keep exploded in sync too
+    viewer.updateStateVisibility?.(stateUpdates, ['exploded_a', 'exploded_b'])
+    // Skip the very next filter transition (we just synced)
+    skipNextFilterTransitionRef.current = true
+  }, [modelsWithLocation.map(m => m?.$id).join('|'), visibleTypes, availableTypes])
   
   // Update visibility when filters change - use ThreeCadViewer's animation system
   useEffect(() => {
@@ -385,8 +400,13 @@ export function SystemViewer({
     const viewer = viewerRef.current
     const info = viewer.getMultiSceneInfo?.()
     if (!info || !info.models) return
-    // If there are no available types, do not apply filtering; leave visibility as-is
-    if (availableTypes.length === 0) return
+    // If there are no available types OR visibleTypes not initialized yet, skip to avoid initial fade
+    if (availableTypes.length === 0 || visibleTypes.size === 0) return
+    // If we just auto-initialized visibleTypes, skip this transition once
+    if (skipNextFilterTransitionRef.current) {
+      skipNextFilterTransitionRef.current = false
+      return
+    }
     
     // Determine current state and toggle to opposite filter state
     const currentState = info.currentState || 'normal_a'
@@ -397,16 +417,21 @@ export function SystemViewer({
     
     // Build state updates for the TARGET state only
     const stateUpdates = {}
+    let anyChange = false
     info.models.forEach((container, index) => {
       const modelRoot = container.userData?.__modelRoot
       const typeName = modelRoot?.userData?.typeName || ''
       const shouldBeVisible = visibleTypes.has(typeName)
-      
+      const currentVis = container.userData?.__states?.[currentState]?.visible
+      if (currentVis !== shouldBeVisible) anyChange = true
       stateUpdates[index] = {
         visible: shouldBeVisible,
         opacity: shouldBeVisible ? 1 : 0
       }
     })
+
+    // If visibility already matches current state, do nothing to avoid needless fade
+    if (!anyChange) return
     
     // First, update the target state's visibility (only update target state, not current)
     viewer.updateStateVisibility?.(stateUpdates, [targetState])
@@ -558,13 +583,7 @@ export function SystemViewer({
               onToggleBoundingBoxes={() => setBboxVisible(v => !v)}
             >
               <Button onClick={() => viewerRef.current?.frameToCurrent?.()}>
-                Refit
-              </Button>
-              <Button onClick={() => setTargetHelper(v => !v)}>
-                Target: {targetHelper ? 'ON' : 'OFF'}
-              </Button>
-              <Button onClick={() => setModelCenterHelper(v => !v)}>
-                Center: {modelCenterHelper ? 'ON' : 'OFF'}
+                REFIT
               </Button>
             </Toolbar>
           </Box>

@@ -24,22 +24,26 @@ Types define reusable structures that can be instantiated. They live in the `spo
 }
 ```
 
-**Example: Composite Type (Has Slots)**
+**Example: Composite Type (Has Slots under children)**
 ```json
 {
   "id": "spoke://types/robot-base",
   "name": "Basic Robot",
   "slots": {
-    "frame": {
-      "type": "spoke://types/frame",
-      "required": true
-    },
-    "cells": {
-      "type": "spoke://types/cell-18650",
-      "array": true
-    },
-    "controller": {
-      "type": "spoke://types/controller"
+    "children": {
+      "slots": {
+        "frame": {
+          "type": "spoke://types/frame",
+          "required": true
+        },
+        "cells": {
+          "type": "spoke://types/cell-18650",
+          "array": true
+        },
+        "controller": {
+          "type": "spoke://types/controller"
+        }
+      }
     }
   }
 }
@@ -56,7 +60,7 @@ Instances are concrete objects created from types. They live in the `spoke://ins
   "type": "spoke://types/cell-18650",
   "name": "Cell Left",
   "parent": "spoke://instances/my-robot",
-  "parentSlot": "cells",
+  "parentSlot": "children.cells",
   "location": "-20,0,0,180,0,0"
 }
 ```
@@ -68,12 +72,14 @@ Instances are concrete objects created from types. They live in the `spoke://ins
   "type": "spoke://types/robot-base",
   "name": "My Custom Robot",
   "parent": null,
-  "frame": "spoke://instances/main-frame",
-  "cells": [
-    "spoke://instances/cell-left",
-    "spoke://instances/cell-right"
-  ],
-  "controller": "spoke://instances/esp32-1"
+  "children": {
+    "frame": "spoke://instances/main-frame",
+    "cells": [
+      "spoke://instances/cell-left",
+      "spoke://instances/cell-right"
+    ],
+    "controller": "spoke://instances/esp32-1"
+  }
 }
 ```
 
@@ -89,19 +95,22 @@ Slots are named properties defined by types that hold references to child instan
 
 Templates provide default values for instances created in a slot. They solve the positioning problem - each robot instance gets its own batteries at the correct relative positions.
 
-**Single Slot Template:**
+**Single Slot Template (children.frame):**
 ```json
 {
-  "frame": {
+  "children": { "slots": {
+    "frame": {
     "type": "spoke://types/frame-96x64x32",
     "template": { "name": "Frame", "location": "0,0,0,0,0,0" }
-  }
+    }
+  }}
 }
 ```
 
-**Array Slot Template:**
+**Array Slot Template (children.cells):**
 ```json
 {
+  "children": { "slots": {
   "cells": {
     "type": "spoke://types/cell-18650",
     "array": true,
@@ -110,6 +119,7 @@ Templates provide default values for instances created in a slot. They solve the
       { "name": "Cell Left", "location": "-20,0,0,180,0,0" }
     ]
   }
+  }}
 }
 ```
 
@@ -210,23 +220,26 @@ import {
 ### Get Effective Slots
 ```javascript
 // Get all slots for a type (including inherited)
-const slots = await getEffectiveSlots('spoke://types/robot-advanced')
+const { byPath, byKind } = await getEffectiveSlots('spoke://types/robot-advanced')
 
-// Returns: { frame: {...}, powerCell: {...}, sensors: {...} }
+// byPath example: { 'children.frame': {...}, 'children.powerCell': {...}, 'children.sensors': {...} }
+// byKind example: { children: { slots: { frame: {...}, powerCell: {...}, sensors: {...} } } }
 ```
 
 ### Create Instance
 ```javascript
 const instance = {
   id: 'spoke://instances/my-robot',
-  type: 'spoke://types/robot-base',
+  type: 'spoke://types/robot',
   name: 'My Robot',
   parent: null,
-  frame: 'spoke://instances/frame-1',
-  cells: [
-    'spoke://instances/cell-1',
-    'spoke://instances/cell-2'
-  ]
+  children: {
+    frame: 'spoke://instances/frame-1',
+    cells: [
+      'spoke://instances/cell-1',
+      'spoke://instances/cell-2'
+    ]
+  }
 }
 
 // Automatically updates parent links on all children
@@ -286,11 +299,11 @@ const robot = await createInstanceFromType(
 ### Instantiate a Single Slot
 ```javascript
 // Create instances for a specific slot
-const slots = await getEffectiveSlots('spoke://types/core-robot')
+const { byPath } = await getEffectiveSlots('spoke://types/core-robot')
 const cellIds = await instantiateSlot(
   'spoke://instances/my-robot',
-  'cells',
-  slots.cells
+  'children.cells',
+  byPath['children.cells']
 )
 // Returns: ['spoke://instances/my-robot-cells-0', 'spoke://instances/my-robot-cells-1']
 ```
@@ -313,7 +326,12 @@ await store.putDoc({
   id: 'spoke://types/robot',
   name: 'Robot',
   slots: {
-    cells: { type: 'spoke://types/cell', array: true, required: true }
+    children: {
+      slots: {
+        frame: { type: 'spoke://types/frame' },
+        cells: { type: 'spoke://types/cell', array: true, required: true }
+      }
+    }
   }
 })
 
@@ -340,7 +358,7 @@ await putInstance({
   type: 'spoke://types/robot',
   name: 'My Robot',
   parent: null,
-  cells: ['spoke://instances/cell-1', 'spoke://instances/cell-2']
+  children: { cells: ['spoke://instances/cell-1', 'spoke://instances/cell-2'] }
 })
 
 // 4. Validate
@@ -352,7 +370,7 @@ console.log('Valid:', errors.length === 0)
 // 5. Check parent links
 const cell1Doc = await store.getDoc('spoke://instances/cell-1')
 console.log('Parent:', cell1Doc.parent) // 'spoke://instances/my-robot'
-console.log('ParentSlot:', cell1Doc.parentSlot) // 'cells'
+console.log('ParentSlot:', cell1Doc.parentSlot) // 'children.cells'
 ```
 
 ## Design Principles

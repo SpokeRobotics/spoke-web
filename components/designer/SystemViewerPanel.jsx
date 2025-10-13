@@ -39,7 +39,7 @@ export default function SystemViewerPanel({ expectedHeight }) {
         setLoading(true)
         setLoadError(null)
         
-        console.log('[SystemViewerPanel] Loading visualization for:', selectedId)
+        
         
         // Get document and visualization info
         const [doc, info] = await Promise.all([
@@ -47,8 +47,7 @@ export default function SystemViewerPanel({ expectedHeight }) {
           getVisualizationInfo(selectedId)
         ])
         
-        console.log('[SystemViewerPanel] Doc:', doc)
-        console.log('[SystemViewerPanel] Viz info:', info)
+        
         
         if (cancelled) return
         
@@ -56,7 +55,6 @@ export default function SystemViewerPanel({ expectedHeight }) {
         setVizInfo(info)
         
         if (!info.canVisualize) {
-          console.log('[SystemViewerPanel] Not visualizable')
           setObjectIds([])
           return
         }
@@ -71,7 +69,7 @@ export default function SystemViewerPanel({ expectedHeight }) {
         } else {
           ids = await getVisualizableIds(selectedId)
         }
-        console.log('[SystemViewerPanel] Visualizable IDs:', ids)
+        
         if (cancelled) return
         setObjectIds(ids)
       } catch (err) {

@@ -3,27 +3,29 @@
   "type": "spoke://types/core-robot",
   "name": "Core Assembly",
   "parent": null,
-  "frame": "spoke://instances/frame-main",
-  "frontPanels": [
-    "spoke://instances/panel-front",
-    "spoke://instances/panel-back"
-  ],
-  "sidePanels": [
-    "spoke://instances/panel-right",
-    "spoke://instances/panel-left"
-  ],
-  "topPanel": "spoke://instances/panel-top",
-  "bottomPanel": "spoke://instances/panel-bottom",
-  "bottomPanelDoor": "spoke://instances/panel-bottom-door",
-  "cells": [
-    "spoke://instances/cell-right",
-    "spoke://instances/cell-left"
-  ],
-  "charger": "spoke://instances/charger-main",
-  "wpcBoard": "spoke://instances/wpc-board-main",
-  "wpcCoil": "spoke://instances/wpc-coil-main",
-  "controller": "spoke://instances/controller-main",
-  "magConnector": "spoke://instances/mag-connector-main",
+  "children": {
+    "frame": "spoke://instances/frame-main",
+    "frontPanels": [
+      "spoke://instances/panel-front",
+      "spoke://instances/panel-back"
+    ],
+    "sidePanels": [
+      "spoke://instances/panel-right",
+      "spoke://instances/panel-left"
+    ],
+    "topPanel": "spoke://instances/panel-top",
+    "bottomPanel": "spoke://instances/panel-bottom",
+    "bottomPanelDoor": "spoke://instances/panel-bottom-door",
+    "cells": [
+      "spoke://instances/cell-right",
+      "spoke://instances/cell-left"
+    ],
+    "charger": "spoke://instances/charger-main",
+    "wpcBoard": "spoke://instances/wpc-board-main",
+    "wpcCoil": "spoke://instances/wpc-coil-main",
+    "controller": "spoke://instances/controller-main",
+    "magConnector": "spoke://instances/mag-connector-main"
+  },
   "meta": {
     "origin": "site"
   }

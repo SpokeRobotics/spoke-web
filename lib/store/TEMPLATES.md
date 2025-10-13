@@ -12,14 +12,16 @@ Slot templates solve the positioning problem: each robot instance needs its own 
 {
   "id": "spoke://types/core-robot",
   "slots": {
-    "batteries": {
-      "type": "spoke://types/battery-18650",
-      "array": true,
-      "template": [
-        { "name": "Battery Right", "location": "20,0,0,0,0,0" },
-        { "name": "Battery Left", "location": "-20,0,0,180,0,0" }
-      ]
-    }
+    "children": { "slots": {
+      "batteries": {
+        "type": "spoke://types/battery-18650",
+        "array": true,
+        "template": [
+          { "name": "Battery Right", "location": "20,0,0,0,0,0" },
+          { "name": "Battery Left", "location": "-20,0,0,180,0,0" }
+        ]
+      }
+    }}
   }
 }
 ```
@@ -65,10 +67,12 @@ const robot2 = await createInstanceFromType(
 
 ```json
 {
-  "frame": {
-    "type": "spoke://types/frame-96x64x32",
-    "template": { "name": "Frame", "location": "0,0,0,0,0,0" }
-  }
+  "children": { "slots": {
+    "frame": {
+      "type": "spoke://types/frame-96x64x32",
+      "template": { "name": "Frame", "location": "0,0,0,0,0,0" }
+    }
+  }}
 }
 ```
 
@@ -78,14 +82,16 @@ Creates one instance with the template properties applied.
 
 ```json
 {
-  "batteries": {
-    "type": "spoke://types/battery-18650",
-    "array": true,
-    "template": [
-      { "name": "Battery Right", "location": "20,0,0,0,0,0" },
-      { "name": "Battery Left", "location": "-20,0,0,180,0,0" }
-    ]
-  }
+  "children": { "slots": {
+    "batteries": {
+      "type": "spoke://types/battery-18650",
+      "array": true,
+      "template": [
+        { "name": "Battery Right", "location": "20,0,0,0,0,0" },
+        { "name": "Battery Left", "location": "-20,0,0,180,0,0" }
+      ]
+    }
+  }}
 }
 ```
 
@@ -95,17 +101,19 @@ Creates one instance per template object, applying properties in order.
 
 ```json
 {
-  "sensors": {
-    "type": "spoke://types/sensor",
-    "array": true,
-    "template": { "sensitivity": 0.8 }
-  }
+  "children": { "slots": {
+    "sensors": {
+      "type": "spoke://types/sensor",
+      "array": true,
+      "template": { "sensitivity": 0.8 }
+    }
+  }}
 }
 ```
 
-When calling `instantiateSlot()`, specify count:
+When calling `instantiateSlot()`, specify count and use dotted path:
 ```javascript
-await instantiateSlot('parent-id', 'sensors', slotDef, 5)
+await instantiateSlot('parent-id', 'children.sensors', slotDef, 5)
 // Creates 5 instances, all with sensitivity: 0.8
 ```
 
@@ -145,7 +153,7 @@ All created instances automatically have parent links:
   "id": "spoke://instances/robot-1-batteries-0",
   "type": "spoke://types/battery-18650",
   "parent": "spoke://instances/robot-1",
-  "parentSlot": "batteries",
+  "parentSlot": "children.batteries",
   "name": "Battery Right",
   "location": "20,0,0,0,0,0"
 }
@@ -211,11 +219,11 @@ await store.putDoc(battery)
 ### `createInstanceFromType(instanceId, typeId, overrides)`
 Creates a complete instance with all slots instantiated from templates.
 
-### `instantiateSlot(parentId, slotName, slotDef, count)`
-Creates instances for a single slot.
+### `instantiateSlot(parentId, slotPath, slotDef, count)`
+Creates instances for a single slot where `slotPath` is dotted (e.g., `children.cells`).
 
 ### `getEffectiveSlots(typeId)`
-Gets merged slot definitions including templates from type chain.
+Gets merged slot definitions including templates from type chain. Returns `{ byPath, byKind }`.
 
 ## Migration Note
 

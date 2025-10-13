@@ -148,37 +148,29 @@ export default function ObjectTree({ query = "", onSelect, onOpen }) {
       if (doc) {
         // Load slots defined by the object's type (if it has one)
         const typeRef = doc.type || doc.$type;
-        let effectiveSlots = {};
+        let effectiveSlotsByPath = {};
         
         if (typeRef && typeRef.startsWith('spoke://types/')) {
           // Load type-defined slots using type-system utilities
           try {
             const { getEffectiveSlots } = await import('@/lib/store/type-system');
-            effectiveSlots = await getEffectiveSlots(typeRef);
+            const { byPath } = await getEffectiveSlots(typeRef);
+            effectiveSlotsByPath = byPath || {};
           } catch (err) {
             console.warn('[ObjectTree] Failed to load type slots:', err);
           }
         }
         
-        // Check both type-defined slots and duck-typed properties
-        const slotNames = new Set([
-          ...Object.keys(effectiveSlots),
-          ...Object.keys(doc).filter(k => !k.startsWith("$") && !k.startsWith("_"))
-        ]);
-        
-        for (const key of slotNames) {
-          if (key === 'id' || key === 'type' || key === 'name' || key === 'parent' || key === 'parentSlot' || key === 'location' || key === 'model' || key === 'meta') continue;
-          
-          const val = doc[key];
+        // Only consider type-defined slots (by dotted path), and read values via helper
+        const { getNested } = await import('@/lib/store/slot-path.js');
+        for (const slotPath of Object.keys(effectiveSlotsByPath)) {
+          const val = getNested(doc, slotPath);
           if (!val) continue;
-          
-          // Handle both single references and arrays
           const refs = Array.isArray(val) ? val : [val];
           const childRefs = refs.filter(ref => typeof ref === 'string' && ref.startsWith('spoke://'));
-          
           if (childRefs.length > 0) {
             const mapped = childRefs.map((ref) => byId[ref]).filter(Boolean);
-            if (mapped.length) slots.push({ slot: key, items: mapped });
+            if (mapped.length) slots.push({ slot: slotPath, items: mapped });
           }
         }
       }

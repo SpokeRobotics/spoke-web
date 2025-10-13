@@ -189,11 +189,7 @@ export default function ObjectExplorerPanel() {
 
   return (
     <Card className="section" style={{ flex: 1, minHeight: 0, width: "100%", display: "flex", flexDirection: "column" }}>
-      <Flex direction="column" gap="3" style={{ flex: 1, minHeight: 0 }}>
-        <Heading size="4">Object Explorer</Heading>
-        <Box>
-          <Text size="1" color="gray">Selected: {selectedId || "(none)"}</Text>
-        </Box>
+      <Flex direction="column" gap="2" style={{ flex: 1, minHeight: 0 }}>
         <Box id="actionArea" style={{ width: "100%", flexShrink: 0 }}>
           <Flex align="center" gap="1" wrap="wrap" style={{ width: "100%", rowGap: 4, alignContent: "flex-start" }}>
             <Button size="1" onClick={() => {

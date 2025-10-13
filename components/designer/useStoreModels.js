@@ -32,6 +32,8 @@ export function useStoreModels(objectIds, options = {}) {
       return
     }
     
+    console.log('[useStoreModels] Loading models for IDs:', objectIds)
+    
     try {
       setLoading(true)
       setError(null)
@@ -63,8 +65,12 @@ export function useStoreModels(objectIds, options = {}) {
       // Update temp instances ref
       tempInstancesRef.current = newTempInstances
       
+      console.log('[useStoreModels] Processed IDs:', processedIds)
+      
       // Resolve model configs from store
       const resolved = await batchResolveModels(processedIds)
+      
+      console.log('[useStoreModels] Resolved models:', resolved.length, 'items')
       
       // Load 3D assets
       const loadedModels = []
@@ -103,6 +109,8 @@ export function useStoreModels(objectIds, options = {}) {
           location, // Pass through location from hierarchical expansion
         })
       }
+      
+      console.log('[useStoreModels] Loaded models:', loadedModels.length)
       
       setModels(loadedModels)
     } catch (err) {

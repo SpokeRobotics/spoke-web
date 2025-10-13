@@ -173,6 +173,16 @@ export function SystemViewer({
   const objectSpecs = parsedIds // Array of { id, location }
   const objectIds = objectSpecs.map(spec => spec.id) // Extract just IDs for loading
   
+  // Reset scene initialization when object IDs change
+  const objectIdsKey = objectIds.join(',')
+  const [expectedObjectIdsKey, setExpectedObjectIdsKey] = useState(objectIdsKey)
+  
+  useEffect(() => {
+    console.log('[SystemViewer] Object IDs changed, resetting scene')
+    sceneInitializedRef.current = false
+    setExpectedObjectIdsKey(objectIdsKey)
+  }, [objectIdsKey])
+  
   // Track if we're in the browser (client-side)
   const [isMounted, setIsMounted] = useState(false)
   useEffect(() => {
@@ -191,12 +201,25 @@ export function SystemViewer({
   // Attach location data to loaded models
   const modelsWithLocation = useMemo(() => {
     if (!isMounted) return [] // Don't show models until mounted
+    
+    // CRITICAL: Don't use models if we're expecting different objectIds
+    // This prevents stale model data from being used during transitions
+    const modelsKey = models.map(m => m.$id).sort().join(',')
+    const isStale = expectedObjectIdsKey !== objectIdsKey || loading
+    
+    if (isStale) {
+      console.log('[SystemViewer] Filtering stale models - expected:', expectedObjectIdsKey, 'current:', objectIdsKey, 'loading:', loading)
+      return []
+    }
+    
+    console.log('[SystemViewer] Creating modelsWithLocation from', models.length, 'models, objectIds:', objectIds.length)
+    
     return models.map((model, index) => ({
       ...model,
       // Use location from model (hierarchical expansion) if available, otherwise from objectSpecs (table)
       location: model.location || objectSpecs[index]?.location || { dx: 0, dy: 0, dz: 0, rx: 0, ry: 0, rz: 0 }
     }))
-  }, [models, objectSpecs, isMounted])
+  }, [models, objectSpecs, isMounted, loading, objectIds, expectedObjectIdsKey, objectIdsKey])
   
   // Extract unique types from models
   const availableTypes = useMemo(() => {
@@ -234,7 +257,13 @@ export function SystemViewer({
   
   // Initialize scene when models first load
   useEffect(() => {
-    if (!viewerRef.current || modelsWithLocation.length === 0 || sceneInitializedRef.current) return
+    console.log('[SystemViewer] Scene init check - viewer:', !!viewerRef.current, 'models:', modelsWithLocation.length, 'initialized:', sceneInitializedRef.current, 'objectIds:', objectIds.length)
+    console.log('[SystemViewer] Model details:', modelsWithLocation.map(m => ({ id: m.$id, hasObject: !!m.object, name: m.doc?.name })))
+    
+    if (!viewerRef.current || modelsWithLocation.length === 0) return
+    if (sceneInitializedRef.current) return
+    
+    console.log('[SystemViewer] Initializing scene with', modelsWithLocation.length, 'models')
     
     const EXPLODE_SCALE = 2.5 // How much to scale positions in exploded mode
     
@@ -337,9 +366,14 @@ export function SystemViewer({
       initialState: 'normal_a',
     }
     
+    console.log('[SystemViewer] Calling setMultiScene with definition:', {
+      modelCount: sceneDefinition.models.length,
+      initialState: sceneDefinition.initialState
+    })
     viewerRef.current.setMultiScene?.(sceneDefinition)
     sceneInitializedRef.current = true
-  }, [modelsWithLocation, autoFitOnLoad])
+    console.log('[SystemViewer] Scene initialized successfully')
+  }, [modelsWithLocation, autoFitOnLoad, objectIds])
   
   // Update visibility when filters change - use ThreeCadViewer's animation system
   useEffect(() => {

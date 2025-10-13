@@ -584,6 +584,7 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
   const rebuildMultiSceneBounds = () => {
     const multi = multiSceneRef.current
     const models = multi?.models || []
+    // console.log('[ThreeCadViewer] rebuildMultiSceneBounds - models count:', models.length)
     const padded = new THREE.Box3()
     const rotatedCenter = new THREE.Vector3()
     let initialized = false
@@ -592,11 +593,13 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
     const scrollConfig = multi?.scrollAnimationConfig
     const useTargetStateOnly = scrollConfig?.enabled && scrollConfig?.targetState
     
-    models.forEach((container) => {
+    models.forEach((container, idx) => {
       if (!container) return
       const states = container.userData?.__states || {}
       const localCenter = container.userData?.__localBoundCenter || new THREE.Vector3()
-      const localRadius = container.userData?.__localBoundRadius ?? 0.5
+      const localRadius = container.userData?.__localBoundRadius ?? 50
+      const stateKeys = Object.keys(states)
+      console.log('[ThreeCadViewer] Model', idx, 'has', stateKeys.length, 'states:', stateKeys, 'localRadius:', localRadius)
       
       if (useTargetStateOnly) {
         // For scroll animation: only use objects that are visible (opacity > 0) in the target state
@@ -643,14 +646,18 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
       }
     })
     if (!initialized) {
-      padded.setFromCenterAndSize(new THREE.Vector3(0, 0, 0), new THREE.Vector3(1, 1, 1))
+      // No objects: use 100mm cube to ensure proper camera positioning
+      // console.warn('[ThreeCadViewer] rebuildMultiSceneBounds - no objects initialized, using fallback')
+      padded.setFromCenterAndSize(new THREE.Vector3(0, 0, 0), new THREE.Vector3(100, 100, 100))
     }
     // Store the computed bounds directly without any padding manipulation
     if (multi) {
-      multi.paddedBounds = padded.clone()
-      multi.paddedCenter = padded.getCenter(new THREE.Vector3())
       const size = padded.getSize(new THREE.Vector3())
-      multi.paddedSphere = new THREE.Sphere(multi.paddedCenter.clone(), size.length() / 2)
+      const center = padded.getCenter(new THREE.Vector3())
+      // console.log('[ThreeCadViewer] rebuildMultiSceneBounds - final bounds size:', size, 'center:', center)
+      multi.paddedBounds = padded.clone()
+      multi.paddedCenter = center
+      multi.paddedSphere = new THREE.Sphere(center.clone(), size.length() / 2)
     }
     return padded
   }
@@ -740,7 +747,8 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
       }
     })
     if (!initialized) {
-      box.setFromCenterAndSize(new THREE.Vector3(0, 0, 0), new THREE.Vector3(1, 1, 1))
+      // No objects: use 100mm cube to ensure proper camera positioning
+      box.setFromCenterAndSize(new THREE.Vector3(0, 0, 0), new THREE.Vector3(100, 100, 100))
     }
     const center = box.getCenter(new THREE.Vector3())
     const radius = box.getSize(new THREE.Vector3()).length() / 2
@@ -756,17 +764,20 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
     const controls = controlsRef.current
     if (!multi?.active || !camera || !controls) return
     const currentBox = refreshCurrentMultiBounds() || computeMultiSceneBounds()
+    const boxSize = currentBox.getSize(new THREE.Vector3())
     const center = multi.currentCenter ? multi.currentCenter.clone() : currentBox.getCenter(new THREE.Vector3())
     const sphere = multi.currentSphere || new THREE.Sphere(center.clone(), currentBox.getSize(new THREE.Vector3()).length() / 2)
+    
+    // Set target FIRST, then position camera
     controls.target.copy(center)
-    const dir = new THREE.Vector3().subVectors(camera.position, center)
-    if (dir.lengthSq() < 1e-6) dir.set(1, 0.8, 1)
-    if (dir.y < 0.45) {
-      dir.y = Math.abs(dir.y) + 0.45
-    }
-    dir.normalize()
+    
+    // Use a consistent viewing direction (from front-right-top)
+    const dir = new THREE.Vector3(1, 0.8, 1).normalize()
     const distance = Math.max(computeFitDistance(currentBox, camera, 0.67), 0.1)
     camera.position.copy(dir.multiplyScalar(distance).add(center))
+    
+    // Ensure camera is looking at the target
+    camera.lookAt(center)
     camera.updateProjectionMatrix()
     controls.update()
     adjustCameraPlanes(currentBox)
@@ -1680,6 +1691,13 @@ useEffect(() => {
       multi.transitionMap = definition.transitionMap || {}
       multi.currentState = definition.initialState || (multi.stateOrder[0] || 'start')
       multi.scrollAnimationConfig = definition.scrollAnimationConfig || null
+      // Clear cached bounds so they're recalculated for new models
+      multi.paddedBounds = null
+      multi.paddedCenter = null
+      multi.paddedSphere = null
+      multi.currentBounds = null
+      multi.currentCenter = null
+      multi.currentSphere = null
 
       // Clear single-model group
       ;[group, wire, edgesGroup, outlineGroup].forEach((g) => {
@@ -1700,6 +1718,7 @@ useEffect(() => {
       if (wire) wire.visible = false
       if (edgesGroup) edgesGroup.visible = false
       if (outlineGroup) outlineGroup.visible = false
+      // console.log('[ThreeCadViewer] setMultiScene - hidden single-model groups. group.visible:', group.visible, 'group.children:', group.children.length)
 
       // Clear multi group children
       while (multiGroup.children.length) {
@@ -1716,17 +1735,39 @@ useEffect(() => {
       const modelEntries = definition.models || []
       const preparedModels = []
 
-      modelEntries.forEach((entry) => {
-        if (!entry || !entry.object) return
+      // console.log('[ThreeCadViewer] setMultiScene - processing', modelEntries.length, 'model entries')
+      
+      modelEntries.forEach((entry, idx) => {
+        if (!entry || !entry.object) {
+          console.warn('[ThreeCadViewer] Entry', idx, 'is missing object')
+          return
+        }
         const container = new THREE.Group()
         container.name = entry.name || 'Model'
         const object = entry.object
         container.add(object)
         container.userData.__modelRoot = object
         object.updateMatrixWorld(true)
+        
+        // console.log('[ThreeCadViewer] Processing model', idx, 'name:', entry.name, 'children count:', object.children.length)
+        
         const localBox = new THREE.Box3().setFromObject(object)
-        const localCenter = localBox.getCenter(new THREE.Vector3())
-        const localRadius = localBox.getSize(new THREE.Vector3()).length() / 2 || 0.5
+        // Check if box is valid (not empty/inverted)
+        const boxSize = localBox.getSize(new THREE.Vector3())
+        const isValidBox = isFinite(boxSize.x) && isFinite(boxSize.y) && isFinite(boxSize.z) && (boxSize.x > 0 || boxSize.y > 0 || boxSize.z > 0)
+        
+        let localCenter, localRadius
+        if (isValidBox) {
+          localCenter = localBox.getCenter(new THREE.Vector3())
+          localRadius = boxSize.length() / 2
+          // console.log('[ThreeCadViewer] Model', idx, 'valid bounds - size:', boxSize, 'center:', localCenter, 'radius:', localRadius)
+        } else {
+          // Model has no geometry - use defaults
+          // console.warn('[ThreeCadViewer] Model', idx, 'has no valid geometry, using fallback bounds:', entry.name)
+          localCenter = new THREE.Vector3(0, 0, 0)
+          localRadius = 50 // 50mm radius (100mm cube equivalent)
+        }
+        
         container.userData.__localBoundCenter = localCenter
         container.userData.__localBoundRadius = localRadius
         const faderMaterials = []
@@ -1762,6 +1803,9 @@ useEffect(() => {
       multi.models = preparedModels
       multiGroup.visible = true
       multiGroup.rotation.set(0, 0, 0)
+      const scene = sceneRef.current
+      console.log('[ThreeCadViewer] setMultiScene - multiGroup visible:', multiGroup.visible, 'children:', multiGroup.children.length)
+      console.log('[ThreeCadViewer] setMultiScene - multiGroup in scene:', multiGroup.parent === scene, 'scene children:', scene?.children.map(c => c.name || c.type))
 
       if (axes) {
         if (axes.parent) axes.parent.remove(axes)
@@ -1780,10 +1824,14 @@ useEffect(() => {
         systemAxes.position.set(0, 0, 0)
       }
 
+      // console.log('[ThreeCadViewer] setMultiScene - calling rebuildMultiSceneBounds')
       rebuildMultiSceneBounds()
+      // console.log('[ThreeCadViewer] setMultiScene - applying initial state:', multi.currentState)
       applyMultiState(multi.currentState, true, false)
+      // console.log('[ThreeCadViewer] setMultiScene - framing camera')
       frameMultiScene()
       markBoundingBoxesDirty()
+      // console.log('[ThreeCadViewer] setMultiScene - complete')
     },
     transitionMultiState: (targetState, duration = 900, onComplete) => {
       return startStateTransition(targetState, duration, onComplete)
@@ -2059,10 +2107,14 @@ useEffect(() => {
     }
     const key = (stateName || '').toLowerCase()
     const models = multi.models || []
-    models.forEach((container) => {
+    // console.log('[ThreeCadViewer] applyMultiState:', key, 'to', models.length, 'models')
+    models.forEach((container, idx) => {
       const states = container.userData.__states || {}
       const state = states[key] || states.start || states['start'] || null
-      if (!state) return
+      if (!state) {
+        console.warn('[ThreeCadViewer] Model', idx, 'has no state:', key, 'available:', Object.keys(states))
+        return
+      }
       const targetPos = state.position || new THREE.Vector3()
       const targetQuat = state.quaternion || new THREE.Quaternion()
       container.position.copy(targetPos)
@@ -2076,7 +2128,10 @@ useEffect(() => {
       })
       const axes = container.userData.__axes
       if (axes) axes.visible = !!originVisible
+      // Force matrix update after positioning
+      container.updateMatrixWorld(true)
     })
+    // console.log('[ThreeCadViewer] applyMultiState - applied to', appliedCount, 'models,', visibleCount, 'visible')
     multi.currentState = key
     const camera = cameraRef.current
     const controls = controlsRef.current

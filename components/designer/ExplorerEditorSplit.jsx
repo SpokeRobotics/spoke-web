@@ -65,16 +65,13 @@ export default function ExplorerEditorSplit() {
   }, []);
 
   return (
-    <section>
-      <Heading size="4" mb="2">Object Explorer & JSON Editor</Heading>
-      <Text size="2" color="gray" mb="3">Browse on the left, edit on the right. Drag the handle to resize.</Text>
-      {/* On small screens, stack; on md+, show resizable split */}
+    <section style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Box
         ref={containerRef}
         style={{
           width: "100%",
+          height: "100%",
           display: "flex",
-          minHeight: 560,
         }}
         className="explorer-editor-container"
       >
@@ -107,8 +104,6 @@ export default function ExplorerEditorSplit() {
         </Box>
         <Box className="editor-pane" style={{ display: "flex" }}>
           <Card className="section" style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
-            <Heading size="4" mb="2">JSON Editor</Heading>
-            <Text size="2" color="gray" mb="2">Great for quick JSON inspection and edits. Auto-format on load.</Text>
             <Box className="editor" style={{ flex: 1, minHeight: 0 }}>
               <JsonEditor />
             </Box>

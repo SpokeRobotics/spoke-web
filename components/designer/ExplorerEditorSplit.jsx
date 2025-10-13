@@ -65,7 +65,7 @@ export default function ExplorerEditorSplit() {
   }, []);
 
   return (
-    <section style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <section style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
       <Box
         ref={containerRef}
         style={{

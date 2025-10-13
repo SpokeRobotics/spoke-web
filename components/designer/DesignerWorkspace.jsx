@@ -166,7 +166,7 @@ export default function DesignerWorkspace() {
             '--top-height': `${topHeight}px`,
           }}
         >
-          <SystemViewerPanel />
+          <SystemViewerPanel expectedHeight={topHeight} />
         </Box>
         
         {/* Horizontal Draggable Divider */}

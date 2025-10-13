@@ -139,6 +139,9 @@ export function SystemViewer({
   const [currentStyleMode, setCurrentStyleMode] = useState(styleMode)
   const [ambientLevel, setAmbientLevel] = useState(1.5)
   const [directionalLevel, setDirectionalLevel] = useState(1.5)
+  const [bboxVisible, setBboxVisible] = useState(false)
+  const [targetHelper, setTargetHelper] = useState(false)
+  const [modelCenterHelper, setModelCenterHelper] = useState(false)
   
   // Parse objects from props or children table
   const { objectIds: parsedIds, leftover: leftoverChildren } = useMemo(
@@ -221,26 +224,25 @@ export function SystemViewer({
     }))
   }, [models, objectSpecs, isMounted, loading, objectIds, expectedObjectIdsKey, objectIdsKey])
   
-  // Extract unique types from models
+  // Extract unique types from models (fallback to doc.type or userData.$type)
   const availableTypes = useMemo(() => {
     const types = new Set()
     modelsWithLocation.forEach(m => {
-      if (m.doc.$type) {
-        // Extract final part from "spoke/part/electronics" -> "electronics"
-        const parts = m.doc.$type.split('/')
-        const typeName = parts[parts.length - 1]
-        if (typeName) types.add(typeName)
-      }
+      const raw = m.doc?.$type || m.doc?.type || m.object?.userData?.$type
+      if (!raw || typeof raw !== 'string') return
+      const parts = raw.split('/')
+      const typeName = parts[parts.length - 1]
+      if (typeName) types.add(typeName)
     })
     return Array.from(types).sort()
   }, [modelsWithLocation])
   
-  // Initialize visible types when models load
+  // Initialize visible types when models load (only when we actually detect any types)
   useEffect(() => {
     if (availableTypes.length > 0 && visibleTypes.size === 0) {
       setVisibleTypes(new Set(availableTypes))
     }
-  }, [availableTypes])
+  }, [availableTypes, visibleTypes.size])
   
   // Toggle type visibility
   const toggleType = useCallback((typeName) => {
@@ -315,7 +317,8 @@ export function SystemViewer({
         const explodedPos = locationPos.clone().multiplyScalar(EXPLODE_SCALE)
         
         // Extract type for visibility filtering - store in userData on wrapper
-        const parts = (m.doc.$type || '').split('/')
+        const rawType = m.doc?.$type || m.doc?.type || m.object?.userData?.$type || ''
+        const parts = rawType.split('/')
         const typeName = parts[parts.length - 1] || ''
         wrapper.userData.typeName = typeName
         
@@ -382,6 +385,8 @@ export function SystemViewer({
     const viewer = viewerRef.current
     const info = viewer.getMultiSceneInfo?.()
     if (!info || !info.models) return
+    // If there are no available types, do not apply filtering; leave visibility as-is
+    if (availableTypes.length === 0) return
     
     // Determine current state and toggle to opposite filter state
     const currentState = info.currentState || 'normal_a'
@@ -407,12 +412,23 @@ export function SystemViewer({
     viewer.updateStateVisibility?.(stateUpdates, [targetState])
     
     // Then transition to the target state (this animates from current to target)
+    // Do NOT reframe the camera; preserve current camera position/orientation
     viewer.transitionMultiState?.(targetState, 400)
     
     // Update our toggle tracker
     filterStateToggle.current = nextToggle
     
-  }, [visibleTypes])
+  }, [visibleTypes, availableTypes])
+
+  // When model set changes post-load, frame once to avoid any late attach timing issues
+  useEffect(() => {
+    if (!sceneInitializedRef.current || !viewerRef.current) return
+    // Debounced single shot after models change
+    const t = setTimeout(() => {
+      try { viewerRef.current?.frameToCurrent?.() } catch {}
+    }, 50)
+    return () => clearTimeout(t)
+  }, [modelsWithLocation.map(m => m?.$id).join('|')])
   
   const renderedChildren = useMemo(
     () => leftoverChildren,
@@ -482,6 +498,11 @@ export function SystemViewer({
           directionalLevel={directionalLevel}
           originVisible={objectOriginVisible}
           axesHelperVisible={systemOriginVisible}
+          boundingBoxesVisible={bboxVisible}
+          targetHelperVisible={targetHelper}
+          modelCenterVisible={modelCenterHelper}
+          frameScreenBias={{ x: 0, y: 0 }}
+          autoFitOnResize={true}
         />
         
         {/* Wrench Button - Top right */}
@@ -533,7 +554,19 @@ export function SystemViewer({
               directionalLevel={directionalLevel}
               onCycleAmbientLevel={handleCycleAmbient}
               onCycleDirectionalLevel={handleCycleDirectional}
-            />
+              boundingBoxesVisible={bboxVisible}
+              onToggleBoundingBoxes={() => setBboxVisible(v => !v)}
+            >
+              <Button onClick={() => viewerRef.current?.frameToCurrent?.()}>
+                Refit
+              </Button>
+              <Button onClick={() => setTargetHelper(v => !v)}>
+                Target: {targetHelper ? 'ON' : 'OFF'}
+              </Button>
+              <Button onClick={() => setModelCenterHelper(v => !v)}>
+                Center: {modelCenterHelper ? 'ON' : 'OFF'}
+              </Button>
+            </Toolbar>
           </Box>
         )}
         

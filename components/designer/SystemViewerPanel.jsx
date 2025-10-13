@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { Box, Card, Heading, Text, Flex, Button } from '@radix-ui/themes'
 import { Eye, EyeOff } from 'lucide-react'
 import { useSelection } from '@/components/designer/SelectionProvider.jsx'
@@ -12,7 +12,9 @@ import { safeGetDoc } from '@/lib/store/resolver'
  * SystemViewerPanel - Wrapper for SystemViewer that connects to selection system
  * Shows the selected object and all its hierarchical children
  */
-export default function SystemViewerPanel() {
+export default function SystemViewerPanel({ expectedHeight }) {
+  const contentRef = useRef(null)
+  const [panelH, setPanelH] = useState(0)
   const { selectedId } = useSelection()
   const [objectIds, setObjectIds] = useState([])
   const [selectedDoc, setSelectedDoc] = useState(null)
@@ -59,11 +61,17 @@ export default function SystemViewerPanel() {
           return
         }
         
-        // Get all visualizable IDs (recursive expansion)
-        const ids = await getVisualizableIds(selectedId)
-        
+        // Determine visualizable target IDs
+        // For types: include the type ID so the viewer hook can auto-instantiate a temporary instance
+        // For instances: expand to include all visualizable children
+        let ids = []
+        const isType = typeof selectedId === 'string' && selectedId.startsWith('spoke://types/')
+        if (isType) {
+          ids = [selectedId]
+        } else {
+          ids = await getVisualizableIds(selectedId)
+        }
         console.log('[SystemViewerPanel] Visualizable IDs:', ids)
-        
         if (cancelled) return
         setObjectIds(ids)
       } catch (err) {
@@ -82,6 +90,19 @@ export default function SystemViewerPanel() {
       cancelled = true
     }
   }, [selectedId])
+
+  // Measure available content height for the viewer and pass as explicit px
+  useEffect(() => {
+    if (!contentRef.current) return
+    const ro = new ResizeObserver((entries) => {
+      const r = entries[0]?.contentRect
+      if (!r) return
+      const h = Math.max(0, Math.round(r.height))
+      setPanelH(h)
+    })
+    ro.observe(contentRef.current)
+    return () => ro.disconnect()
+  }, [])
   
   // Listen for store updates to refresh viewer
   useEffect(() => {
@@ -194,11 +215,14 @@ export default function SystemViewerPanel() {
             </Box>
           </Flex>
         ) : (
-          <Box style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
+          <Box
+            ref={contentRef}
+            style={{ width: '100%', height: '100%', overflow: 'hidden' }}
+          >
             <SystemViewer
               objects={objectIds}
-              height={2000}
-              expandedHeight={2000}
+              height={(typeof expectedHeight === 'number' && expectedHeight > 0) ? expectedHeight : (panelH > 0 ? panelH : 420)}
+              expandedHeight={(typeof expectedHeight === 'number' && expectedHeight > 0) ? expectedHeight : (panelH > 0 ? panelH : 420)}
               toolsEnabled={true}
               backgroundMode="GRID"
               shadingMode="SOURCE"

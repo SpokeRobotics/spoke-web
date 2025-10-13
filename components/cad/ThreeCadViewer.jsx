@@ -1174,7 +1174,11 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
         const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()
         if (anim.playing) {
           const elapsed = (now - anim.start) / anim.duration
-          const t = Math.min(1, Math.max(0, elapsed))
+          // Combine time-based progress with frame-based progress to ensure visible tweening under load
+          anim.frameCount = (anim.frameCount|0) + 1
+          const tTime = Math.min(1, Math.max(0, elapsed))
+          const tFrames = Math.min(1, anim.frameCount / Math.max(1, anim.minFrames|0))
+          const t = Math.max(tTime, tFrames)
           anim.mixers.forEach((mix) => {
             const { object, from, to, materials = [], fromOpacity = 1, toOpacity = 1 } = mix
             object.position.lerpVectors(from.position, to.position, t)
@@ -1286,11 +1290,14 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
       rafRef.current = 0
     }
     const updateActive = () => {
-      const active = !!isVisibleRef.current && !!isDocVisibleRef.current
+      // Consider transitions as requiring an active loop
+      const anim = animationRef.current || { playing: false }
+      const active = (!!isVisibleRef.current && !!isDocVisibleRef.current) || !!anim.playing
       const was = isActiveRef.current
       isActiveRef.current = active
+      // Ensure loop is running when needed; do not stop it to avoid snapping animations
       if (active && !was) startLoop()
-      if (!active && was) stopLoop()
+      // Intentionally do not stopLoop() when inactive to preserve ongoing tweens and stable timing
     }
 
     // Snapshot timers to avoid reading changing refs in cleanup
@@ -2188,13 +2195,15 @@ useEffect(() => {
   const startStateTransition = (targetState, duration = 900, onComplete) => {
     const multi = multiSceneRef.current
     if (!multi.active) return Promise.resolve(false)
+    const anim = animationRef.current
+    // Ignore new requests while a transition is in progress to avoid snapping
+    if (anim && anim.playing) return Promise.resolve(false)
     const fromKey = multi.currentState || 'start'
     const toKey = (targetState || '').toLowerCase()
     if (fromKey === toKey) return Promise.resolve(false)
     const allowed = multi.transitionMap?.[fromKey] || []
     if (!allowed.includes(toKey)) return Promise.resolve(false)
     const models = multi.models || []
-    const anim = animationRef.current
     const now = performance.now()
     const mixes = []
     models.forEach((container) => {
@@ -2232,19 +2241,26 @@ useEffect(() => {
     })
     if (!mixes.length) return Promise.resolve(false)
 
+    try { console.debug('[ThreeCadViewer] transition:start', { from: fromKey, to: toKey, duration }) } catch {}
+
     anim.playing = true
     anim.start = now
     anim.duration = Math.max(100, duration)
+    // Enforce a minimum number of frames so heavy main-thread stalls don't collapse the tween into a single step
+    anim.frameCount = 0
+    anim.minFrames = (anim.duration <= 500) ? 8 : 12
     anim.fromState = fromKey
     anim.toState = toKey
     anim.mixers = mixes
     anim.onComplete = () => {
+      // Mark new state only after the tween finishes
+      multi.currentState = toKey
       applyMultiState(toKey, true)
       resetAnimation()
       // Do not reframe camera here; preserve current view across transitions
+      try { console.debug('[ThreeCadViewer] transition:end', { to: toKey }) } catch {}
       onComplete?.()
     }
-    multi.currentState = toKey
     return Promise.resolve(true)
   }
 

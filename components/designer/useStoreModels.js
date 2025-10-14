@@ -8,6 +8,7 @@ import { batchResolveModels } from '@/lib/store/model-resolver'
 import { loadModelAsset, getFileExtension, resolveModelPath } from '@/lib/models/loader'
 import { applyTransform } from '@/lib/models/transform'
 import { getEffectiveSlots, createInstanceFromType } from '@/lib/store/type-system'
+import { getNested } from '@/lib/store/slot-path'
 import * as THREE from 'three'
 
 /**
@@ -45,40 +46,61 @@ export function useStoreModels(objectIds, options = {}) {
       // 1) Resolve instances normally via model-resolver
       const resolvedInstances = instanceIds.length > 0 ? await batchResolveModels(instanceIds) : []
 
-      // 2) Build previews for types by using the usual instantiation mechanism (temporary instances)
-      const tempInstanceIds = []
+      // 2) Build previews for types in-memory using createInstanceFromType() without persisting
+      const previewItems = []
+      const { resolveModelFromDoc, getEffectivePosition, getEffectiveRotation } = await import('@/lib/store/model-resolver')
+      const parseLocationString = (locationStr) => {
+        if (!locationStr || typeof locationStr !== 'string') return { dx: 0, dy: 0, dz: 0, rx: 0, ry: 0, rz: 0 }
+        const parts = String(locationStr).split(',').map(s => parseFloat(s.trim()) || 0)
+        return { dx: parts[0]||0, dy: parts[1]||0, dz: parts[2]||0, rx: parts[3]||0, ry: parts[4]||0, rz: parts[5]||0 }
+      }
+      const composeLocations = (a, b) => ({ dx: (a?.dx||0)+(b?.dx||0), dy: (a?.dy||0)+(b?.dy||0), dz: (a?.dz||0)+(b?.dz||0), rx: (a?.rx||0)+(b?.rx||0), ry: (a?.ry||0)+(b?.ry||0), rz: (a?.rz||0)+(b?.rz||0) })
       for (const typeId of typeIds) {
         try {
           const base = typeId.split('/').pop()
           const unique = `${Date.now()}-${Math.random().toString(36).slice(2,8)}`
           const tempId = `spoke://instances/__preview-${base}-${unique}`
-          // Create a temporary instance using the normal instantiation pipeline
-          await createInstanceFromType(tempId, typeId, { name: `(Preview) ${base}` })
-          tempInstancesRef.current.add(tempId)
-          // Track children for cleanup as well
-          try {
-            const inst = await store.getDoc(tempId)
-            const { byPath } = await getEffectiveSlots(typeId)
-            for (const slotPath of Object.keys(byPath || {})) {
-              const value = (() => {
-                // getNested is in slot-path.js, but avoid an import by direct access
-                // instance structure uses dotted path, read manually
-                const parts = slotPath.split('.')
-                let cur = inst
-                for (const p of parts) { cur = cur?.[p]; if (!cur) break }
-                return cur
-              })()
+          const { instance, children } = await createInstanceFromType(tempId, typeId, { name: `(Preview) ${base}` })
+          // Build in-memory doc map
+          const docsById = new Map()
+          docsById.set(instance.id, instance)
+          for (const c of children) docsById.set(c.id, c.doc)
+
+          // Recursive expansion using in-memory docs to find leaf items
+          const expand = async (docId, parentLoc = { dx:0,dy:0,dz:0,rx:0,ry:0,rz:0 }) => {
+            const doc = docsById.get(docId)
+            if (!doc) return
+            const typeRef = doc.type || doc.$type
+            if (!typeRef) return
+            const { byPath } = await getEffectiveSlots(typeRef)
+            let hasChildren = false
+            for (const [slotPath] of Object.entries(byPath || {})) {
+              const value = getNested(doc, slotPath)
               if (!value) continue
               const ids = Array.isArray(value) ? value : [value]
-              ids.forEach(id => { if (typeof id === 'string') tempInstancesRef.current.add(id) })
+              for (const childId of ids) {
+                const childDoc = docsById.get(childId)
+                if (!childDoc) continue
+                hasChildren = true
+                const childLoc = composeLocations(parentLoc, parseLocationString(childDoc.location))
+                await expand(childId, childLoc)
+              }
             }
-          } catch {}
-          tempInstanceIds.push(tempId)
+            if (!hasChildren) {
+              const model = await resolveModelFromDoc(doc)
+              if (!model || !model.url) return
+              const position = await getEffectivePosition(doc)
+              const rotation = await getEffectiveRotation(doc)
+              previewItems.push({ $id: doc.id, doc, model, position, rotation, location: parentLoc })
+            }
+          }
+
+          await expand(instance.id)
         } catch (err) {
-          console.warn('[useStoreModels] Failed to instantiate preview for type', typeId, err)
+          console.warn('[useStoreModels] Failed to build preview for type', typeId, err)
         }
       }
-      const resolvedPreviews = tempInstanceIds.length > 0 ? await batchResolveModels(tempInstanceIds) : []
+      const resolvedPreviews = previewItems
 
       // Combine
       const resolved = [...resolvedInstances, ...resolvedPreviews]
@@ -169,14 +191,7 @@ export function useStoreModels(objectIds, options = {}) {
   // Cleanup temp instances on unmount
   useEffect(() => {
     return () => {
-      // Delete all temp instances when component unmounts
-      tempInstancesRef.current.forEach(async (tempId) => {
-        try {
-          await store.deleteDoc(tempId)
-        } catch (err) {
-          // Ignore errors during cleanup
-        }
-      })
+      // No persisted temp previews
     }
   }, [])
   

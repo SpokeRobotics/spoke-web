@@ -7,7 +7,7 @@ import { store } from '@/lib/store/adapter'
 import { batchResolveModels } from '@/lib/store/model-resolver'
 import { loadModelAsset, getFileExtension, resolveModelPath } from '@/lib/models/loader'
 import { applyTransform } from '@/lib/models/transform'
-import { getEffectiveSlots } from '@/lib/store/type-system'
+import { getEffectiveSlots, createInstanceFromType } from '@/lib/store/type-system'
 import * as THREE from 'three'
 
 /**
@@ -45,48 +45,40 @@ export function useStoreModels(objectIds, options = {}) {
       // 1) Resolve instances normally via model-resolver
       const resolvedInstances = instanceIds.length > 0 ? await batchResolveModels(instanceIds) : []
 
-      // 2) Build pure preview for types without persisting
-      const resolvedPreviews = []
+      // 2) Build previews for types by using the usual instantiation mechanism (temporary instances)
+      const tempInstanceIds = []
       for (const typeId of typeIds) {
         try {
-          const { byPath } = await getEffectiveSlots(typeId)
-          for (const [slotPath, slotDef] of Object.entries(byPath || {})) {
-            if (!slotDef?.type) continue
-            // Determine templates as array
-            let templates = []
-            if (Array.isArray(slotDef.template)) templates = slotDef.template
-            else if (slotDef.template) templates = [slotDef.template]
-            else if (!slotDef.array) templates = [{}]
-            // For each template, resolve the child TYPE model
-            for (let i = 0; i < templates.length; i++) {
-              const t = templates[i] || {}
-              const childTypeId = slotDef.type
-              // Load child type doc for model info
-              const typeDoc = await store.getDoc(childTypeId)
-              if (!typeDoc) continue
-              const model = typeDoc.model || null
-              if (!model || !model.url) continue
-              // Parse location string if present
-              const locStr = t.location || '0,0,0,0,0,0'
-              const parts = String(locStr).split(',').map(s => parseFloat(s.trim()) || 0)
-              const location = { dx: parts[0]||0, dy: parts[1]||0, dz: parts[2]||0, rx: parts[3]||0, ry: parts[4]||0, rz: parts[5]||0 }
-              // Synthesize an id for this preview item (not persisted)
-              const slotName = slotPath.split('.').pop()
-              const $id = `spoke://preview/${typeId.split('/').pop()}-${slotName}-${i}`
-              resolvedPreviews.push({
-                $id,
-                doc: { ...typeDoc, id: childTypeId, name: t.name || typeDoc.name, $type: childTypeId },
-                model,
-                position: typeDoc.model?.offset || [0,0,0],
-                rotation: typeDoc.model?.rotation || [0,0,0],
-                location,
-              })
+          const base = typeId.split('/').pop()
+          const unique = `${Date.now()}-${Math.random().toString(36).slice(2,8)}`
+          const tempId = `spoke://instances/__preview-${base}-${unique}`
+          // Create a temporary instance using the normal instantiation pipeline
+          await createInstanceFromType(tempId, typeId, { name: `(Preview) ${base}` })
+          tempInstancesRef.current.add(tempId)
+          // Track children for cleanup as well
+          try {
+            const inst = await store.getDoc(tempId)
+            const { byPath } = await getEffectiveSlots(typeId)
+            for (const slotPath of Object.keys(byPath || {})) {
+              const value = (() => {
+                // getNested is in slot-path.js, but avoid an import by direct access
+                // instance structure uses dotted path, read manually
+                const parts = slotPath.split('.')
+                let cur = inst
+                for (const p of parts) { cur = cur?.[p]; if (!cur) break }
+                return cur
+              })()
+              if (!value) continue
+              const ids = Array.isArray(value) ? value : [value]
+              ids.forEach(id => { if (typeof id === 'string') tempInstancesRef.current.add(id) })
             }
-          }
+          } catch {}
+          tempInstanceIds.push(tempId)
         } catch (err) {
-          console.warn('[useStoreModels] Failed to build preview for type', typeId, err)
+          console.warn('[useStoreModels] Failed to instantiate preview for type', typeId, err)
         }
       }
+      const resolvedPreviews = tempInstanceIds.length > 0 ? await batchResolveModels(tempInstanceIds) : []
 
       // Combine
       const resolved = [...resolvedInstances, ...resolvedPreviews]

@@ -3,6 +3,7 @@
 import React, { useRef, useEffect, useImperativeHandle, forwardRef } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { SkeletonUtils } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
@@ -363,6 +364,72 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
   const animationRef = useRef({ playing: false, start: 0, duration: 0, fromState: null, toState: null, mixers: [], onComplete: null })
   const userInteractedRef = useRef(false)
   const pendingReframeRef = useRef(false)
+  
+  // Ensure per-viewer material isolation: clone graph and clone materials per mesh
+  const cloneWithUniqueMaterials = (object) => {
+    if (!object) return object
+    let cloned = null
+    // Clone the object graph (handles skinned meshes properly) with robust fallbacks
+    try {
+      if (object && typeof SkeletonUtils?.clone === 'function') {
+        cloned = SkeletonUtils.clone(object)
+      }
+    } catch {}
+    if (!cloned) {
+      try {
+        if (object && typeof object.clone === 'function') {
+          cloned = object.clone(true)
+        }
+      } catch {}
+    }
+    if (!cloned) {
+      // Last resort: wrap in a new Group to avoid mutating shared instance
+      try {
+        const g = new THREE.Group()
+        if (object && object.isObject3D) {
+          // do not reparent the original; attempt to add a shallow clone if possible
+          const shallow = (typeof object.clone === 'function') ? object.clone(false) : null
+          g.add(shallow || object)
+        }
+        cloned = g
+      } catch {
+        cloned = object // give up; better to return than crash
+      }
+    }
+    // Clone materials so state opacity tweaks are isolated to this viewer
+    const safeCloneMaterial = (m) => {
+      try {
+        if (m && typeof m.clone === 'function') return m.clone()
+        if (m && m.isMaterial === true) return m
+      } catch {}
+      return null
+    }
+    cloned.traverse((obj) => {
+      if (!obj || !obj.isMesh) return
+      try {
+        const mat = obj.material
+        if (Array.isArray(mat)) {
+          const clonedArr = mat.map((m) => safeCloneMaterial(m)).filter(Boolean)
+          if (clonedArr.length > 0) {
+            obj.material = clonedArr
+          } else {
+            obj.material = new THREE.MeshStandardMaterial({ color: 0xe0e0e0 })
+          }
+        } else {
+          const cm = safeCloneMaterial(mat)
+          obj.material = cm || new THREE.MeshStandardMaterial({ color: 0xe0e0e0 })
+        }
+        // Always allow fade transitions
+        if (Array.isArray(obj.material)) obj.material.forEach((m) => { if (m) m.transparent = true })
+        else if (obj.material) obj.material.transparent = true
+      } catch (e) {
+        // Fallback: ensure a valid material even if unexpected structure encountered
+        obj.material = new THREE.MeshStandardMaterial({ color: 0xe0e0e0 })
+        obj.material.transparent = true
+      }
+    })
+    return cloned
+  }
   // Helper visibility and meshes
   const targetHelperVisibleRef = useRef(!!targetHelperVisible)
   const modelCenterVisibleRef = useRef(!!modelCenterVisible)
@@ -1806,7 +1873,8 @@ useEffect(() => {
         }
         const container = new THREE.Group()
         container.name = entry.name || 'Model'
-        const object = entry.object
+        // Clone incoming object to ensure unique materials per viewer
+        const object = cloneWithUniqueMaterials(entry.object)
         container.add(object)
         container.userData.__modelRoot = object
         object.updateMatrixWorld(true)
@@ -2017,8 +2085,9 @@ useEffect(() => {
       // also hide wireframe overlay to avoid clutter
       wire.visible = false
 
-      // Add the object
-      group.add(object3D)
+      // Add the object (cloned for unique materials in this viewer)
+      const cloned = cloneWithUniqueMaterials(object3D)
+      group.add(cloned)
 
       // Do not translate the loaded object to origin; preserve authoring coordinates.
       // Axes remain under modelGroup and are positioned via originOffset.

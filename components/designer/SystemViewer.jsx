@@ -124,10 +124,10 @@ export function SystemViewer({
   children,
 }) {
   const viewerRef = useRef(null)
-  const [explodeMode, setExplodeMode] = useState('normal') // 'normal' or 'exploded'
-  const [visibleCategories, setVisibleCategories] = useState(new Set()) // Set of visible category names
-  const didInitCategoriesRef = useRef(false) // One-time auto-init guard for visibleCategories
-  const userModifiedCategoriesRef = useRef(false) // Tracks if user changed category selection
+  const [explodeMode, setExplodeMode] = useState('normal')
+  const [categoryRules, setCategoryRules] = useState(new Map())
+  const didInitCategoriesRef = useRef(false)
+  const userModifiedCategoriesRef = useRef(false)
   const sceneInitializedRef = useRef(false) // Track if scene has been set up
   const filterStateToggle = useRef('a') // Toggle between 'a' and 'b' for filter transitions
   const skipNextFilterTransitionRef = useRef(false) // Skip one filter transition after auto-init
@@ -187,8 +187,7 @@ export function SystemViewer({
   useEffect(() => {
     sceneInitializedRef.current = false
     setExpectedObjectIdsKey(objectIdsKey)
-    // Reset category filters and transition toggle for a fresh selection
-    setVisibleCategories(new Set())
+    setCategoryRules(new Map())
     filterStateToggle.current = 'a'
     didInitCategoriesRef.current = false
     userModifiedCategoriesRef.current = false
@@ -267,32 +266,50 @@ export function SystemViewer({
   
   // Initialize visible categories when models load (only when we actually detect any)
   useEffect(() => {
-    if (
-      availableCategories.length > 0 &&
-      visibleCategories.size === 0 &&
-      !didInitCategoriesRef.current &&
-      !userModifiedCategoriesRef.current
-    ) {
-      setVisibleCategories(new Set(availableCategories))
-      // Avoid triggering a transition right after auto-initialization
+    if (availableCategories.length > 0 && !didInitCategoriesRef.current && !userModifiedCategoriesRef.current) {
       skipNextFilterTransitionRef.current = true
       didInitCategoriesRef.current = true
     }
-  }, [availableCategories, visibleCategories.size])
-  
-  // Toggle category visibility
-  const toggleCategory = useCallback((categoryName) => {
+  }, [availableCategories])
+
+  const resolveVisibility = useCallback((cat) => {
+    if (!cat) return true
+    const parts = cat.split('.')
+    let state
+    for (let i = 1; i <= parts.length; i++) {
+      const key = parts.slice(0, i).join('.')
+      if (categoryRules.has(key)) state = categoryRules.get(key)
+    }
+    return state === undefined ? true : !!state
+  }, [categoryRules])
+
+  // Child toggle: flip only the exact path based on resolved visibility (no tri-state)
+  const handleLeafToggle = useCallback((path) => {
     userModifiedCategoriesRef.current = true
-    setVisibleCategories(prev => {
-      const next = new Set(prev)
-      if (next.has(categoryName)) {
-        next.delete(categoryName)
-      } else {
-        next.add(categoryName)
-      }
+    setCategoryRules((prev) => {
+      const next = new Map(prev)
+      const desired = !resolveVisibility(path)
+      next.set(path, desired)
       return next
     })
-  }, [])
+  }, [resolveVisibility])
+
+  // Parent toggle: set ALL descendants (including the parent path if it is a leaf) to a uniform value
+  const handleTopToggle = useCallback((top) => {
+    userModifiedCategoriesRef.current = true
+    setCategoryRules((prev) => {
+      const next = new Map(prev)
+      const leaves = availableCategories.filter(c => c === top || c.startsWith(top + '.'))
+      // Determine desired: if all leaves currently resolved true, turn all OFF, otherwise turn all ON
+      let allOn = true
+      for (const leaf of leaves) { if (!resolveVisibility(leaf)) { allOn = false; break } }
+      const desired = !allOn
+      for (const leaf of leaves) next.set(leaf, desired)
+      return next
+    })
+  }, [availableCategories, resolveVisibility])
+  
+  // (legacy removed) toggleCategory replaced by rules-based toggles
   
   // Initialize scene when models first load
   useEffect(() => {
@@ -419,14 +436,13 @@ export function SystemViewer({
     const info = viewer.getMultiSceneInfo?.()
     if (!info || !info.models) return
     // Determine which categories should be visible. Empty set means 'show none'.
-    const catsSet = visibleCategories
     const stateUpdates = {}
     let anyChange = false
     info.models.forEach((container, index) => {
       const modelRoot = container.userData?.__modelRoot
       const categoryName = modelRoot?.userData?.categoryName || ''
       const isPreview = modelRoot?.userData?.preview === true
-      let shouldBeVisible = catsSet.has(categoryName)
+      let shouldBeVisible = resolveVisibility(categoryName)
       if (isPreview && !showPreviews) shouldBeVisible = false
       // Compare to current state's stored visible to detect delta
       const currentState = info.currentState || 'normal_a'
@@ -435,27 +451,11 @@ export function SystemViewer({
       const visibleOpacity = isPreview ? 0.5 : 1
       stateUpdates[index] = { visible: shouldBeVisible, opacity: shouldBeVisible ? visibleOpacity : 0 }
     })
-    // Write both normal toggles to the same visibility so future flips don't introduce opacity changes
+    // Write both normal toggles and exploded to keep states aligned without animation
     viewer.updateStateVisibility?.(stateUpdates, ['normal_a', 'normal_b'])
-    // Keep exploded in sync too
     viewer.updateStateVisibility?.(stateUpdates, ['exploded_a', 'exploded_b'])
-    // Skip the very next filter transition (we just synced)
-    skipNextFilterTransitionRef.current = true
-    // If current state's stored visibility differed, nudge state to re-apply immediately by flip-flopping toggles quickly
-    if (anyChange) {
-      const currentState = info.currentState || 'normal_a'
-      const currentMode = currentState.startsWith('exploded') ? 'exploded' : 'normal'
-      const currentToggle = currentState.endsWith('_a') ? 'a' : 'b'
-      const nextToggle = currentToggle === 'a' ? 'b' : 'a'
-      const tempState = `${currentMode}_${nextToggle}`
-      try {
-        // Transition quickly there and back without reframing
-        viewer.transitionMultiState?.(tempState, 1)
-        viewer.transitionMultiState?.(currentState, 1)
-      } catch {}
-    }
-  }, [modelsWithLocation.map(m => m?.$id).join('|'), visibleCategories, availableCategories, showPreviews])
-  
+  }, [modelsWithLocation.map(m => m?.$id).join('|'), categoryRules, availableCategories, showPreviews, resolveVisibility])
+
   // Update visibility when filters change - use ThreeCadViewer's animation system
   useEffect(() => {
     if (!sceneInitializedRef.current || !viewerRef.current) return
@@ -485,7 +485,7 @@ export function SystemViewer({
       const modelRoot = container.userData?.__modelRoot
       const categoryName = modelRoot?.userData?.categoryName || ''
       const isPreview = modelRoot?.userData?.preview === true
-      let shouldBeVisible = visibleCategories.has(categoryName)
+      let shouldBeVisible = resolveVisibility(categoryName)
       if (isPreview && !showPreviews) shouldBeVisible = false
       const currentVis = container.userData?.__states?.[currentState]?.visible
       if (currentVis !== shouldBeVisible) anyChange = true
@@ -495,7 +495,7 @@ export function SystemViewer({
         opacity: shouldBeVisible ? visibleOpacity : 0
       }
     })
-    try { console.log('[SystemViewer] filter change -> targetState:', targetState, 'visibleCategories:', Array.from(visibleCategories)) } catch {}
+    try { console.log('[SystemViewer] filter change -> targetState:', targetState, 'visibleCategories:', Array.from(categoryRules.keys())) } catch {}
 
     // If visibility already matches current state, do nothing to avoid needless fade
     if (!anyChange) return
@@ -510,7 +510,7 @@ export function SystemViewer({
     // Update our toggle tracker
     filterStateToggle.current = nextToggle
     
-  }, [visibleCategories, availableCategories, showPreviews])
+  }, [categoryRules, availableCategories, showPreviews, resolveVisibility])
 
   // When model set changes post-load, frame once to avoid any late attach timing issues
   useEffect(() => {
@@ -701,21 +701,31 @@ export function SystemViewer({
                 Previews
               </Button>
             </Flex>
-
-            {/* Category Filter Controls - below Normal/Exploded with gap */}
             {availableCategories.length > 0 && (
-              <Flex gap="2" wrap="wrap" style={{ maxWidth: 200, justifyContent: 'flex-end' }}>
-                {availableCategories.map(categoryName => (
-                  <Button
-                    key={categoryName}
-                    variant={visibleCategories.has(categoryName) ? 'solid' : 'soft'}
-                    onClick={() => toggleCategory(categoryName)}
-                    size="1"
-                    style={{ textTransform: 'capitalize' }}
-                  >
-                    {categoryName}
-                  </Button>
-                ))}
+              <Flex direction="column" gap="2" style={{ maxWidth: 320, alignItems: 'flex-end' }}>
+                {Array.from(new Set(availableCategories.map(c => c.split('.')[0]))).sort().map(top => {
+                  const group = availableCategories.filter(c => c === top || c.startsWith(top + '.')).sort()
+                  // Aggregate state for the top chip
+                  let anyTrue = false, anyFalse = false
+                  group.forEach(l => { const v = resolveVisibility(l); if (v) anyTrue = true; else anyFalse = true })
+                  const topVariant = anyTrue && anyFalse ? 'surface' : (anyTrue ? 'solid' : 'soft')
+                  return (
+                    <Flex key={top} gap="2" wrap="wrap" style={{ justifyContent: 'flex-end' }}>
+                      <Button variant={topVariant} onClick={() => handleTopToggle(top)} size="1" style={{ textTransform: 'capitalize' }}>
+                        {top}
+                      </Button>
+                      {group.filter(cat => cat !== top).map(cat => {
+                        const v = resolveVisibility(cat)
+                        const variant = v ? 'solid' : 'soft'
+                        return (
+                          <Button key={cat} variant={variant} onClick={() => handleLeafToggle(cat)} size="1" style={{ textTransform: 'capitalize' }}>
+                            {cat}
+                          </Button>
+                        )
+                      })}
+                    </Flex>
+                  )
+                })}
               </Flex>
             )}
           </Box>

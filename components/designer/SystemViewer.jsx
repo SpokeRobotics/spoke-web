@@ -125,7 +125,7 @@ export function SystemViewer({
 }) {
   const viewerRef = useRef(null)
   const [explodeMode, setExplodeMode] = useState('normal') // 'normal' or 'exploded'
-  const [visibleTypes, setVisibleTypes] = useState(new Set()) // Set of visible type names
+  const [visibleCategories, setVisibleCategories] = useState(new Set()) // Set of visible category names
   const sceneInitializedRef = useRef(false) // Track if scene has been set up
   const filterStateToggle = useRef('a') // Toggle between 'a' and 'b' for filter transitions
   const skipNextFilterTransitionRef = useRef(false) // Skip one filter transition after auto-init
@@ -184,8 +184,8 @@ export function SystemViewer({
   useEffect(() => {
     sceneInitializedRef.current = false
     setExpectedObjectIdsKey(objectIdsKey)
-    // Reset type filters and transition toggle for a fresh selection
-    setVisibleTypes(new Set())
+    // Reset category filters and transition toggle for a fresh selection
+    setVisibleCategories(new Set())
     filterStateToggle.current = 'a'
   }, [objectIdsKey])
   
@@ -224,36 +224,47 @@ export function SystemViewer({
     }))
   }, [models, objectSpecs, isMounted, loading, objectIds, expectedObjectIdsKey, objectIdsKey])
   
-  // Extract unique types from models (fallback to doc.type or userData.$type)
-  const availableTypes = useMemo(() => {
-    const types = new Set()
+  // Helper: derive category from a spoke ref
+  const deriveCategoryFromRef = (ref) => {
+    if (!ref || typeof ref !== 'string') return ''
+    if (!ref.startsWith('spoke://')) return ''
+    const parts = ref.split('/')
+    // Expect: ['spoke:', '', 'types'|'instances', '{category}', ...]
+    return parts[3] || ''
+  }
+
+  // Extract unique categories from models (derived from middle segment of IDs)
+  const availableCategories = useMemo(() => {
+    const cats = new Set()
     modelsWithLocation.forEach(m => {
-      const raw = m.doc?.$type || m.doc?.type || m.object?.userData?.$type
-      if (!raw || typeof raw !== 'string') return
-      const parts = raw.split('/')
-      const typeName = parts[parts.length - 1]
-      if (typeName) types.add(typeName)
+      const ref = (typeof m.doc?.type === 'string' && m.doc.type)
+        || (typeof m.doc?.$type === 'string' && m.doc.$type)
+        || (typeof m.$id === 'string' && m.$id)
+        || ''
+      const category = deriveCategoryFromRef(ref)
+      if (category) cats.add(category)
     })
-    return Array.from(types).sort()
+    try { console.log('[SystemViewer] availableCategories:', Array.from(cats), 'from models:', modelsWithLocation.map(mm => ({ id: mm.$id, type: mm.doc?.type || mm.doc?.$type || '', name: mm.doc?.name }))) } catch {}
+    return Array.from(cats).sort()
   }, [modelsWithLocation])
   
-  // Initialize visible types when models load (only when we actually detect any types)
+  // Initialize visible categories when models load (only when we actually detect any)
   useEffect(() => {
-    if (availableTypes.length > 0 && visibleTypes.size === 0) {
-      setVisibleTypes(new Set(availableTypes))
+    if (availableCategories.length > 0 && visibleCategories.size === 0) {
+      setVisibleCategories(new Set(availableCategories))
       // Avoid triggering a transition right after auto-initialization
       skipNextFilterTransitionRef.current = true
     }
-  }, [availableTypes, visibleTypes.size])
+  }, [availableCategories, visibleCategories.size])
   
-  // Toggle type visibility
-  const toggleType = useCallback((typeName) => {
-    setVisibleTypes(prev => {
+  // Toggle category visibility
+  const toggleCategory = useCallback((categoryName) => {
+    setVisibleCategories(prev => {
       const next = new Set(prev)
-      if (next.has(typeName)) {
-        next.delete(typeName)
+      if (next.has(categoryName)) {
+        next.delete(categoryName)
       } else {
-        next.add(typeName)
+        next.add(categoryName)
       }
       return next
     })
@@ -313,11 +324,14 @@ export function SystemViewer({
         // Exploded position: scale from origin
         const explodedPos = locationPos.clone().multiplyScalar(EXPLODE_SCALE)
         
-        // Extract type for visibility filtering - store in userData on wrapper
-        const rawType = m.doc?.$type || m.doc?.type || m.object?.userData?.$type || ''
-        const parts = rawType.split('/')
-        const typeName = parts[parts.length - 1] || ''
-        wrapper.userData.typeName = typeName
+        // Extract category for visibility filtering - store in userData on wrapper
+        const ref = (typeof m.doc?.type === 'string' && m.doc.type)
+          || (typeof m.doc?.$type === 'string' && m.doc.$type)
+          || (typeof m.$id === 'string' && m.$id)
+          || ''
+        const categoryName = deriveCategoryFromRef(ref)
+        wrapper.userData.categoryName = categoryName
+        try { console.log('[SystemViewer] model wrapper category:', { id: m.$id, cat: categoryName, ref }) } catch {}
         
         return {
           name: m.doc.name || m.$id,
@@ -376,13 +390,18 @@ export function SystemViewer({
     const viewer = viewerRef.current
     const info = viewer.getMultiSceneInfo?.()
     if (!info || !info.models) return
-    // Determine which types should be visible: if none initialized yet, allow all available
-    const typesSet = visibleTypes.size > 0 ? visibleTypes : new Set(availableTypes)
+    // Determine which categories should be visible: if none initialized yet, allow all available
+    const catsSet = visibleCategories.size > 0 ? visibleCategories : new Set(availableCategories)
     const stateUpdates = {}
+    let anyChange = false
     info.models.forEach((container, index) => {
       const modelRoot = container.userData?.__modelRoot
-      const typeName = modelRoot?.userData?.typeName || ''
-      const shouldBeVisible = typesSet.has(typeName)
+      const categoryName = modelRoot?.userData?.categoryName || ''
+      const shouldBeVisible = catsSet.has(categoryName)
+      // Compare to current state's stored visible to detect delta
+      const currentState = info.currentState || 'normal_a'
+      const currentVis = container.userData?.__states?.[currentState]?.visible
+      if (currentVis !== shouldBeVisible) anyChange = true
       stateUpdates[index] = { visible: shouldBeVisible, opacity: shouldBeVisible ? 1 : 0 }
     })
     // Write both normal toggles to the same visibility so future flips don't introduce opacity changes
@@ -391,7 +410,20 @@ export function SystemViewer({
     viewer.updateStateVisibility?.(stateUpdates, ['exploded_a', 'exploded_b'])
     // Skip the very next filter transition (we just synced)
     skipNextFilterTransitionRef.current = true
-  }, [modelsWithLocation.map(m => m?.$id).join('|'), visibleTypes, availableTypes])
+    // If current state's stored visibility differed, nudge state to re-apply immediately by flip-flopping toggles quickly
+    if (anyChange) {
+      const currentState = info.currentState || 'normal_a'
+      const currentMode = currentState.startsWith('exploded') ? 'exploded' : 'normal'
+      const currentToggle = currentState.endsWith('_a') ? 'a' : 'b'
+      const nextToggle = currentToggle === 'a' ? 'b' : 'a'
+      const tempState = `${currentMode}_${nextToggle}`
+      try {
+        // Transition quickly there and back without reframing
+        viewer.transitionMultiState?.(tempState, 1)
+        viewer.transitionMultiState?.(currentState, 1)
+      } catch {}
+    }
+  }, [modelsWithLocation.map(m => m?.$id).join('|'), visibleCategories, availableCategories])
   
   // Update visibility when filters change - use ThreeCadViewer's animation system
   useEffect(() => {
@@ -400,8 +432,8 @@ export function SystemViewer({
     const viewer = viewerRef.current
     const info = viewer.getMultiSceneInfo?.()
     if (!info || !info.models) return
-    // If there are no available types OR visibleTypes not initialized yet, skip to avoid initial fade
-    if (availableTypes.length === 0 || visibleTypes.size === 0) return
+    // If there are no available categories OR visibleCategories not initialized yet, skip to avoid initial fade
+    if (availableCategories.length === 0 || visibleCategories.size === 0) return
     // If we just auto-initialized visibleTypes, skip this transition once
     if (skipNextFilterTransitionRef.current) {
       skipNextFilterTransitionRef.current = false
@@ -420,8 +452,8 @@ export function SystemViewer({
     let anyChange = false
     info.models.forEach((container, index) => {
       const modelRoot = container.userData?.__modelRoot
-      const typeName = modelRoot?.userData?.typeName || ''
-      const shouldBeVisible = visibleTypes.has(typeName)
+      const categoryName = modelRoot?.userData?.categoryName || ''
+      const shouldBeVisible = visibleCategories.has(categoryName)
       const currentVis = container.userData?.__states?.[currentState]?.visible
       if (currentVis !== shouldBeVisible) anyChange = true
       stateUpdates[index] = {
@@ -429,12 +461,13 @@ export function SystemViewer({
         opacity: shouldBeVisible ? 1 : 0
       }
     })
+    try { console.log('[SystemViewer] filter change -> targetState:', targetState, 'visibleCategories:', Array.from(visibleCategories)) } catch {}
 
     // If visibility already matches current state, do nothing to avoid needless fade
     if (!anyChange) return
     
-    // First, update the target state's visibility (only update target state, not current)
-    viewer.updateStateVisibility?.(stateUpdates, [targetState])
+    // First, update BOTH current and target states' visibility
+    viewer.updateStateVisibility?.(stateUpdates, [currentState, targetState])
     
     // Then transition to the target state (this animates from current to target)
     // Do NOT reframe the camera; preserve current camera position/orientation
@@ -443,7 +476,7 @@ export function SystemViewer({
     // Update our toggle tracker
     filterStateToggle.current = nextToggle
     
-  }, [visibleTypes, availableTypes])
+  }, [visibleCategories, availableCategories])
 
   // When model set changes post-load, frame once to avoid any late attach timing issues
   useEffect(() => {
@@ -511,7 +544,7 @@ export function SystemViewer({
   return (
     <Box p="0" style={{ position: 'relative' }}>
       {/* 3D Viewer Container */}
-      <div style={{ position: 'relative', width: '100%', height: viewTools ? expandedHeight : height }}>
+      <div style={{ position: 'relative', width: '100%', height: viewTools ? expandedHeight : height, overflow: 'hidden' }}>
         <ThreeCadViewer
           ref={viewerRef}
           spinMode={currentSpinMode}
@@ -589,13 +622,13 @@ export function SystemViewer({
           </Box>
         )}
         
-        {/* Explode Mode Controls & Type Filters - Right side bottom */}
+        {/* Explode Mode Controls & Category Filters - Right side bottom */}
         {!loading && modelsWithLocation.length > 0 && (
           <Box
             style={{
               position: 'absolute',
               right: 12,
-              bottom: 12,
+              bottom: 60,
               zIndex: 10,
               pointerEvents: 'auto',
               display: 'flex',
@@ -624,18 +657,18 @@ export function SystemViewer({
               </Button>
             </Flex>
             
-            {/* Type Filter Controls - below Normal/Exploded with gap */}
-            {availableTypes.length > 0 && (
+            {/* Category Filter Controls - below Normal/Exploded with gap */}
+            {availableCategories.length > 0 && (
               <Flex gap="2" wrap="wrap" style={{ maxWidth: 200, justifyContent: 'flex-end' }}>
-                {availableTypes.map(typeName => (
+                {availableCategories.map(categoryName => (
                   <Button
-                    key={typeName}
-                    variant={visibleTypes.has(typeName) ? 'solid' : 'soft'}
-                    onClick={() => toggleType(typeName)}
+                    key={categoryName}
+                    variant={visibleCategories.has(categoryName) ? 'solid' : 'soft'}
+                    onClick={() => toggleCategory(categoryName)}
                     size="1"
-                    style={{ textTransform: 'capitalize' }}
+                    style={{}}
                   >
-                    {typeName}
+                    {categoryName}
                   </Button>
                 ))}
               </Flex>

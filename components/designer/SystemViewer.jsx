@@ -126,6 +126,8 @@ export function SystemViewer({
   const viewerRef = useRef(null)
   const [explodeMode, setExplodeMode] = useState('normal') // 'normal' or 'exploded'
   const [visibleCategories, setVisibleCategories] = useState(new Set()) // Set of visible category names
+  const didInitCategoriesRef = useRef(false) // One-time auto-init guard for visibleCategories
+  const userModifiedCategoriesRef = useRef(false) // Tracks if user changed category selection
   const sceneInitializedRef = useRef(false) // Track if scene has been set up
   const filterStateToggle = useRef('a') // Toggle between 'a' and 'b' for filter transitions
   const skipNextFilterTransitionRef = useRef(false) // Skip one filter transition after auto-init
@@ -188,6 +190,8 @@ export function SystemViewer({
     // Reset category filters and transition toggle for a fresh selection
     setVisibleCategories(new Set())
     filterStateToggle.current = 'a'
+    didInitCategoriesRef.current = false
+    userModifiedCategoriesRef.current = false
   }, [objectIdsKey])
   
   // Track if we're in the browser (client-side)
@@ -251,15 +255,22 @@ export function SystemViewer({
   
   // Initialize visible categories when models load (only when we actually detect any)
   useEffect(() => {
-    if (availableCategories.length > 0 && visibleCategories.size === 0) {
+    if (
+      availableCategories.length > 0 &&
+      visibleCategories.size === 0 &&
+      !didInitCategoriesRef.current &&
+      !userModifiedCategoriesRef.current
+    ) {
       setVisibleCategories(new Set(availableCategories))
       // Avoid triggering a transition right after auto-initialization
       skipNextFilterTransitionRef.current = true
+      didInitCategoriesRef.current = true
     }
   }, [availableCategories, visibleCategories.size])
   
   // Toggle category visibility
   const toggleCategory = useCallback((categoryName) => {
+    userModifiedCategoriesRef.current = true
     setVisibleCategories(prev => {
       const next = new Set(prev)
       if (next.has(categoryName)) {
@@ -395,8 +406,8 @@ export function SystemViewer({
     const viewer = viewerRef.current
     const info = viewer.getMultiSceneInfo?.()
     if (!info || !info.models) return
-    // Determine which categories should be visible: if none initialized yet, allow all available
-    const catsSet = visibleCategories.size > 0 ? visibleCategories : new Set(availableCategories)
+    // Determine which categories should be visible. Empty set means 'show none'.
+    const catsSet = visibleCategories
     const stateUpdates = {}
     let anyChange = false
     info.models.forEach((container, index) => {
@@ -440,8 +451,8 @@ export function SystemViewer({
     const viewer = viewerRef.current
     const info = viewer.getMultiSceneInfo?.()
     if (!info || !info.models) return
-    // If there are no available categories OR visibleCategories not initialized yet, skip to avoid initial fade
-    if (availableCategories.length === 0 || visibleCategories.size === 0) return
+    // If there are no available categories, skip
+    if (availableCategories.length === 0) return
     // If we just auto-initialized visibleTypes, skip this transition once
     if (skipNextFilterTransitionRef.current) {
       skipNextFilterTransitionRef.current = false

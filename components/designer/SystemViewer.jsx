@@ -229,13 +229,25 @@ export function SystemViewer({
     }))
   }, [models, objectSpecs, isMounted, loading, objectIds, expectedObjectIdsKey, objectIdsKey])
   
-  // Helper: derive category from a spoke ref
+  // Helper: derive (possibly hierarchical) category from a spoke ref
+  // Example refs:
+  //   spoke://types/power/cell-18650                 -> 'power'
+  //   spoke://types/power/cylindrical/cell-18650     -> 'power.cylindrical'
+  //   spoke://types/mech/fasteners/metric/m3/socket  -> 'mech.fasteners.metric'
   const deriveCategoryFromRef = (ref) => {
     if (!ref || typeof ref !== 'string') return ''
     if (!ref.startsWith('spoke://')) return ''
     const parts = ref.split('/')
-    // Expect: ['spoke:', '', 'types'|'instances', '{category}', ...]
-    return parts[3] || ''
+    // parts: ['spoke:', '', 'types'|'instances', ...categorySegments..., item]
+    if (parts.length < 5) return ''
+    // Category is everything between index 3 and last index (exclusive), dot-joined, normalized
+    const catSegments = parts.slice(3, -1)
+    const cat = catSegments
+      .map(s => (s || '').trim())
+      .filter(s => s.length > 0)
+      .join('.')
+      .toLowerCase()
+    return cat
   }
 
   // Extract unique categories from models (derived from middle segment of IDs)

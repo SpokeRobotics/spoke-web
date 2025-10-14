@@ -1,5 +1,5 @@
 {
-  "id": "spoke://types/structure/frame-96x64x32",
+  "id": "spoke://types/structure/frame/frame-96x64x32",
   "name": "Frame 96x64x32",
   "slots": {},
   "model": {

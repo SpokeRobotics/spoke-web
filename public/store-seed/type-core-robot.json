@@ -4,12 +4,12 @@
   "slots": {
     "children": { "slots": {
       "frame": {
-        "type": "spoke://types/structure/frame-96x64x32",
+        "type": "spoke://types/structure/frame/frame-96x64x32",
         "required": true,
         "template": { "name": "Frame", "location": "0,0,0,0,0,0" }
       },
       "frontPanels": {
-        "type": "spoke://types/structure/panel-64x32",
+        "type": "spoke://types/structure/panel/panel-64x32",
         "array": true,
         "template": [
           { "name": "Front Panel 64x32", "location": "0,0,48,90,0,90" },
@@ -17,7 +17,7 @@
         ]
       },
       "sidePanels": {
-        "type": "spoke://types/structure/panel-96x32",
+        "type": "spoke://types/structure/panel/panel-96x32",
         "array": true,
         "template": [
           { "name": "Right Panel 96x32", "location": "32,0,0,0,0,-90" },
@@ -25,15 +25,15 @@
         ]
       },
       "topPanel": {
-        "type": "spoke://types/structure/top-panel-96x64",
+        "type": "spoke://types/structure/panel/top-panel-96x64",
         "template": { "name": "Top Panel", "location": "0,16,0,0,0,0" }
       },
       "bottomPanel": {
-        "type": "spoke://types/structure/bottom-panel-96x64",
+        "type": "spoke://types/structure/panel/bottom-panel-96x64",
         "template": { "name": "Bottom Panel", "location": "0,-16,0,180,0,0" }
       },
       "bottomPanelDoor": {
-        "type": "spoke://types/structure/bottom-panel-door",
+        "type": "spoke://types/structure/panel/bottom-panel-door",
         "template": { "name": "Bottom Panel Door", "location": "0,-16,0,0,0,0" }
       },
       "cells": {

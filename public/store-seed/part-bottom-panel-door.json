@@ -1,5 +1,5 @@
 {
-  "id": "spoke://types/structure/bottom-panel-door",
+  "id": "spoke://types/structure/panel/bottom-panel-door",
   "name": "Bottom Panel Door",
   "slots": {},
   "model": {

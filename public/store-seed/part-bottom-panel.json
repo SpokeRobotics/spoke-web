@@ -1,5 +1,5 @@
 {
-  "id": "spoke://types/structure/bottom-panel-96x64",
+  "id": "spoke://types/structure/panel/bottom-panel-96x64",
   "name": "Bottom Panel 96x64",
   "slots": {},
   "model": {

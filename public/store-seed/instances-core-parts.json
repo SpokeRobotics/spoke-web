@@ -1,7 +1,7 @@
 [
   {
     "id": "spoke://instances/structure/frame-main",
-    "type": "spoke://types/structure/frame-96x64x32",
+    "type": "spoke://types/structure/frame/frame-96x64x32",
     "name": "Frame",
     "parent": "spoke://instances/segment/core-assembly",
     "parentSlot": "children.frame",
@@ -10,7 +10,7 @@
   },
   {
     "id": "spoke://instances/structure/panel-front",
-    "type": "spoke://types/structure/panel-64x32",
+    "type": "spoke://types/structure/panel/panel-64x32",
     "name": "Front Panel 64x32",
     "parent": "spoke://instances/segment/core-assembly",
     "parentSlot": "children.frontPanels",
@@ -19,7 +19,7 @@
   },
   {
     "id": "spoke://instances/structure/panel-back",
-    "type": "spoke://types/structure/panel-64x32",
+    "type": "spoke://types/structure/panel/panel-64x32",
     "name": "Back Panel 64x32",
     "parent": "spoke://instances/segment/core-assembly",
     "parentSlot": "children.frontPanels",
@@ -28,7 +28,7 @@
   },
   {
     "id": "spoke://instances/structure/panel-top",
-    "type": "spoke://types/structure/top-panel-96x64",
+    "type": "spoke://types/structure/panel/top-panel-96x64",
     "name": "Top Panel",
     "parent": "spoke://instances/segment/core-assembly",
     "parentSlot": "children.topPanel",
@@ -37,7 +37,7 @@
   },
   {
     "id": "spoke://instances/structure/panel-bottom",
-    "type": "spoke://types/structure/bottom-panel-96x64",
+    "type": "spoke://types/structure/panel/bottom-panel-96x64",
     "name": "Bottom Panel",
     "parent": "spoke://instances/segment/core-assembly",
     "parentSlot": "children.bottomPanel",
@@ -46,7 +46,7 @@
   },
   {
     "id": "spoke://instances/structure/panel-bottom-door",
-    "type": "spoke://types/structure/bottom-panel-door",
+    "type": "spoke://types/structure/panel/bottom-panel-door",
     "name": "Bottom Panel Door",
     "parent": "spoke://instances/segment/core-assembly",
     "parentSlot": "children.bottomPanelDoor",
@@ -55,7 +55,7 @@
   },
   {
     "id": "spoke://instances/structure/panel-right",
-    "type": "spoke://types/structure/panel-96x32",
+    "type": "spoke://types/structure/panel/panel-96x32",
     "name": "Right Panel 96x32",
     "parent": "spoke://instances/segment/core-assembly",
     "parentSlot": "children.sidePanels",
@@ -64,7 +64,7 @@
   },
   {
     "id": "spoke://instances/structure/panel-left",
-    "type": "spoke://types/structure/panel-96x32",
+    "type": "spoke://types/structure/panel/panel-96x32",
     "name": "Left Panel 96x32",
     "parent": "spoke://instances/segment/core-assembly",
     "parentSlot": "children.sidePanels",

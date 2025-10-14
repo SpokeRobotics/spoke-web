@@ -27,7 +27,7 @@ The actual core assembly with all parts positioned via slot templates:
 
 | type | location |
 |--------|----------|
-| spoke://instances/core-assembly | 0,0,0,0,0,0 |
+| spoke://instances/segment/core-assembly | 0,0,0,0,0,0 |
 
 </SystemViewer>
 
@@ -39,7 +39,7 @@ Auto-instantiate the core robot type to preview it:
 
 | type | location |
 |--------|----------|
-| spoke://types/core-robot | 0,0,0,0,0,0 |
+| spoke://types/segment/core-robot | 0,0,0,0,0,0 |
 
 </SystemViewer>
 
@@ -51,14 +51,14 @@ All structural panels assembled using types with manual positions:
 
 | type | location |
 |--------|----------|
-| spoke://types/frame-96x64x32 | 0,0,0,0,0,0 |
-| spoke://types/panel-64x32 | 0,0,48,90,0,90 |
-| spoke://types/panel-64x32 | 0,0,-48,-90,0,90 |
-| spoke://types/top-panel-96x64 | 0,16,0,0,0,0 |
-| spoke://types/bottom-panel-96x64 | 0,-16,0,180,0,0 |
-| spoke://types/bottom-panel-door | 0,-16,0,0,0,0 |
-| spoke://types/panel-96x32 | 32,0,0,0,0,-90 |
-| spoke://types/panel-96x32 | -32,0,0,0,0,90 |
+| spoke://types/structure/frame-96x64x32 | 0,0,0,0,0,0 |
+| spoke://types/structure/panel-64x32 | 0,0,48,90,0,90 |
+| spoke://types/structure/panel-64x32 | 0,0,-48,-90,0,90 |
+| spoke://types/structure/top-panel-96x64 | 0,16,0,0,0,0 |
+| spoke://types/structure/bottom-panel-96x64 | 0,-16,0,180,0,0 |
+| spoke://types/structure/bottom-panel-door | 0,-16,0,0,0,0 |
+| spoke://types/structure/panel-96x32 | 32,0,0,0,0,-90 |
+| spoke://types/structure/panel-96x32 | -32,0,0,0,0,90 |
 
 </SystemViewer>
 
@@ -70,21 +70,21 @@ All parts assembled using types with manual positions (tools enabled by default)
 
 | type | location |
 |--------|----------|
-| spoke://types/frame-96x64x32 | 0,0,0,0,0,0 |
-| spoke://types/panel-64x32 | 0,0,48,90,0,90 |
-| spoke://types/panel-64x32 | 0,0,-48,-90,0,90 |
-| spoke://types/top-panel-96x64 | 0,16,0,0,0,0 |
-| spoke://types/bottom-panel-96x64 | 0,-16,0,180,0,0 |
-| spoke://types/bottom-panel-door | 0,-16,0,0,0,0 |
-| spoke://types/panel-96x32 | 32,0,0,0,0,-90 |
-| spoke://types/panel-96x32 | -32,0,0,0,0,90 |
-| spoke://types/cell-18650 | 20,0,0,0,0,0 |
-| spoke://types/cell-18650 | -20,0,0,180,0,0 |
-| spoke://types/spoke-charger | 0,-14,12,0,0,0 |
-| spoke://types/wpc-board | 0,-14,-30,0,0,0 |
-| spoke://types/wpc-coil | 0,-16,0,180,0,0 |
-| spoke://types/esp32-controller | 0,14,0,180,0,0 |
-| spoke://types/mag-connector-8mm | -21,-17,-33,180,0,0 |
+| spoke://types/structure/frame-96x64x32 | 0,0,0,0,0,0 |
+| spoke://types/structure/panel-64x32 | 0,0,48,90,0,90 |
+| spoke://types/structure/panel-64x32 | 0,0,-48,-90,0,90 |
+| spoke://types/structure/top-panel-96x64 | 0,16,0,0,0,0 |
+| spoke://types/structure/bottom-panel-96x64 | 0,-16,0,180,0,0 |
+| spoke://types/structure/bottom-panel-door | 0,-16,0,0,0,0 |
+| spoke://types/structure/panel-96x32 | 32,0,0,0,0,-90 |
+| spoke://types/structure/panel-96x32 | -32,0,0,0,0,90 |
+| spoke://types/power/cell-18650 | 20,0,0,0,0,0 |
+| spoke://types/power/cell-18650 | -20,0,0,180,0,0 |
+| spoke://types/power/spoke-charger | 0,-14,12,0,0,0 |
+| spoke://types/power/wpc-board | 0,-14,-30,0,0,0 |
+| spoke://types/power/wpc-coil | 0,-16,0,180,0,0 |
+| spoke://types/controller/esp32-controller | 0,14,0,180,0,0 |
+| spoke://types/power/mag-connector-8mm | -21,-17,-33,180,0,0 |
 
 </SystemViewer>
 
@@ -96,7 +96,7 @@ All parts assembled using types with manual positions (tools enabled by default)
 
 | type | location |
 |--------|----------|
-| spoke://types/panel-64x32 | 0,0,0,0,0,0 |
+| spoke://types/structure/panel-64x32 | 0,0,0,0,0,0 |
 
 </SystemViewer>
 
@@ -106,7 +106,7 @@ All parts assembled using types with manual positions (tools enabled by default)
 
 | type | location |
 |--------|----------|
-| spoke://types/esp32-controller | 0,0,0,0,0,0 |
+| spoke://types/controller/esp32-controller | 0,0,0,0,0,0 |
 
 </SystemViewer>
 
@@ -116,7 +116,7 @@ All parts assembled using types with manual positions (tools enabled by default)
 
 | type | location |
 |--------|----------|
-| spoke://types/cell-18650 | 0,0,0,0,0,0 |
+| spoke://types/power/cell-18650 | 0,0,0,0,0,0 |
 
 </SystemViewer>
 
@@ -126,8 +126,8 @@ All parts assembled using types with manual positions (tools enabled by default)
 
 | type | location |
 |--------|----------|
-| spoke://types/frame-96x64x32 | 0,0,0,0,0,0 |
-| spoke://types/spoke-charger | 0,0,0,0,0,0 |
+| spoke://types/structure/frame-96x64x32 | 0,0,0,0,0,0 |
+| spoke://types/power/spoke-charger | 0,0,0,0,0,0 |
 
 </SystemViewer>
 
@@ -137,8 +137,8 @@ All parts assembled using types with manual positions (tools enabled by default)
 
 | type | location |
 |--------|----------|
-| spoke://types/frame-96x64x32 | 0,0,0,0,0,0 |
-| spoke://types/wpc-board | 0,0,0,0,0,0 |
+| spoke://types/structure/frame-96x64x32 | 0,0,0,0,0,0 |
+| spoke://types/power/wpc-board | 0,0,0,0,0,0 |
 
 </SystemViewer>
 
@@ -148,8 +148,8 @@ All parts assembled using types with manual positions (tools enabled by default)
 
 | type | location |
 |--------|----------|
-| spoke://types/frame-96x64x32 | 0,0,0,0,0,0 |
-| spoke://types/esp32-controller | 0,0,0,0,0,0 |
+| spoke://types/structure/frame-96x64x32 | 0,0,0,0,0,0 |
+| spoke://types/controller/esp32-controller | 0,0,0,0,0,0 |
 
 </SystemViewer>
 
@@ -159,8 +159,8 @@ All parts assembled using types with manual positions (tools enabled by default)
 
 | type | location |
 |--------|----------|
-| spoke://types/frame-96x64x32 | 0,0,0,0,0,0 |
-| spoke://types/wpc-coil | 0,0,0,0,0,0 |
+| spoke://types/structure/frame-96x64x32 | 0,0,0,0,0,0 |
+| spoke://types/power/wpc-coil | 0,0,0,0,0,0 |
 
 </SystemViewer>
 
@@ -170,8 +170,8 @@ All parts assembled using types with manual positions (tools enabled by default)
 
 | type | location |
 |--------|----------|
-| spoke://types/frame-96x64x32 | 0,0,0,0,0,0 |
-| spoke://types/mag-connector-8mm | 0,0,0,0,0,0 |
+| spoke://types/structure/frame-96x64x32 | 0,0,0,0,0,0 |
+| spoke://types/power/mag-connector-8mm | 0,0,0,0,0,0 |
 
 </SystemViewer>
 

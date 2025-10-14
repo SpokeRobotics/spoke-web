@@ -666,7 +666,7 @@ export function SystemViewer({
                     variant={visibleCategories.has(categoryName) ? 'solid' : 'soft'}
                     onClick={() => toggleCategory(categoryName)}
                     size="1"
-                    style={{}}
+                    style={{ textTransform: 'capitalize' }}
                   >
                     {categoryName}
                   </Button>

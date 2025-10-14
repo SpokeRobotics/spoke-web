@@ -1,5 +1,5 @@
 {
-  "id": "spoke://types/esp32-controller",
+  "id": "spoke://types/controller/esp32-controller",
   "name": "ESP32-S3 Controller",
   "slots": {},
   "model": {

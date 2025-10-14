@@ -17,12 +17,14 @@ export default function ObjectTree({ query = "", onSelect, onOpen }) {
   const [parentsByChild, setParentsByChild] = useState({}); // { childId: Set(parentIds) } serialized as arrays
   const [inferredAncestorIds, setInferredAncestorIds] = useState(() => new Set());
   const ancestorsCacheRef = useRef(new Map()); // childId -> Set(ancestors)
+  const [hasInternalById, setHasInternalById] = useState({}); // id -> boolean
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const map = new Map(); // child -> Set(parents)
+        const hasInternalMap = new Map(); // parentId -> boolean
         for (const h of items || []) {
           if (!h?.$id) continue;
           try {
@@ -35,6 +37,26 @@ export default function ObjectTree({ query = "", onSelect, onOpen }) {
                   if (!map.has(childId)) map.set(childId, new Set());
                   map.get(childId).add(h.$id);
                 }
+                if (k === "children" && v.length > 0) { hasInternalMap.set(h.$id, true); }
+              } else if (k === "children" && v && typeof v === "object") {
+                // children may be an object: { slotName: string | string[] }
+                const vals = Object.values(v);
+                let foundAny = false;
+                for (const val of vals) {
+                  if (typeof val === "string") {
+                    foundAny = true;
+                    if (!map.has(val)) map.set(val, new Set());
+                    map.get(val).add(h.$id);
+                  } else if (Array.isArray(val)) {
+                    const ids = val.filter((x) => typeof x === "string");
+                    if (ids.length) foundAny = true;
+                    for (const childId of ids) {
+                      if (!map.has(childId)) map.set(childId, new Set());
+                      map.get(childId).add(h.$id);
+                    }
+                  }
+                }
+                if (foundAny) hasInternalMap.set(h.$id, true);
               }
             }
           } catch {}
@@ -44,11 +66,16 @@ export default function ObjectTree({ query = "", onSelect, onOpen }) {
           for (const [child, parents] of map.entries()) obj[child] = Array.from(parents);
           setParentsByChild(obj);
           ancestorsCacheRef.current = new Map();
+          const internalObj = {};
+          for (const [pid, has] of hasInternalMap.entries()) internalObj[pid] = !!has;
+          setHasInternalById(internalObj);
         }
       } catch {}
     })();
     return () => { cancelled = true; };
   }, [items]);
+
+  // hasInternalById is set in the scan above
 
   const getAncestors = useCallback((childId) => {
     if (!childId) return new Set();
@@ -173,6 +200,20 @@ export default function ObjectTree({ query = "", onSelect, onOpen }) {
             if (mapped.length) slots.push({ slot: slotPath, items: mapped });
           }
         }
+
+        // Also include conventional `.children` if present
+        if (Array.isArray(doc.children)) {
+          const childRefs = doc.children.filter(ref => typeof ref === 'string' && byId[ref]);
+          const mapped = childRefs.map((ref) => byId[ref]).filter(Boolean);
+          if (mapped.length) slots.push({ slot: 'Children', items: mapped });
+        } else if (doc.children && typeof doc.children === 'object') {
+          for (const [key, val] of Object.entries(doc.children)) {
+            const list = Array.isArray(val) ? val : [val];
+            const childRefs = list.filter(ref => typeof ref === 'string' && byId[ref]);
+            const mapped = childRefs.map((ref) => byId[ref]).filter(Boolean);
+            if (mapped.length) slots.push({ slot: key, items: mapped });
+          }
+        }
       }
       setSlotsById((m) => ({ ...m, [id]: slots }));
     } finally {
@@ -254,7 +295,7 @@ export default function ObjectTree({ query = "", onSelect, onOpen }) {
       <ScrollArea type="auto" scrollbars="vertical" style={{ height: "100%" }}>
         {loading && <Text size="2" color="gray">Refreshing…</Text>}
         {!hasQuery ? (
-          <Flex direction="column" gap="2">
+          <Flex direction="column" gap="1">
             {items.map((it) => {
               const isExpanded = expandedIds.has(it.$id);
               const slots = slotsById[it.$id];
@@ -270,7 +311,7 @@ export default function ObjectTree({ query = "", onSelect, onOpen }) {
                     aria-selected={selected}
                     style={{
                       cursor: "pointer",
-                      padding: "6px 8px",
+                      padding: "3px 8px",
                       borderRadius: 6,
                       background: selected
                         ? "var(--indigo-4)"
@@ -282,15 +323,19 @@ export default function ObjectTree({ query = "", onSelect, onOpen }) {
                     }}
                   >
                     <Flex align="center" gap="2">
-                      <Text
-                        size="2"
-                        onClick={(e) => { e.stopPropagation(); toggleExpand(it.$id); }}
-                        style={{ userSelect: "none", width: 14, display: "inline-block", textAlign: "center" }}
-                        aria-label={isExpanded ? "Collapse" : "Expand"}
-                        role="button"
-                      >
-                        {isExpanded ? "▾" : "▸"}
-                      </Text>
+                      {hasInternalById[it.$id] ? (
+                        <Text
+                          size="2"
+                          onClick={(e) => { e.stopPropagation(); toggleExpand(it.$id); }}
+                          style={{ userSelect: "none", width: 14, display: "inline-block", textAlign: "center" }}
+                          aria-label={isExpanded ? "Collapse" : "Expand"}
+                          role="button"
+                        >
+                          {isExpanded ? "▾" : "▸"}
+                        </Text>
+                      ) : (
+                        <span style={{ width: 14, display: 'inline-block' }} />
+                      )}
                       <Text size="2">{it.name || it.$id}</Text>
                     </Flex>
                     {it.$type && <Badge variant="soft" color="indigo">{(it.$type || "").split("/").pop()}</Badge>}
@@ -316,7 +361,7 @@ export default function ObjectTree({ query = "", onSelect, onOpen }) {
                           >
                             {slot.charAt(0).toUpperCase() + slot.slice(1)}
                           </Text>
-                          <Flex direction="column" gap="2" style={{ marginLeft: 24 }}>
+                          <Flex direction="column" gap="1" style={{ marginLeft: 24 }}>
                             {slotItems.map((child, index) => (
                               <React.Fragment key={`${it.$id}-${slot}-${index}`}>
                                 <Flex
@@ -329,7 +374,7 @@ export default function ObjectTree({ query = "", onSelect, onOpen }) {
                                   data-node-id={`${it.$id}-${child.$id}`}
                                   style={{
                                     cursor: "pointer",
-                                    padding: "6px 8px",
+                                    padding: "3px 8px",
                                     borderRadius: 6,
                                     background:
                                       selectedId === child.$id ? "var(--indigo-4)"
@@ -341,7 +386,6 @@ export default function ObjectTree({ query = "", onSelect, onOpen }) {
                                   </Flex>
                                   {child.$type && <Badge variant="soft" color="indigo">{(child.$type || "").split("/").pop()}</Badge>}
                                 </Flex>
-                                <Separator size="1" style={{ opacity: 0.5 }} />
                               </React.Fragment>
                             ))}
                           </Flex>
@@ -349,13 +393,12 @@ export default function ObjectTree({ query = "", onSelect, onOpen }) {
                       ))}
                     </>
                   )}
-                  <Separator size="1" style={{ opacity: 0.5 }} />
                 </React.Fragment>
               );
             })}
           </Flex>
         ) : (
-          <Flex direction="column" gap="2">
+          <Flex direction="column" gap="1">
             {filtered.map((it) => (
               <React.Fragment key={it.$id}>
                 <Flex
@@ -366,7 +409,7 @@ export default function ObjectTree({ query = "", onSelect, onOpen }) {
                   title="Double-click to open; single-click to select"
                   style={{
                     cursor: "pointer",
-                    padding: "6px 8px",
+                    padding: "3px 8px",
                     borderRadius: 6,
                     background: selectedId === it.$id ? "var(--indigo-4)"
                       : (inferredAncestorIds && inferredAncestorIds.has(it.$id)) ? "var(--indigo-3)"
@@ -376,9 +419,8 @@ export default function ObjectTree({ query = "", onSelect, onOpen }) {
                   <Flex align="center" gap="2">
                     <Text size="2">{it.name || it.$id}</Text>
                   </Flex>
-                  {it.$type && <Badge variant="soft" color="indigo">{it.$type.split("/").pop()}</Badge>}
+                  {it.$type && <Badge variant="soft" color="indigo">{it.$type.split("/")?.pop()}</Badge>}
                 </Flex>
-                <Separator size="1" style={{ opacity: 0.5 }} />
               </React.Fragment>
             ))}
           </Flex>

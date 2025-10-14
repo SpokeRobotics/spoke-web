@@ -1,5 +1,5 @@
 {
-  "id": "spoke://types/cell-18650",
+  "id": "spoke://types/power/cell-18650",
   "name": "18650 Cell",
   "slots": {},
   "model": {

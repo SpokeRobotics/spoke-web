@@ -1,5 +1,5 @@
 {
-  "id": "spoke://types/panel-64x32",
+  "id": "spoke://types/structure/panel-64x32",
   "name": "Panel 64x32",
   "slots": {},
   "model": {

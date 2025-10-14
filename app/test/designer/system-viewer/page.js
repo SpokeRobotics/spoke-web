@@ -26,7 +26,7 @@ export default function SystemViewerPage() {
           </Text>
           
           <SystemViewer 
-            objects={["spoke://instances/core-assembly"]}
+            objects={["spoke://instances/segment/core-assembly"]}
             height={520}
           />
         </Box>
@@ -40,7 +40,7 @@ export default function SystemViewerPage() {
           </Text>
           
           <SystemViewer 
-            objects={["spoke://types/core-robot"]}
+            objects={["spoke://types/segment/core-robot"]}
             height={520}
           />
         </Box>
@@ -55,10 +55,10 @@ export default function SystemViewerPage() {
           
           <SystemViewer 
             objects={[
-              { id: "spoke://types/frame-96x64x32", location: { dx: 0, dy: 0, dz: 0, rx: 0, ry: 0, rz: 0 } },
-              { id: "spoke://types/cell-18650", location: { dx: 20, dy: 0, dz: 0, rx: 0, ry: 0, rz: 0 } },
-              { id: "spoke://types/cell-18650", location: { dx: -20, dy: 0, dz: 0, rx: 180, ry: 0, rz: 0 } },
-              { id: "spoke://types/esp32-controller", location: { dx: 0, dy: 14, dz: 0, rx: 180, ry: 0, rz: 0 } }
+              { id: "spoke://types/structure/frame-96x64x32", location: { dx: 0, dy: 0, dz: 0, rx: 0, ry: 0, rz: 0 } },
+              { id: "spoke://types/power/cell-18650", location: { dx: 20, dy: 0, dz: 0, rx: 0, ry: 0, rz: 0 } },
+              { id: "spoke://types/power/cell-18650", location: { dx: -20, dy: 0, dz: 0, rx: 180, ry: 0, rz: 0 } },
+              { id: "spoke://types/controller/esp32-controller", location: { dx: 0, dy: 14, dz: 0, rx: 180, ry: 0, rz: 0 } }
             ]}
             height={420}
           />
@@ -95,7 +95,7 @@ export default function SystemViewerPage() {
             marginBottom: 16
           }}>
 {`{
-  "id": "spoke://types/cell-18650",
+  "id": "spoke://types/power/cell-18650",
   "name": "18650 Cell",
   "slots": {},
   "model": {
@@ -118,7 +118,7 @@ export default function SystemViewerPage() {
           }}>
 {`{
   "id": "spoke://instances/cell-left",
-  "type": "spoke://types/cell-18650",
+  "type": "spoke://types/power/cell-18650",
   "name": "Cell Left",
   "parent": "spoke://instances/my-robot",
   "parentSlot": "cells",

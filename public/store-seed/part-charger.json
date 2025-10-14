@@ -1,5 +1,5 @@
 {
-  "id": "spoke://types/spoke-charger",
+  "id": "spoke://types/power/spoke-charger",
   "name": "Spoke Charger",
   "slots": {},
   "model": {

@@ -1,5 +1,5 @@
 {
-  "id": "spoke://types/wpc-board",
+  "id": "spoke://types/power/wpc-board",
   "name": "Wireless Power Receiver",
   "slots": {},
   "model": {

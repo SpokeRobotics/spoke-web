@@ -192,46 +192,19 @@ export default function ObjectExplorerPanel() {
       <Flex direction="column" gap="2" style={{ flex: 1, minHeight: 0 }}>
         <Box id="actionArea" style={{ width: "100%", flexShrink: 0 }}>
           <Flex align="center" gap="1" wrap="wrap" style={{ width: "100%", rowGap: 4, alignContent: "flex-start" }}>
-            <Button size="1" onClick={() => {
-              setShowNew((s) => {
-                const next = !s;
-                if (next) {
-                  if (selectedId && !attachParent) setAttachParent(selectedId);
-                  setIdIdx(0); setTypeIdx(0); setParentIdx(0); setSlotIdx(0);
-                }
-                return next;
-              });
-            }}>{showNew ? "Cancel" : "New"}</Button>
             <Button size="1" variant="soft" onClick={() => {
               try { if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("store:docSaved", { detail: { $id: "__manual__" } })); } catch {}
             }}>Refresh</Button>
-            <Button size="1" variant="soft" onClick={async () => {
-              try {
-                const headers = await listDocs("");
-                console.log("[Explorer][Debug] listDocs headers:", headers);
-                if (activeDocId) {
-                  const doc = await store.getDoc(activeDocId);
-                  console.log("[Explorer][Debug] activeDoc", activeDocId, doc);
-                }
-              } catch (e) { console.warn("[Explorer][Debug] dump failed", e); }
-            }}>Debug Dump</Button>
-            <Button size="1" color="red" disabled={!selectedId} onClick={() => { if (!selectedId) return; setShowDelConfirm(true); }}>Delete</Button>
             <Separator orientation="vertical" size="4" />
             <Button size="1" color="crimson" variant="surface" onClick={() => setShowResetConfirm(true)} disabled={busyReset}>Reset</Button>
           </Flex>
-          {(showDelConfirm || showResetConfirm) && (
+          {(showResetConfirm) && (
             <Box style={{ width: "100%", marginTop: 6 }}>
               <Flex direction="column" gap="1">
-                {showDelConfirm && (
-                  <Flex gap="1" align="center">
-                    <Button size="1" color="red" onClick={handleConfirmDelete}>Confirm Delete</Button>
-                    <Button size="1" variant="soft" onClick={() => setShowDelConfirm(false)}>Cancel</Button>
-                  </Flex>
-                )}
                 {showResetConfirm && (
                   <Flex gap="1" align="center">
                     <Button size="1" color="crimson" onClick={handleConfirmReset} disabled={busyReset}>{busyReset ? "Resetting…" : "Confirm Reset"}</Button>
-                    <Button size="1" variant="soft" onClick={() => setShowResetConfirm(false)} disabled={busyReset}>Cancel</Button>
+                    <Button size="1" variant="soft" onClick={() => setShowResetConfirm(false)}>Cancel</Button>
                   </Flex>
                 )}
               </Flex>

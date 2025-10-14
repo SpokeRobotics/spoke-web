@@ -683,27 +683,7 @@ export function SystemViewer({
               gap: 8,
             }}
           >
-            {/* Normal/Exploded Buttons */}
-            <Flex direction="column" gap="2">
-              <Button
-                variant={explodeMode === 'normal' ? 'solid' : 'surface'}
-                disabled={explodeMode === 'normal'}
-                onClick={() => handleExplodeModeChange('normal')}
-                size="2"
-              >
-                Normal
-              </Button>
-              <Button
-                variant={explodeMode === 'exploded' ? 'solid' : 'surface'}
-                disabled={explodeMode === 'exploded'}
-                onClick={() => handleExplodeModeChange('exploded')}
-                size="2"
-              >
-                Exploded
-              </Button>
-            </Flex>
-            
-            {/* Previews Toggle */}
+            {/* Previews Toggle (moved above for prominence) */}
             <Flex>
               <Button
                 variant={showPreviews ? 'solid' : 'soft'}
@@ -713,6 +693,19 @@ export function SystemViewer({
                 Previews
               </Button>
             </Flex>
+
+            {/* Explode Toggle */}
+            <Flex>
+              <Button
+                variant={explodeMode === 'exploded' ? 'solid' : 'surface'}
+                onClick={() => handleExplodeModeChange(explodeMode === 'exploded' ? 'normal' : 'exploded')}
+                size="2"
+              >
+                Explode
+              </Button>
+            </Flex>
+            
+            
             {availableCategories.length > 0 && (
               <Flex direction="column" gap="2" style={{ maxWidth: 320, alignItems: 'flex-end' }}>
                 {Array.from(new Set(availableCategories.map(c => c.split('.')[0]))).sort().map(top => {

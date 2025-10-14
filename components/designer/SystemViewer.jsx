@@ -7,7 +7,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Box, Button, Flex, Text, IconButton } from '@radix-ui/themes';
-import { Wrench } from 'lucide-react';
+import { Wrench, ChevronRight, ChevronDown } from 'lucide-react';
 import * as THREE from 'three';
 import { ThreeCadViewer } from '@/components/cad/ThreeCadViewer';
 import { Toolbar } from '@/components/cad/Toolbar';
@@ -132,6 +132,7 @@ export function SystemViewer({
   const filterStateToggle = useRef('a') // Toggle between 'a' and 'b' for filter transitions
   const skipNextFilterTransitionRef = useRef(false) // Skip one filter transition after auto-init
   const [viewTools, setViewTools] = useState(false) // Tools panel visibility
+  const [expandedTopCats, setExpandedTopCats] = useState(new Set()) // UI-only: which top-level categories are expanded
   const [objectOriginVisible, setObjectOriginVisible] = useState(false) // Show object origins
   const [systemOriginVisible, setSystemOriginVisible] = useState(false) // Show system origin
   
@@ -191,6 +192,7 @@ export function SystemViewer({
     filterStateToggle.current = 'a'
     didInitCategoriesRef.current = false
     userModifiedCategoriesRef.current = false
+    setExpandedTopCats(new Set())
   }, [objectIdsKey])
   
   // Track if we're in the browser (client-side)
@@ -308,6 +310,16 @@ export function SystemViewer({
       return next
     })
   }, [availableCategories, resolveVisibility])
+
+  // UI-only: expand/collapse subcategory chips for a top-level category
+  const toggleExpandTop = useCallback((top) => {
+    setExpandedTopCats(prev => {
+      const next = new Set(prev)
+      if (next.has(top)) next.delete(top)
+      else next.add(top)
+      return next
+    })
+  }, [])
   
   // (legacy removed) toggleCategory replaced by rules-based toggles
   
@@ -705,16 +717,32 @@ export function SystemViewer({
               <Flex direction="column" gap="2" style={{ maxWidth: 320, alignItems: 'flex-end' }}>
                 {Array.from(new Set(availableCategories.map(c => c.split('.')[0]))).sort().map(top => {
                   const group = availableCategories.filter(c => c === top || c.startsWith(top + '.')).sort()
+                  const hasChildren = group.some(cat => cat !== top)
                   // Aggregate state for the top chip
                   let anyTrue = false, anyFalse = false
                   group.forEach(l => { const v = resolveVisibility(l); if (v) anyTrue = true; else anyFalse = true })
                   const topVariant = anyTrue && anyFalse ? 'surface' : (anyTrue ? 'solid' : 'soft')
                   return (
-                    <Flex key={top} gap="2" wrap="wrap" style={{ justifyContent: 'flex-end' }}>
-                      <Button variant={topVariant} onClick={() => handleTopToggle(top)} size="1" style={{ textTransform: 'capitalize' }}>
-                        {top}
+                    <Flex key={top} gap="2" wrap="wrap" style={{ justifyContent: 'flex-end', alignItems: 'center' }}>
+                      <Button
+                        variant={topVariant}
+                        onClick={() => handleTopToggle(top)}
+                        size="1"
+                        style={{ textTransform: 'capitalize', display: 'inline-flex', alignItems: 'center' }}
+                        title="Toggle entire category"
+                      >
+                        <span style={{ display: 'inline-flex', alignItems: 'center' }}>{top}</span>
+                        {hasChildren && (
+                          <span
+                            onClick={(e) => { e.stopPropagation(); toggleExpandTop(top) }}
+                            style={{ marginLeft: 6, opacity: 0.8, display: 'inline-flex', alignItems: 'center' }}
+                            title={expandedTopCats.has(top) ? 'Hide subcategories' : 'Show subcategories'}
+                          >
+                            {expandedTopCats.has(top) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                          </span>
+                        )}
                       </Button>
-                      {group.filter(cat => cat !== top).map(cat => {
+                      {hasChildren && expandedTopCats.has(top) && group.filter(cat => cat !== top).map(cat => {
                         const v = resolveVisibility(cat)
                         const variant = v ? 'solid' : 'soft'
                         return (

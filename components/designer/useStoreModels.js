@@ -60,7 +60,7 @@ export function useStoreModels(objectIds, options = {}) {
           const base = typeId.split('/').pop()
           const unique = `${Date.now()}-${Math.random().toString(36).slice(2,8)}`
           const tempId = `spoke://instances/__preview-${base}-${unique}`
-          const { instance, children } = await createInstanceFromType(tempId, typeId, { name: `(Preview) ${base}` })
+          const { instance, children } = await createInstanceFromType(tempId, typeId, { name: `(Preview) ${base}` }, { transient: true })
           // Build in-memory doc map
           const docsById = new Map()
           docsById.set(instance.id, instance)

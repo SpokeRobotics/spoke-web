@@ -143,6 +143,7 @@ export function SystemViewer({
   const [bboxVisible, setBboxVisible] = useState(false)
   const [targetHelper, setTargetHelper] = useState(false)
   const [modelCenterHelper, setModelCenterHelper] = useState(false)
+  const [showPreviews, setShowPreviews] = useState(true)
   
   // Parse objects from props or children table
   const { objectIds: parsedIds, leftover: leftoverChildren } = useMemo(
@@ -331,7 +332,11 @@ export function SystemViewer({
           || ''
         const categoryName = deriveCategoryFromRef(ref)
         wrapper.userData.categoryName = categoryName
+        // Mark preview/transient
+        const isPreview = m?.doc?.meta?.transient === true
+        wrapper.userData.preview = isPreview
         try { console.log('[SystemViewer] model wrapper category:', { id: m.$id, cat: categoryName, ref }) } catch {}
+        const baseOpacity = isPreview ? 0.5 : 1
         
         return {
           name: m.doc.name || m.$id,
@@ -341,25 +346,25 @@ export function SystemViewer({
               position: normalPos,
               quaternion: normalQuat,
               visible: true,
-              opacity: 1,
+              opacity: baseOpacity,
             },
             normal_b: {
               position: normalPos.clone(),
               quaternion: normalQuat.clone(),
               visible: true,
-              opacity: 1,
+              opacity: baseOpacity,
             },
             exploded_a: {
               position: explodedPos,
               quaternion: normalQuat.clone(),
               visible: true,
-              opacity: 1,
+              opacity: baseOpacity,
             },
             exploded_b: {
               position: explodedPos.clone(),
               quaternion: normalQuat.clone(),
               visible: true,
-              opacity: 1,
+              opacity: baseOpacity,
             }
           }
         }
@@ -397,12 +402,15 @@ export function SystemViewer({
     info.models.forEach((container, index) => {
       const modelRoot = container.userData?.__modelRoot
       const categoryName = modelRoot?.userData?.categoryName || ''
-      const shouldBeVisible = catsSet.has(categoryName)
+      const isPreview = modelRoot?.userData?.preview === true
+      let shouldBeVisible = catsSet.has(categoryName)
+      if (isPreview && !showPreviews) shouldBeVisible = false
       // Compare to current state's stored visible to detect delta
       const currentState = info.currentState || 'normal_a'
       const currentVis = container.userData?.__states?.[currentState]?.visible
       if (currentVis !== shouldBeVisible) anyChange = true
-      stateUpdates[index] = { visible: shouldBeVisible, opacity: shouldBeVisible ? 1 : 0 }
+      const visibleOpacity = isPreview ? 0.5 : 1
+      stateUpdates[index] = { visible: shouldBeVisible, opacity: shouldBeVisible ? visibleOpacity : 0 }
     })
     // Write both normal toggles to the same visibility so future flips don't introduce opacity changes
     viewer.updateStateVisibility?.(stateUpdates, ['normal_a', 'normal_b'])
@@ -423,7 +431,7 @@ export function SystemViewer({
         viewer.transitionMultiState?.(currentState, 1)
       } catch {}
     }
-  }, [modelsWithLocation.map(m => m?.$id).join('|'), visibleCategories, availableCategories])
+  }, [modelsWithLocation.map(m => m?.$id).join('|'), visibleCategories, availableCategories, showPreviews])
   
   // Update visibility when filters change - use ThreeCadViewer's animation system
   useEffect(() => {
@@ -453,12 +461,15 @@ export function SystemViewer({
     info.models.forEach((container, index) => {
       const modelRoot = container.userData?.__modelRoot
       const categoryName = modelRoot?.userData?.categoryName || ''
-      const shouldBeVisible = visibleCategories.has(categoryName)
+      const isPreview = modelRoot?.userData?.preview === true
+      let shouldBeVisible = visibleCategories.has(categoryName)
+      if (isPreview && !showPreviews) shouldBeVisible = false
       const currentVis = container.userData?.__states?.[currentState]?.visible
       if (currentVis !== shouldBeVisible) anyChange = true
+      const visibleOpacity = isPreview ? 0.5 : 1
       stateUpdates[index] = {
         visible: shouldBeVisible,
-        opacity: shouldBeVisible ? 1 : 0
+        opacity: shouldBeVisible ? visibleOpacity : 0
       }
     })
     try { console.log('[SystemViewer] filter change -> targetState:', targetState, 'visibleCategories:', Array.from(visibleCategories)) } catch {}
@@ -476,7 +487,7 @@ export function SystemViewer({
     // Update our toggle tracker
     filterStateToggle.current = nextToggle
     
-  }, [visibleCategories, availableCategories])
+  }, [visibleCategories, availableCategories, showPreviews])
 
   // When model set changes post-load, frame once to avoid any late attach timing issues
   useEffect(() => {
@@ -657,6 +668,17 @@ export function SystemViewer({
               </Button>
             </Flex>
             
+            {/* Previews Toggle */}
+            <Flex>
+              <Button
+                variant={showPreviews ? 'solid' : 'soft'}
+                onClick={() => setShowPreviews(v => !v)}
+                size="1"
+              >
+                Previews
+              </Button>
+            </Flex>
+
             {/* Category Filter Controls - below Normal/Exploded with gap */}
             {availableCategories.length > 0 && (
               <Flex gap="2" wrap="wrap" style={{ maxWidth: 200, justifyContent: 'flex-end' }}>

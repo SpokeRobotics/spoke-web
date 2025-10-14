@@ -1932,6 +1932,22 @@ useEffect(() => {
             state.opacity = update.opacity
           }
         })
+        // If we updated the current state's properties, reflect them to materials immediately
+        const curKey = (multi.currentState || '').toLowerCase()
+        if (!targetStates || targetStates.includes(curKey)) {
+          const curState = states[curKey]
+          if (curState) {
+            const mats = container.userData.__faderMaterials || []
+            const targetOpacity = (typeof curState.opacity === 'number') ? curState.opacity : (curState.visible === false ? 0 : 1)
+            container.visible = targetOpacity > 0.001
+            mats.forEach((mat) => {
+              if (!mat) return
+              mat.opacity = targetOpacity
+              mat.transparent = targetOpacity < 0.999
+              mat.depthWrite = targetOpacity >= 0.999
+            })
+          }
+        }
       })
       
       return true
@@ -2188,12 +2204,17 @@ useEffect(() => {
       const targetQuat = state.quaternion || new THREE.Quaternion()
       container.position.copy(targetPos)
       container.quaternion.copy(targetQuat)
-      container.visible = state.visible !== false
+      // Determine target opacity (honor state.opacity when provided)
+      const targetOpacity = (typeof state.opacity === 'number')
+        ? state.opacity
+        : (state.visible === false ? 0 : 1)
+      container.visible = targetOpacity > 0.001
       const mats = container.userData.__faderMaterials || []
       mats.forEach((mat) => {
-        mat.opacity = state.visible === false ? 0 : 1
-        mat.transparent = mat.opacity < 1
-        mat.depthWrite = mat.opacity >= 0.999
+        if (!mat) return
+        mat.opacity = targetOpacity
+        mat.transparent = targetOpacity < 0.999
+        mat.depthWrite = targetOpacity >= 0.999
       })
       const axes = container.userData.__axes
       if (axes) axes.visible = !!originVisible
@@ -2247,8 +2268,8 @@ useEffect(() => {
       ensureQuaternion(toState)
       object.visible = from.visible || to.visible
       const materials = container.userData.__faderMaterials || []
-      const fromOpacity = from.visible ? 1 : 0
-      const toOpacity = to.visible ? 1 : 0
+      const fromOpacity = (typeof fromState.opacity === 'number') ? fromState.opacity : (from.visible ? 1 : 0)
+      const toOpacity = (typeof toState.opacity === 'number') ? toState.opacity : (to.visible ? 1 : 0)
       if (materials.length) {
         materials.forEach((mat) => {
           if (!mat) return

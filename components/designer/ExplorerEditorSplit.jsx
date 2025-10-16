@@ -2,10 +2,14 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Box, Card, Heading, Text } from "@radix-ui/themes";
+import * as Tabs from "@radix-ui/react-tabs";
 import ObjectExplorerPanel from "@/components/designer/ObjectExplorerPanel.jsx";
 import JsonEditor from "@/components/designer/JsonEditor.jsx";
+import { useResponsiveLayout } from "@/components/common/hooks/useResponsiveLayout.js";
 
-export default function ExplorerEditorSplit() {
+export default function ExplorerEditorSplit({ forceCompact = false }) {
+  const { layoutMode, isCoarsePointer } = useResponsiveLayout();
+  const compact = forceCompact || layoutMode === "compact";
   const containerRef = useRef(null);
   const [leftWidth, setLeftWidth] = useState(320); // px
   const [dragging, setDragging] = useState(false);
@@ -64,6 +68,29 @@ export default function ExplorerEditorSplit() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
+  if (compact) {
+    return (
+      <section style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
+        <Tabs.Root defaultValue="editor" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <Tabs.List style={{ display: 'flex', gap: 8, padding: '8px 8px 0 8px' }}>
+            <Tabs.Trigger value="explorer">Explorer</Tabs.Trigger>
+            <Tabs.Trigger value="editor">Editor</Tabs.Trigger>
+          </Tabs.List>
+          <Tabs.Content value="explorer" style={{ flex: 1, minHeight: 0, display: 'flex' }}>
+            <ObjectExplorerPanel />
+          </Tabs.Content>
+          <Tabs.Content value="editor" style={{ flex: 1, minHeight: 0, display: 'flex' }}>
+            <Card className="section" style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+              <Box className="editor" style={{ flex: 1, minHeight: 0 }}>
+                <JsonEditor />
+              </Box>
+            </Card>
+          </Tabs.Content>
+        </Tabs.Root>
+      </section>
+    );
+  }
+
   return (
     <section style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
       <Box
@@ -82,6 +109,7 @@ export default function ExplorerEditorSplit() {
           .drag-handle { width: 8px; cursor: col-resize; background: transparent; transition: background 0.2s; height: auto; align-self: stretch; position: relative; display: block; }
           .drag-handle:hover, .drag-handle.dragging { background: transparent; }
           .drag-handle .grip { position: absolute; left: 50%; top: 20%; bottom: 20%; width: 2px; transform: translateX(-50%); background: var(--gray-8); border-radius: 1px; opacity: 0.9; }
+          @media (pointer: coarse) { .drag-handle { display: none; } }
         `}</style>
         <Box
           className="explorer-pane"
@@ -110,10 +138,7 @@ export default function ExplorerEditorSplit() {
           </Card>
         </Box>
       </Box>
-      <style>{`
-        /* Show handle only on md+ */
-        @media (min-width: 768px) { .drag-handle { display: block !important; } }
-      `}</style>
+      <style>{``}</style>
     </section>
   );
 }

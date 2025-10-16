@@ -10,7 +10,7 @@
       },
       "frontPanel": {
         "type": "spoke://types/structure/panel/panel-64x32",
-        "template": { "name": "Front Panel 64x32", "location": "0,0,0,0,0,0" }
+        "template": { "name": "Front Panel 64x32", "location": "24,0,0,0,0,-90" }
       },
       "sidePanelsN20": {
         "type": "spoke://types/structure/panel/panel-48x32-n20",
@@ -38,19 +38,23 @@
       },
       "mecanumLeft": {
         "type": "spoke://types/hardware/mecanum-left-48mm",
-        "template": { "name": "Mecanum Left", "location": "0,0,36,90,0,0" }
+        "template": { "name": "Mecanum Left", "location": "12,0,38,90,0,0" }
       },
       "mecanumRight": {
         "type": "spoke://types/hardware/mecanum-right-48mm",
-        "template": { "name": "Mecanum Right", "location": "0,0,-36,-90,0,0" }
+        "template": { "name": "Mecanum Right", "location": "12,0,-38,-90,0,0" }
       },
       "hexAdapters": {
         "type": "spoke://types/hardware/hex-adapter",
         "array": true,
         "template": [
-          { "name": "Hex Adapter Left", "location": "0,0,0,0,0,0" },
-          { "name": "Hex Adapter Right", "location": "0,0,0,0,0,0" }
+          { "name": "Hex Adapter Left", "location": "12,0,-34,0,0,0" },
+          { "name": "Hex Adapter Right", "location": "12,0,34,0,-180,0" }
         ]
+      },
+      "controller": {
+        "type": "spoke://types/controller/esp32s3-pico-drv8231",
+        "template": { "name": "Controller", "location": "-11,0,0,0,0,-90" }
       }
     }}
   },

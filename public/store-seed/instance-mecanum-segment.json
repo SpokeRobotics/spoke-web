@@ -21,7 +21,8 @@
     "hexAdapters": [
       "spoke://instances/hardware/hex-adapter-left",
       "spoke://instances/hardware/hex-adapter-right"
-    ]
+    ],
+    "controller": "spoke://instances/controller/controller-mecanum"
   },
   "meta": {
     "origin": "site"

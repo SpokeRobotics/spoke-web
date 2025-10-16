@@ -18,6 +18,7 @@
     "spoke://types/power/wpc-board",
     "spoke://types/power/wpc-coil",
     "spoke://types/controller/esp32-controller",
+    "spoke://types/controller/esp32s3-pico-drv8231",
     "spoke://types/power/mag-connector-8mm",
     "spoke://types/hardware/screw-m2-6mm",
     "spoke://types/hardware/screw-m2-8mm",

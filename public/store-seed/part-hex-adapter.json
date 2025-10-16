@@ -4,7 +4,7 @@
   "slots": {},
   "model": {
     "url": "/models/HexAdapter.3mf",
-    "offset": [0, 0, 0],
+    "offset": [0, 0, -4],
     "rotation": [0, 0, 0]
   },
   "meta": {

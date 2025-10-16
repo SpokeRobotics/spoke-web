@@ -17,6 +17,7 @@
     { "path": "part-wpc-board.json" },
     { "path": "part-wpc-coil.json" },
     { "path": "part-controller.json" },
+    { "path": "part-controller-esp32s3-pico.json" },
     { "path": "part-mag-connector.json" },
     { "path": "part-screw-m2-6mm.json" },
     { "path": "part-screw-m2-8mm.json" },

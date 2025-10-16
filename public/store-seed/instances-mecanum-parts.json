@@ -14,7 +14,7 @@
     "name": "Front Panel 64x32",
     "parent": "spoke://instances/segment/mecanum-segment",
     "parentSlot": "children.frontPanel",
-    "location": "0,0,0,0,0,0",
+    "location": "24,0,0,0,0,-90",
     "meta": { "origin": "site" }
   },
   {
@@ -23,7 +23,7 @@
     "name": "Right N20 Panel",
     "parent": "spoke://instances/segment/mecanum-segment",
     "parentSlot": "children.sidePanelsN20",
-    "location": "0,0,0,0,0,0",
+    "location": "0,0,32,90,0,90",
     "meta": { "origin": "site" }
   },
   {
@@ -32,7 +32,7 @@
     "name": "Left N20 Panel",
     "parent": "spoke://instances/segment/mecanum-segment",
     "parentSlot": "children.sidePanelsN20",
-    "location": "0,0,0,0,0,0",
+    "location": "0,0,-32,-90,0,-90",
     "meta": { "origin": "site" }
   },
   {
@@ -41,7 +41,7 @@
     "name": "Right N20 Door",
     "parent": "spoke://instances/segment/mecanum-segment",
     "parentSlot": "children.sidePanelsN20Doors",
-    "location": "0,0,0,0,0,0",
+    "location": "0,0,32,90,0,90",
     "meta": { "origin": "site" }
   },
   {
@@ -50,7 +50,7 @@
     "name": "Left N20 Door",
     "parent": "spoke://instances/segment/mecanum-segment",
     "parentSlot": "children.sidePanelsN20Doors",
-    "location": "0,0,0,0,0,0",
+    "location": "0,0,-32,-90,0,-90",
     "meta": { "origin": "site" }
   },
   {
@@ -68,7 +68,7 @@
     "name": "Bottom Panel PCB Rail",
     "parent": "spoke://instances/segment/mecanum-segment",
     "parentSlot": "children.bottomPanel",
-    "location": "0,-16,0,0,0,180",
+    "location": "0,-16,0,0,180,180",
     "meta": { "origin": "site" }
   },
   {
@@ -77,7 +77,7 @@
     "name": "Mecanum Left",
     "parent": "spoke://instances/segment/mecanum-segment",
     "parentSlot": "children.mecanumLeft",
-    "location": "0,0,0,0,0,0",
+    "location": "12,0,38,90,0,0",
     "meta": { "origin": "site" }
   },
   {
@@ -86,7 +86,7 @@
     "name": "Mecanum Right",
     "parent": "spoke://instances/segment/mecanum-segment",
     "parentSlot": "children.mecanumRight",
-    "location": "0,0,0,0,0,0",
+    "location": "12,0,-38,-90,0,0",
     "meta": { "origin": "site" }
   },
   {
@@ -95,7 +95,7 @@
     "name": "Hex Adapter Left",
     "parent": "spoke://instances/segment/mecanum-segment",
     "parentSlot": "children.hexAdapters",
-    "location": "0,0,0,0,0,0",
+    "location": "12,0,-34,0,0,0",
     "meta": { "origin": "site" }
   },
   {
@@ -104,7 +104,16 @@
     "name": "Hex Adapter Right",
     "parent": "spoke://instances/segment/mecanum-segment",
     "parentSlot": "children.hexAdapters",
-    "location": "0,0,0,0,0,0",
+    "location": "12,0,34,0,-180,0",
+    "meta": { "origin": "site" }
+  },
+  {
+    "id": "spoke://instances/controller/controller-mecanum",
+    "type": "spoke://types/controller/esp32s3-pico-drv8231",
+    "name": "Controller",
+    "parent": "spoke://instances/segment/mecanum-segment",
+    "parentSlot": "children.controller",
+    "location": "-11,0,0,0,0,-90",
     "meta": { "origin": "site" }
   }
 ]

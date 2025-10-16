@@ -1,0 +1,13 @@
+{
+  "id": "spoke://types/controller/esp32s3-pico-drv8231",
+  "name": "ESP32-S3 Pico Controller DRV8231",
+  "slots": {},
+  "model": {
+    "url": "/models/SpokeControllerESP32S3PicoMotorDriverDRV8231.3mf",
+    "offset": [13, 0, 25],
+    "rotation": [0, 90, 90]
+  },
+  "meta": {
+    "origin": "site"
+  }
+}

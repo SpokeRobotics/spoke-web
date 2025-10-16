@@ -3,8 +3,13 @@
   "name": "Root Collection",
   "types": [
     "spoke://types/structure/frame/frame-96x64x32",
+    "spoke://types/structure/frame/frame-64x48x32",
     "spoke://types/structure/panel/panel-64x32",
     "spoke://types/structure/panel/panel-96x32",
+    "spoke://types/structure/panel/panel-48x32-n20",
+    "spoke://types/structure/panel/panel-48x32-n20-door",
+    "spoke://types/structure/panel/panel-64x48-pcb28",
+    "spoke://types/structure/panel/panel-64x48-pcbrail",
     "spoke://types/structure/panel/top-panel-96x64",
     "spoke://types/structure/panel/bottom-panel-96x64",
     "spoke://types/structure/panel/bottom-panel-door",
@@ -14,6 +19,12 @@
     "spoke://types/power/wpc-coil",
     "spoke://types/controller/esp32-controller",
     "spoke://types/power/mag-connector-8mm",
+    "spoke://types/hardware/screw-m2-6mm",
+    "spoke://types/hardware/screw-m2-8mm",
+    "spoke://types/hardware/screw-m2-10mm",
+    "spoke://types/hardware/hex-adapter",
+    "spoke://types/hardware/mecanum-left-48mm",
+    "spoke://types/hardware/mecanum-right-48mm",
     "spoke://types/segment/core-robot"
   ],
   "instances": [

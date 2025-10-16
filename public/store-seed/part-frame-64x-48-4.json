@@ -1,0 +1,13 @@
+{
+  "id": "spoke://types/structure/frame/frame-64x48x32",
+  "name": "Frame 64x48x32",
+  "slots": {},
+  "model": {
+    "url": "/models/CuboidExtension_64x_48_32_4mm.3mf",
+    "offset": [0, 0, 0],
+    "rotation": [0, 0, 0]
+  },
+  "meta": {
+    "origin": "site"
+  }
+}

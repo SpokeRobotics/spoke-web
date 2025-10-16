@@ -1,0 +1,13 @@
+{
+  "id": "spoke://types/hardware/mecanum-right-48mm",
+  "name": "Mecanum Right 48mm",
+  "slots": {},
+  "model": {
+    "url": "/models/MecanumRight_48mm.3mf",
+    "offset": [0, 17, 0],
+    "rotation": [180, 0, 0]
+  },
+  "meta": {
+    "origin": "site"
+  }
+}

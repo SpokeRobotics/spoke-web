@@ -25,10 +25,12 @@
     "spoke://types/hardware/hex-adapter",
     "spoke://types/hardware/mecanum-left-48mm",
     "spoke://types/hardware/mecanum-right-48mm",
-    "spoke://types/segment/core-robot"
+    "spoke://types/segment/core-robot",
+    "spoke://types/segment/mecanum-segment"
   ],
   "instances": [
-    "spoke://instances/segment/core-assembly"
+    "spoke://instances/segment/core-assembly",
+    "spoke://instances/segment/mecanum-segment"
   ],
   "meta": { "origin": "site" }
 }

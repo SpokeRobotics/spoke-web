@@ -1,0 +1,13 @@
+{
+  "id": "spoke://types/structure/panel/panel-64x48-pcb28",
+  "name": "Panel 64x48 PCB 28mm",
+  "slots": {},
+  "model": {
+    "url": "/models/RectPanel_64_48_4mm_Pcb28mm.3mf",
+    "offset": [0, 0, 0],
+    "rotation": [0, 0, 0]
+  },
+  "meta": {
+    "origin": "site"
+  }
+}

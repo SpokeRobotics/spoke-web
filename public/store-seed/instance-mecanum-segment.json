@@ -1,0 +1,29 @@
+{
+  "id": "spoke://instances/segment/mecanum-segment",
+  "type": "spoke://types/segment/mecanum-segment",
+  "name": "Mecanum Segment",
+  "parent": null,
+  "children": {
+    "frame": "spoke://instances/structure/frame-mecanum",
+    "frontPanel": "spoke://instances/structure/panel-mecanum-front",
+    "sidePanelsN20": [
+      "spoke://instances/structure/panel-n20-right",
+      "spoke://instances/structure/panel-n20-left"
+    ],
+    "sidePanelsN20Doors": [
+      "spoke://instances/structure/panel-n20-door-right",
+      "spoke://instances/structure/panel-n20-door-left"
+    ],
+    "topPanel": "spoke://instances/structure/panel-mecanum-top",
+    "bottomPanel": "spoke://instances/structure/panel-mecanum-bottom",
+    "mecanumLeft": "spoke://instances/hardware/mecanum-wheel-left",
+    "mecanumRight": "spoke://instances/hardware/mecanum-wheel-right",
+    "hexAdapters": [
+      "spoke://instances/hardware/hex-adapter-left",
+      "spoke://instances/hardware/hex-adapter-right"
+    ]
+  },
+  "meta": {
+    "origin": "site"
+  }
+}

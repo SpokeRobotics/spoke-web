@@ -1,0 +1,13 @@
+{
+  "id": "spoke://types/structure/panel/panel-48x32-n20",
+  "name": "Panel 48x32 N20",
+  "slots": {},
+  "model": {
+    "url": "/models/RectPanel_48_32_4mm_N20_Panel.3mf",
+    "offset": [0, 0, 0],
+    "rotation": [0, 0, 0]
+  },
+  "meta": {
+    "origin": "site"
+  }
+}

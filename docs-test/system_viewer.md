@@ -175,6 +175,38 @@ All parts assembled using types with manual positions (tools enabled by default)
 
 </SystemViewer>
 
+### Mecanum Left Wheel with Frame
+
+<SystemViewer height={380}>
+
+| type | location |
+|--------|----------|
+| spoke://types/structure/frame/frame-96x64x32 | 0,0,0,0,0,0 |
+| spoke://types/hardware/mecanum-left-48mm | 0,0,0,0,0,0 |
+
+</SystemViewer>
+
+### Mecanum Right Wheel with Frame
+
+<SystemViewer height={380}>
+
+| type | location |
+|--------|----------|
+| spoke://types/structure/frame/frame-96x64x32 | 0,0,0,0,0,0 |
+| spoke://types/hardware/mecanum-right-48mm | 0,0,0,0,0,0 |
+
+</SystemViewer>
+
+### Extension Frame
+
+<SystemViewer height={380}>
+
+| type | location |
+|--------|----------|
+| spoke://types/structure/frame/frame-64x48x32 | 0,0,0,0,0,0 |
+
+</SystemViewer>
+
 ## Notes
 
 - **Type vs Instance**: Use `spoke://types/*` for type previews or `spoke://instances/*` for real assemblies

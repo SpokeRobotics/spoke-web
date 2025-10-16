@@ -2,8 +2,13 @@
   "docs": [
     { "path": "root.json" },
     { "path": "part-frame.json" },
+    { "path": "part-frame-64x-48-4.json" },
     { "path": "part-panel-64x32.json" },
     { "path": "part-panel-96x32.json" },
+    { "path": "part-panel-48x32-n20.json" },
+    { "path": "part-panel-48x32-n20-door.json" },
+    { "path": "part-panel-64x48-pcb28.json" },
+    { "path": "part-panel-64x48-pcbrail.json" },
     { "path": "part-top-panel.json" },
     { "path": "part-bottom-panel.json" },
     { "path": "part-bottom-panel-door.json" },
@@ -12,10 +17,20 @@
     { "path": "part-wpc-board.json" },
     { "path": "part-wpc-coil.json" },
     { "path": "part-controller.json" },
+    { "path": "part-controller-esp32s3-pico.json" },
     { "path": "part-mag-connector.json" },
+    { "path": "part-screw-m2-6mm.json" },
+    { "path": "part-screw-m2-8mm.json" },
+    { "path": "part-screw-m2-10mm.json" },
+    { "path": "part-hex-adapter.json" },
+    { "path": "part-mecanum-left-48mm.json" },
+    { "path": "part-mecanum-right-48mm.json" },
     { "path": "type-core-robot.json" },
+    { "path": "type-segment-mecanum.json" },
     { "path": "instances-core-parts.json", "array": true },
-    { "path": "instance-core-assembly.json" }
+    { "path": "instance-core-assembly.json" },
+    { "path": "instances-mecanum-parts.json", "array": true },
+    { "path": "instance-mecanum-segment.json" }
   ],
   "blobs": []
 }

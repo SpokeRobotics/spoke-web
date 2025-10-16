@@ -1,0 +1,119 @@
+[
+  {
+    "id": "spoke://instances/structure/frame-mecanum",
+    "type": "spoke://types/structure/frame/frame-64x48x32",
+    "name": "Frame",
+    "parent": "spoke://instances/segment/mecanum-segment",
+    "parentSlot": "children.frame",
+    "location": "0,0,0,0,0,0",
+    "meta": { "origin": "site" }
+  },
+  {
+    "id": "spoke://instances/structure/panel-mecanum-front",
+    "type": "spoke://types/structure/panel/panel-64x32",
+    "name": "Front Panel 64x32",
+    "parent": "spoke://instances/segment/mecanum-segment",
+    "parentSlot": "children.frontPanel",
+    "location": "24,0,0,0,0,-90",
+    "meta": { "origin": "site" }
+  },
+  {
+    "id": "spoke://instances/structure/panel-n20-right",
+    "type": "spoke://types/structure/panel/panel-48x32-n20",
+    "name": "Right N20 Panel",
+    "parent": "spoke://instances/segment/mecanum-segment",
+    "parentSlot": "children.sidePanelsN20",
+    "location": "0,0,32,90,0,90",
+    "meta": { "origin": "site" }
+  },
+  {
+    "id": "spoke://instances/structure/panel-n20-left",
+    "type": "spoke://types/structure/panel/panel-48x32-n20",
+    "name": "Left N20 Panel",
+    "parent": "spoke://instances/segment/mecanum-segment",
+    "parentSlot": "children.sidePanelsN20",
+    "location": "0,0,-32,-90,0,-90",
+    "meta": { "origin": "site" }
+  },
+  {
+    "id": "spoke://instances/structure/panel-n20-door-right",
+    "type": "spoke://types/structure/panel/panel-48x32-n20-door",
+    "name": "Right N20 Door",
+    "parent": "spoke://instances/segment/mecanum-segment",
+    "parentSlot": "children.sidePanelsN20Doors",
+    "location": "0,0,32,90,0,90",
+    "meta": { "origin": "site" }
+  },
+  {
+    "id": "spoke://instances/structure/panel-n20-door-left",
+    "type": "spoke://types/structure/panel/panel-48x32-n20-door",
+    "name": "Left N20 Door",
+    "parent": "spoke://instances/segment/mecanum-segment",
+    "parentSlot": "children.sidePanelsN20Doors",
+    "location": "0,0,-32,-90,0,-90",
+    "meta": { "origin": "site" }
+  },
+  {
+    "id": "spoke://instances/structure/panel-mecanum-top",
+    "type": "spoke://types/structure/panel/panel-64x48-pcbrail",
+    "name": "Top Panel PCB Rail",
+    "parent": "spoke://instances/segment/mecanum-segment",
+    "parentSlot": "children.topPanel",
+    "location": "0,16,0,0,0,0",
+    "meta": { "origin": "site" }
+  },
+  {
+    "id": "spoke://instances/structure/panel-mecanum-bottom",
+    "type": "spoke://types/structure/panel/panel-64x48-pcbrail",
+    "name": "Bottom Panel PCB Rail",
+    "parent": "spoke://instances/segment/mecanum-segment",
+    "parentSlot": "children.bottomPanel",
+    "location": "0,-16,0,0,180,180",
+    "meta": { "origin": "site" }
+  },
+  {
+    "id": "spoke://instances/hardware/mecanum-wheel-left",
+    "type": "spoke://types/hardware/mecanum-left-48mm",
+    "name": "Mecanum Left",
+    "parent": "spoke://instances/segment/mecanum-segment",
+    "parentSlot": "children.mecanumLeft",
+    "location": "12,0,38,90,0,0",
+    "meta": { "origin": "site" }
+  },
+  {
+    "id": "spoke://instances/hardware/mecanum-wheel-right",
+    "type": "spoke://types/hardware/mecanum-right-48mm",
+    "name": "Mecanum Right",
+    "parent": "spoke://instances/segment/mecanum-segment",
+    "parentSlot": "children.mecanumRight",
+    "location": "12,0,-38,-90,0,0",
+    "meta": { "origin": "site" }
+  },
+  {
+    "id": "spoke://instances/hardware/hex-adapter-left",
+    "type": "spoke://types/hardware/hex-adapter",
+    "name": "Hex Adapter Left",
+    "parent": "spoke://instances/segment/mecanum-segment",
+    "parentSlot": "children.hexAdapters",
+    "location": "12,0,-34,0,0,0",
+    "meta": { "origin": "site" }
+  },
+  {
+    "id": "spoke://instances/hardware/hex-adapter-right",
+    "type": "spoke://types/hardware/hex-adapter",
+    "name": "Hex Adapter Right",
+    "parent": "spoke://instances/segment/mecanum-segment",
+    "parentSlot": "children.hexAdapters",
+    "location": "12,0,34,0,-180,0",
+    "meta": { "origin": "site" }
+  },
+  {
+    "id": "spoke://instances/controller/controller-mecanum",
+    "type": "spoke://types/controller/esp32s3-pico-drv8231",
+    "name": "Controller",
+    "parent": "spoke://instances/segment/mecanum-segment",
+    "parentSlot": "children.controller",
+    "location": "-11,0,0,0,0,-90",
+    "meta": { "origin": "site" }
+  }
+]

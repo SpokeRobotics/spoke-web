@@ -1,0 +1,13 @@
+{
+  "id": "spoke://types/hardware/screw-m2-6mm",
+  "name": "Screw M2 6mm",
+  "slots": {},
+  "model": {
+    "url": "/models/Screw_M2_6mm.3mf",
+    "offset": [0, 0, 0],
+    "rotation": [0, 0, 0]
+  },
+  "meta": {
+    "origin": "site"
+  }
+}

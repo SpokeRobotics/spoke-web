@@ -22,6 +22,8 @@
       "spoke://instances/hardware/hex-adapter-left",
       "spoke://instances/hardware/hex-adapter-right"
     ],
+    "n20MotorLeft": "spoke://instances/hardware/n20-motor-left",
+    "n20MotorRight": "spoke://instances/hardware/n20-motor-right",
     "controller": "spoke://instances/controller/controller-mecanum"
   },
   "meta": {

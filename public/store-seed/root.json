@@ -24,6 +24,7 @@
     "spoke://types/hardware/screw-m2-8mm",
     "spoke://types/hardware/screw-m2-10mm",
     "spoke://types/hardware/hex-adapter",
+    "spoke://types/hardware/n20-motor",
     "spoke://types/hardware/mecanum-left-48mm",
     "spoke://types/hardware/mecanum-right-48mm",
     "spoke://types/segment/core-robot",

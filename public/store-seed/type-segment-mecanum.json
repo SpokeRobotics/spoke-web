@@ -52,6 +52,14 @@
           { "name": "Hex Adapter Right", "location": "12,0,34,0,-180,0" }
         ]
       },
+      "n20MotorLeft": {
+        "type": "spoke://types/hardware/n20-motor",
+        "template": { "name": "N20 Motor Left", "location": "12,0,-30,-90,0,0" }
+      },
+      "n20MotorRight": {
+        "type": "spoke://types/hardware/n20-motor",
+        "template": { "name": "N20 Motor Right", "location": "12,0,30,90,0,0" }
+      },
       "controller": {
         "type": "spoke://types/controller/esp32s3-pico-drv8231",
         "template": { "name": "Controller", "location": "-11,0,0,0,0,-90" }

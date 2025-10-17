@@ -1,0 +1,13 @@
+{
+  "id": "spoke://types/hardware/n20-motor",
+  "name": "N20 Micro Metal Gearmotor",
+  "slots": {},
+  "model": {
+    "url": "/models/micro-metal-gearmotor-carbon-backshaft.3mf",
+    "offset": [0, -9, 0],
+    "rotation": [-90, 90, 0]
+  },
+  "meta": {
+    "origin": "site"
+  }
+}

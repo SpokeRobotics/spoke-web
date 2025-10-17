@@ -23,6 +23,7 @@
     { "path": "part-screw-m2-8mm.json" },
     { "path": "part-screw-m2-10mm.json" },
     { "path": "part-hex-adapter.json" },
+    { "path": "part-n20-motor.json" },
     { "path": "part-mecanum-left-48mm.json" },
     { "path": "part-mecanum-right-48mm.json" },
     { "path": "type-core-robot.json" },

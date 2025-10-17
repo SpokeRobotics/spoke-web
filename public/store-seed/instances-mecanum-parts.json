@@ -115,5 +115,23 @@
     "parentSlot": "children.controller",
     "location": "-11,0,0,0,0,-90",
     "meta": { "origin": "site" }
+  },
+  {
+    "id": "spoke://instances/hardware/n20-motor-left",
+    "type": "spoke://types/hardware/n20-motor",
+    "name": "N20 Motor Left",
+    "parent": "spoke://instances/segment/mecanum-segment",
+    "parentSlot": "children.n20MotorLeft",
+    "location": "12,0,-30,-90,0,0",
+    "meta": { "origin": "site" }
+  },
+  {
+    "id": "spoke://instances/hardware/n20-motor-right",
+    "type": "spoke://types/hardware/n20-motor",
+    "name": "N20 Motor Right",
+    "parent": "spoke://instances/segment/mecanum-segment",
+    "parentSlot": "children.n20MotorRight",
+    "location": "12,0,30,90,0,0",
+    "meta": { "origin": "site" }
   }
 ]

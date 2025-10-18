@@ -4,8 +4,16 @@
   "slots": {},
   "model": {
     "url": "/models/Screw_M2_10mm.3mf",
-    "offset": [0, 0, 0],
-    "rotation": [0, 0, 0]
+    "offset": [
+      0,
+      0,
+      0
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ]
   },
   "meta": {
     "origin": "site"

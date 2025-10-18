@@ -26,7 +26,7 @@ export default function SystemViewerPage() {
           </Text>
           
           <SystemViewer 
-            objects={["spoke://instances/segment/core-assembly"]}
+            objects={["spoke://instances/2l5nGL-4bTZ5y"]}
             height={520}
           />
         </Box>

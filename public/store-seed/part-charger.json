@@ -4,8 +4,16 @@
   "slots": {},
   "model": {
     "url": "/models/SpokeCharger_lo.3mf",
-    "offset": [ -12, 0, -27],
-    "rotation": [0, -90, -90]
+    "offset": [
+      -12,
+      0,
+      -27
+    ],
+    "rotation": [
+      0,
+      -90,
+      -90
+    ]
   },
   "meta": {
     "origin": "site"

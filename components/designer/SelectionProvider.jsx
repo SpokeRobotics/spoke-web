@@ -14,8 +14,8 @@ export function useSelection() {
 }
 
 export default function SelectionProvider({ children }) {
-  const [activeDocId, setActiveDocId] = useState("spoke://docs/root");
-  const [selectedId, setSelectedId] = useState("spoke://docs/root");
+  const [activeDocId, setActiveDocId] = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
   const value = useMemo(() => ({ activeDocId, setActiveDocId, selectedId, setSelectedId }), [activeDocId, selectedId]);
   return <SelCtx.Provider value={value}>{children}</SelCtx.Provider>;
 }

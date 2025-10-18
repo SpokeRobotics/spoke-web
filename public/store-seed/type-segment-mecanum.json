@@ -2,69 +2,116 @@
   "id": "spoke://types/segment/mecanum-segment",
   "name": "Mecanum Segment Type",
   "slots": {
-    "children": { "slots": {
-      "frame": {
-        "type": "spoke://types/structure/frame/frame-64x48x32",
-        "required": true,
-        "template": { "name": "Frame", "location": "0,0,0,0,0,0" }
-      },
-      "frontPanel": {
-        "type": "spoke://types/structure/panel/panel-64x32",
-        "template": { "name": "Front Panel 64x32", "location": "24,0,0,0,0,-90" }
-      },
-      "sidePanelsN20": {
-        "type": "spoke://types/structure/panel/panel-48x32-n20",
-        "array": true,
-        "template": [
-          { "name": "Right N20 Panel", "location": "0,0,32,90,0,90" },
-          { "name": "Left N20 Panel", "location": "0,0,-32,-90,0,-90" }
-        ]
-      },
-      "sidePanelsN20Doors": {
-        "type": "spoke://types/structure/panel/panel-48x32-n20-door",
-        "array": true,
-        "template": [
-          { "name": "Right N20 Door", "location": "0,0,32,90,0,90" },
-          { "name": "Left N20 Door", "location": "0,0,-32,-90,0,-90" }
-        ]
-      },
-      "topPanel": {
-        "type": "spoke://types/structure/panel/panel-64x48-pcbrail",
-        "template": { "name": "Top Panel PCB Rail", "location": "0,16,0,0,0,0" }
-      },
-      "bottomPanel": {
-        "type": "spoke://types/structure/panel/panel-64x48-pcbrail",
-        "template": { "name": "Bottom Panel PCB Rail", "location": "0,-16,0,0,180,180" }
-      },
-      "mecanumLeft": {
-        "type": "spoke://types/hardware/mecanum-left-48mm",
-        "template": { "name": "Mecanum Left", "location": "12,0,38,90,0,0" }
-      },
-      "mecanumRight": {
-        "type": "spoke://types/hardware/mecanum-right-48mm",
-        "template": { "name": "Mecanum Right", "location": "12,0,-38,-90,0,0" }
-      },
-      "hexAdapters": {
-        "type": "spoke://types/hardware/hex-adapter",
-        "array": true,
-        "template": [
-          { "name": "Hex Adapter Left", "location": "12,0,-34,0,0,0" },
-          { "name": "Hex Adapter Right", "location": "12,0,34,0,-180,0" }
-        ]
-      },
-      "n20MotorLeft": {
-        "type": "spoke://types/hardware/n20-motor",
-        "template": { "name": "N20 Motor Left", "location": "12,0,-30,-90,0,0" }
-      },
-      "n20MotorRight": {
-        "type": "spoke://types/hardware/n20-motor",
-        "template": { "name": "N20 Motor Right", "location": "12,0,30,90,0,0" }
-      },
-      "controller": {
-        "type": "spoke://types/controller/esp32s3-pico-drv8231",
-        "template": { "name": "Controller", "location": "-11,0,0,0,0,-90" }
+    "children": {
+      "slots": {
+        "frame": {
+          "type": "spoke://types/structure/frame/frame-64x48x32",
+          "required": true,
+          "template": {
+            "name": "Frame",
+            "location": "0,0,0,0,0,0"
+          }
+        },
+        "frontPanel": {
+          "type": "spoke://types/structure/panel/panel-64x32",
+          "template": {
+            "name": "Front Panel 64x32",
+            "location": "24,0,0,0,0,-90"
+          }
+        },
+        "sidePanelsN20": {
+          "type": "spoke://types/structure/panel/panel-48x32-n20",
+          "array": true,
+          "template": [
+            {
+              "name": "Right N20 Panel",
+              "location": "0,0,32,90,0,90"
+            },
+            {
+              "name": "Left N20 Panel",
+              "location": "0,0,-32,-90,0,-90"
+            }
+          ]
+        },
+        "sidePanelsN20Doors": {
+          "type": "spoke://types/structure/panel/panel-48x32-n20-door",
+          "array": true,
+          "template": [
+            {
+              "name": "Right N20 Door",
+              "location": "0,0,32,90,0,90"
+            },
+            {
+              "name": "Left N20 Door",
+              "location": "0,0,-32,-90,0,-90"
+            }
+          ]
+        },
+        "topPanel": {
+          "type": "spoke://types/structure/panel/panel-64x48-pcbrail",
+          "template": {
+            "name": "Top Panel PCB Rail",
+            "location": "0,16,0,0,0,0"
+          }
+        },
+        "bottomPanel": {
+          "type": "spoke://types/structure/panel/panel-64x48-pcbrail",
+          "template": {
+            "name": "Bottom Panel PCB Rail",
+            "location": "0,-16,0,0,180,180"
+          }
+        },
+        "mecanumLeft": {
+          "type": "spoke://types/hardware/mecanum-left-48mm",
+          "template": {
+            "name": "Mecanum Left",
+            "location": "12,0,38,90,0,0"
+          }
+        },
+        "mecanumRight": {
+          "type": "spoke://types/hardware/mecanum-right-48mm",
+          "template": {
+            "name": "Mecanum Right",
+            "location": "12,0,-38,-90,0,0"
+          }
+        },
+        "hexAdapters": {
+          "type": "spoke://types/hardware/hex-adapter",
+          "array": true,
+          "template": [
+            {
+              "name": "Hex Adapter Left",
+              "location": "12,0,-34,0,0,0"
+            },
+            {
+              "name": "Hex Adapter Right",
+              "location": "12,0,34,0,-180,0"
+            }
+          ]
+        },
+        "n20MotorLeft": {
+          "type": "spoke://types/hardware/n20-motor",
+          "template": {
+            "name": "N20 Motor Left",
+            "location": "12,0,-30,-90,0,0"
+          }
+        },
+        "n20MotorRight": {
+          "type": "spoke://types/hardware/n20-motor",
+          "template": {
+            "name": "N20 Motor Right",
+            "location": "12,0,30,90,0,0"
+          }
+        },
+        "controller": {
+          "type": "spoke://types/controller/esp32s3-pico-drv8231",
+          "template": {
+            "name": "Controller",
+            "location": "-11,0,0,0,0,-90"
+          }
+        }
       }
-    }}
+    }
   },
   "meta": {
     "origin": "site"

@@ -4,8 +4,16 @@
   "slots": {},
   "model": {
     "url": "/models/MecanumRight_48mm.3mf",
-    "offset": [0, 17, 0],
-    "rotation": [180, 0, 0]
+    "offset": [
+      0,
+      17,
+      0
+    ],
+    "rotation": [
+      180,
+      0,
+      0
+    ]
   },
   "meta": {
     "origin": "site"

@@ -57,14 +57,22 @@ export function useStoreModels(objectIds, options = {}) {
       const composeLocations = (a, b) => ({ dx: (a?.dx||0)+(b?.dx||0), dy: (a?.dy||0)+(b?.dy||0), dz: (a?.dz||0)+(b?.dz||0), rx: (a?.rx||0)+(b?.rx||0), ry: (a?.ry||0)+(b?.ry||0), rz: (a?.rz||0)+(b?.rz||0) })
       for (const typeId of typeIds) {
         try {
-          const base = typeId.split('/').pop()
-          const unique = `${Date.now()}-${Math.random().toString(36).slice(2,8)}`
-          const tempId = `spoke://instances/__preview-${base}-${unique}`
-          const { instance, children } = await createInstanceFromType(tempId, typeId, { name: `(Preview) ${base}` }, { transient: true })
+          const { generatePreviewId } = await import('@/lib/store/id.js')
+          const tempId = generatePreviewId(typeId)
+          const typeBase = String(typeId).split('/').pop()
+          const { instance, children } = await createInstanceFromType(tempId, typeId, { name: `(Preview) ${typeBase}` }, { transient: true })
           // Build in-memory doc map
           const docsById = new Map()
           docsById.set(instance.id, instance)
           for (const c of children) docsById.set(c.id, c.doc)
+
+          // Ensure all preview docs are flagged as transient
+          try {
+            for (const [, d] of docsById.entries()) {
+              if (!d.meta) d.meta = {}
+              d.meta.transient = true
+            }
+          } catch {}
 
           // Recursive expansion using in-memory docs to find leaf items
           const expand = async (docId, parentLoc = { dx:0,dy:0,dz:0,rx:0,ry:0,rz:0 }) => {

@@ -146,7 +146,8 @@ export function SystemViewer({
   const [bboxVisible, setBboxVisible] = useState(false)
   const [targetHelper, setTargetHelper] = useState(false)
   const [modelCenterHelper, setModelCenterHelper] = useState(false)
-  const [showPreviews, setShowPreviews] = useState(true)
+  // Preview visibility mode: 'full' | 'translucent' | 'hidden'
+  const [previewMode, setPreviewMode] = useState('full')
   
   // Parse objects from props or children table
   const { objectIds: parsedIds, leftover: leftoverChildren } = useMemo(
@@ -388,7 +389,7 @@ export function SystemViewer({
         const isPreview = m?.doc?.meta?.transient === true
         wrapper.userData.preview = isPreview
         try { console.log('[SystemViewer] model wrapper category:', { id: m.$id, cat: categoryName, ref }) } catch {}
-        const baseOpacity = isPreview ? 0.5 : 1
+        const baseOpacity = isPreview ? (previewMode === 'hidden' ? 0 : (previewMode === 'translucent' ? 0.35 : 1)) : 1
         
         return {
           name: m.doc.name || m.$id,
@@ -418,7 +419,7 @@ export function SystemViewer({
               visible: true,
               opacity: baseOpacity,
             }
-          }
+        }
         }
       }),
       stateOrder: ['normal_a', 'normal_b', 'exploded_a', 'exploded_b'],
@@ -439,7 +440,9 @@ export function SystemViewer({
     
     viewerRef.current.setMultiScene?.(sceneDefinition)
     sceneInitializedRef.current = true
-  }, [modelsWithLocation, autoFitOnLoad, objectIds])
+    // Ensure explode state comes up OFF visually and logically
+    try { setExplodeMode('normal') } catch {}
+  }, [modelsWithLocation, autoFitOnLoad, objectIds, previewMode])
 
   // After scene is initialized or models change, force-sync visibility on both toggles without animation
   useEffect(() => {
@@ -455,18 +458,20 @@ export function SystemViewer({
       const categoryName = modelRoot?.userData?.categoryName || ''
       const isPreview = modelRoot?.userData?.preview === true
       let shouldBeVisible = resolveVisibility(categoryName)
-      if (isPreview && !showPreviews) shouldBeVisible = false
+      if (isPreview) {
+        if (previewMode === 'hidden') shouldBeVisible = false
+      }
       // Compare to current state's stored visible to detect delta
       const currentState = info.currentState || 'normal_a'
       const currentVis = container.userData?.__states?.[currentState]?.visible
       if (currentVis !== shouldBeVisible) anyChange = true
-      const visibleOpacity = isPreview ? 0.5 : 1
+      const visibleOpacity = isPreview ? (previewMode === 'hidden' ? 0 : (previewMode === 'translucent' ? 0.35 : 1)) : 1
       stateUpdates[index] = { visible: shouldBeVisible, opacity: shouldBeVisible ? visibleOpacity : 0 }
     })
     // Write both normal toggles and exploded to keep states aligned without animation
     viewer.updateStateVisibility?.(stateUpdates, ['normal_a', 'normal_b'])
     viewer.updateStateVisibility?.(stateUpdates, ['exploded_a', 'exploded_b'])
-  }, [modelsWithLocation.map(m => m?.$id).join('|'), categoryRules, availableCategories, showPreviews, resolveVisibility])
+  }, [modelsWithLocation.map(m => m?.$id).join('|'), categoryRules, availableCategories, previewMode, resolveVisibility])
 
   // Update visibility when filters change - use ThreeCadViewer's animation system
   useEffect(() => {
@@ -498,10 +503,12 @@ export function SystemViewer({
       const categoryName = modelRoot?.userData?.categoryName || ''
       const isPreview = modelRoot?.userData?.preview === true
       let shouldBeVisible = resolveVisibility(categoryName)
-      if (isPreview && !showPreviews) shouldBeVisible = false
+      if (isPreview) {
+        if (previewMode === 'hidden') shouldBeVisible = false
+      }
       const currentVis = container.userData?.__states?.[currentState]?.visible
       if (currentVis !== shouldBeVisible) anyChange = true
-      const visibleOpacity = isPreview ? 0.5 : 1
+      const visibleOpacity = isPreview ? (previewMode === 'hidden' ? 0 : (previewMode === 'translucent' ? 0.35 : 1)) : 1
       stateUpdates[index] = {
         visible: shouldBeVisible,
         opacity: shouldBeVisible ? visibleOpacity : 0
@@ -522,7 +529,7 @@ export function SystemViewer({
     // Update our toggle tracker
     filterStateToggle.current = nextToggle
     
-  }, [categoryRules, availableCategories, showPreviews, resolveVisibility])
+  }, [categoryRules, availableCategories, previewMode, resolveVisibility])
 
   // When model set changes post-load, frame once to avoid any late attach timing issues
   useEffect(() => {
@@ -686,18 +693,23 @@ export function SystemViewer({
             {/* Previews Toggle (moved above for prominence) */}
             <Flex>
               <Button
-                variant={showPreviews ? 'solid' : 'soft'}
-                onClick={() => setShowPreviews(v => !v)}
+                variant={previewMode === 'hidden' ? 'soft' : 'solid'}
+                onClick={() => setPreviewMode((m) => m === 'full' ? 'translucent' : (m === 'translucent' ? 'hidden' : 'full'))}
                 size="1"
+                title={`Type preview visibility: ${previewMode}`}
               >
-                Previews
+                {/* label + simple gauge: full, half, empty */}
+                <span>Types</span>
+                <span style={{ marginLeft: 6 }}>
+                  {previewMode === 'full' ? '◼◼◼' : previewMode === 'translucent' ? '◼◼◻' : '◻◻◻'}
+                </span>
               </Button>
             </Flex>
 
             {/* Explode Toggle */}
             <Flex>
               <Button
-                variant={explodeMode === 'exploded' ? 'solid' : 'surface'}
+                variant={explodeMode === 'exploded' ? 'soft' : 'solid'}
                 onClick={() => handleExplodeModeChange(explodeMode === 'exploded' ? 'normal' : 'exploded')}
                 size="2"
               >

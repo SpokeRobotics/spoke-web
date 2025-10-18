@@ -1,30 +1,30 @@
 {
-  "id": "spoke://instances/segment/mecanum-segment",
+  "id": "spoke://instances/30yH5n-3me8K8",
   "type": "spoke://types/segment/mecanum-segment",
   "name": "Mecanum Segment",
   "parent": null,
   "children": {
-    "frame": "spoke://instances/structure/frame-mecanum",
-    "frontPanel": "spoke://instances/structure/panel-mecanum-front",
+    "frame": "spoke://instances/1ZsIfA-0UNCbz",
+    "frontPanel": "spoke://instances/iVVrC-2KTWA8",
     "sidePanelsN20": [
-      "spoke://instances/structure/panel-n20-right",
-      "spoke://instances/structure/panel-n20-left"
+      "spoke://instances/2zVVXp-1n52HS",
+      "spoke://instances/2zVVXp-0ksw6h"
     ],
     "sidePanelsN20Doors": [
-      "spoke://instances/structure/panel-n20-door-right",
-      "spoke://instances/structure/panel-n20-door-left"
+      "spoke://instances/1SxbV8-4J5WPs",
+      "spoke://instances/1SxbV8-2aHkBV"
     ],
-    "topPanel": "spoke://instances/structure/panel-mecanum-top",
-    "bottomPanel": "spoke://instances/structure/panel-mecanum-bottom",
-    "mecanumLeft": "spoke://instances/hardware/mecanum-wheel-left",
-    "mecanumRight": "spoke://instances/hardware/mecanum-wheel-right",
+    "topPanel": "spoke://instances/2IjtUV-1TCyXf",
+    "bottomPanel": "spoke://instances/2IjtUV-3bsOnh",
+    "mecanumLeft": "spoke://instances/3P9qCH-2K00Et",
+    "mecanumRight": "spoke://instances/3yPZn2-1oo665",
     "hexAdapters": [
-      "spoke://instances/hardware/hex-adapter-left",
-      "spoke://instances/hardware/hex-adapter-right"
+      "spoke://instances/9ANyF-2Wjnh2",
+      "spoke://instances/9ANyF-0g38IN"
     ],
-    "n20MotorLeft": "spoke://instances/hardware/n20-motor-left",
-    "n20MotorRight": "spoke://instances/hardware/n20-motor-right",
-    "controller": "spoke://instances/controller/controller-mecanum"
+    "n20MotorLeft": "spoke://instances/27vxXy-2xHgf0",
+    "n20MotorRight": "spoke://instances/27vxXy-2yYwYT",
+    "controller": "spoke://instances/3vnET2-0m2hMl"
   },
   "meta": {
     "origin": "site"

@@ -119,15 +119,15 @@ await instantiateSlot('parent-id', 'children.sensors', slotDef, 5)
 
 ## Instance Naming
 
-Generated instances use this ID pattern:
+Generated instances now use a compact hybrid ID scheme:
 ```
-{parentId}-{slotName}-{index}
+spoke://instances/<shortTypeHash>-<timeSortableRandom>
 ```
 
 Examples:
-- `spoke://instances/robot-1-batteries-0`
-- `spoke://instances/robot-1-batteries-1`
-- `spoke://instances/robot-1-frame-0`
+- `spoke://instances/2d6hhQ-2OrYIe`
+- `spoke://instances/2d6hhQ-4RyKED`
+- `spoke://instances/mXalg-1gdjze`
 
 ## Modifying Instances After Creation
 

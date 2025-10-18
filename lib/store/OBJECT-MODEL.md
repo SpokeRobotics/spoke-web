@@ -53,6 +53,30 @@ Types define reusable structures that can be instantiated. They live in the `spo
 
 Instances are concrete objects created from types. They live in the `spoke://instances/*` namespace.
 
+#### Instance ID scheme
+
+Unless you explicitly provide an ID, the system generates compact, URL‑safe IDs using a hybrid scheme:
+
+```
+spoke://instances/<shortTypeHash>-<timeSortableRandom>
+```
+
+- **shortTypeHash**: 5–6 char Base62 hash derived from the instance's `type` (stable per type).
+- **timeSortableRandom**: fixed‑width base36 timestamp followed by a short Base62 suffix. This keeps IDs lexicographically time‑ordered while remaining short.
+
+Examples:
+
+```
+spoke://instances/2d6hhQ-2OrYIe
+spoke://instances/mXalg-1gdjze
+```
+
+Preview (temporary) instances use a distinct prefix:
+
+```
+spoke://instances/_tmp-<shortTypeHash>-<timeSortableRandom>
+```
+
 **Example: Leaf Instance**
 ```json
 {
@@ -291,9 +315,9 @@ const robot = await createInstanceFromType(
   { name: 'My Custom Robot' }
 )
 
-// robot now has:
-// - cells: ['spoke://instances/my-new-robot-cells-0', 'spoke://instances/my-new-robot-cells-1']
-// - Each cell instance has the template's name and location
+// robot now has child instances with generated IDs, for example:
+// - cells: ['spoke://instances/2d6hhQ-2OrYIe', 'spoke://instances/2d6hhQ-4RyKED']
+// - Each child has the template's name and location applied
 ```
 
 ### Instantiate a Single Slot
@@ -305,7 +329,8 @@ const cellIds = await instantiateSlot(
   'children.cells',
   byPath['children.cells']
 )
-// Returns: ['spoke://instances/my-robot-cells-0', 'spoke://instances/my-robot-cells-1']
+// Returns child instance IDs using the hybrid scheme, e.g.:
+// ['spoke://instances/2d6hhQ-2OrYIe', 'spoke://instances/2d6hhQ-4RyKED']
 ```
 
 ## Complete Example

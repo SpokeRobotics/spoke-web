@@ -4,8 +4,16 @@
   "slots": {},
   "model": {
     "url": "/models/Qi_Coil.3mf",
-    "offset": [0, 0, 0],
-    "rotation": [-90, 0, 0]
+    "offset": [
+      0,
+      0,
+      0
+    ],
+    "rotation": [
+      -90,
+      0,
+      0
+    ]
   },
   "meta": {
     "origin": "site"

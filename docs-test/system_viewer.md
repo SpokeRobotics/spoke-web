@@ -27,7 +27,7 @@ The actual core assembly with all parts positioned via slot templates:
 
 | type | location |
 |--------|----------|
-| spoke://instances/segment/core-assembly | 0,0,0,0,0,0 |
+| spoke://instances/2l5nGL-4bTZ5y | 0,0,0,0,0,0 |
 
 </SystemViewer>
 

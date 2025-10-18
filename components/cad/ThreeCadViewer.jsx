@@ -3,7 +3,7 @@
 import React, { useRef, useEffect, useImperativeHandle, forwardRef } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import { SkeletonUtils } from 'three/examples/jsm/utils/SkeletonUtils.js'
+import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
@@ -1284,11 +1284,8 @@ export const ThreeCadViewer = forwardRef(function ThreeCadViewer(
                 if (!mat) return
                 mat.opacity = opacity
                 mat.transparent = opacity < 0.999
-                if (opacity <= 0.001) {
-                  mat.depthWrite = false
-                } else if (mat.depthWrite === false) {
-                  mat.depthWrite = true
-                }
+                // Critical: Only write depth when fully opaque; translucent needs depthWrite=false
+                mat.depthWrite = opacity >= 0.999
               })
             }
             object.visible = opacity > 0.001 || toOpacity > 0.001
@@ -1875,6 +1872,17 @@ useEffect(() => {
         container.name = entry.name || 'Model'
         // Clone incoming object to ensure unique materials per viewer
         const object = cloneWithUniqueMaterials(entry.object)
+        // Preserve critical userData flags from the source wrapper so external controllers
+        // (e.g., SystemViewer) can query category and preview status from __modelRoot
+        try {
+          const srcUD = (entry.object && entry.object.userData) ? entry.object.userData : {}
+          if (object && object.userData) {
+            if (srcUD && (srcUD.preview !== undefined || srcUD.categoryName !== undefined)) {
+              object.userData.preview = !!srcUD.preview
+              if (srcUD.categoryName != null) object.userData.categoryName = srcUD.categoryName
+            }
+          }
+        } catch {}
         container.add(object)
         container.userData.__modelRoot = object
         object.updateMatrixWorld(true)
@@ -2013,6 +2021,7 @@ useEffect(() => {
               mat.opacity = targetOpacity
               mat.transparent = targetOpacity < 0.999
               mat.depthWrite = targetOpacity >= 0.999
+              mat.needsUpdate = true
             })
           }
         }
@@ -2284,6 +2293,7 @@ useEffect(() => {
         mat.opacity = targetOpacity
         mat.transparent = targetOpacity < 0.999
         mat.depthWrite = targetOpacity >= 0.999
+        mat.needsUpdate = true
       })
       const axes = container.userData.__axes
       if (axes) axes.visible = !!originVisible

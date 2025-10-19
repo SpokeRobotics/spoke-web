@@ -1,5 +1,5 @@
 {
-  "id": "spoke://types/hardware/mecanum-right-48mm",
+  "id": "spoke://types/motion/mecanum-right-48mm",
   "name": "Mecanum Right 48mm",
   "slots": {},
   "model": {

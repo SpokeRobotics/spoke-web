@@ -1,5 +1,5 @@
 {
-  "id": "spoke://types/hardware/hex-adapter",
+  "id": "spoke://types/motion/hex-adapter",
   "name": "Hex Adapter",
   "slots": {},
   "model": {

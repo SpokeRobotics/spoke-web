@@ -1,5 +1,5 @@
 {
-  "id": "spoke://types/hardware/n20-motor",
+  "id": "spoke://types/motion/n20-motor",
   "name": "N20 Micro Metal Gearmotor",
   "slots": {},
   "model": {

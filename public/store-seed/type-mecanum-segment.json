@@ -62,21 +62,21 @@
           }
         },
         "mecanumLeft": {
-          "type": "spoke://types/hardware/mecanum-left-48mm",
+          "type": "spoke://types/motion/mecanum-left-48mm",
           "template": {
             "name": "Mecanum Left",
             "location": "12,0,38,90,0,0"
           }
         },
         "mecanumRight": {
-          "type": "spoke://types/hardware/mecanum-right-48mm",
+          "type": "spoke://types/motion/mecanum-right-48mm",
           "template": {
             "name": "Mecanum Right",
             "location": "12,0,-38,-90,0,0"
           }
         },
         "hexAdapters": {
-          "type": "spoke://types/hardware/hex-adapter",
+          "type": "spoke://types/motion/hex-adapter",
           "array": true,
           "template": [
             {
@@ -90,14 +90,14 @@
           ]
         },
         "n20MotorLeft": {
-          "type": "spoke://types/hardware/n20-motor",
+          "type": "spoke://types/motion/n20-motor",
           "template": {
             "name": "N20 Motor Left",
             "location": "12,0,-30,-90,0,0"
           }
         },
         "n20MotorRight": {
-          "type": "spoke://types/hardware/n20-motor",
+          "type": "spoke://types/motion/n20-motor",
           "template": {
             "name": "N20 Motor Right",
             "location": "12,0,30,90,0,0"

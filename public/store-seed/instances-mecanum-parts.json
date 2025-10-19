@@ -89,7 +89,7 @@
   },
   {
     "id": "spoke://instances/3P9qCH-2K00Et",
-    "type": "spoke://types/hardware/mecanum-left-48mm",
+    "type": "spoke://types/motion/mecanum-left-48mm",
     "name": "Mecanum Left",
     "parent": "spoke://instances/30yH5n-3me8K8",
     "parentSlot": "children.mecanumLeft",
@@ -100,7 +100,7 @@
   },
   {
     "id": "spoke://instances/3yPZn2-1oo665",
-    "type": "spoke://types/hardware/mecanum-right-48mm",
+    "type": "spoke://types/motion/mecanum-right-48mm",
     "name": "Mecanum Right",
     "parent": "spoke://instances/30yH5n-3me8K8",
     "parentSlot": "children.mecanumRight",
@@ -111,7 +111,7 @@
   },
   {
     "id": "spoke://instances/9ANyF-2Wjnh2",
-    "type": "spoke://types/hardware/hex-adapter",
+    "type": "spoke://types/motion/hex-adapter",
     "name": "Hex Adapter Left",
     "parent": "spoke://instances/30yH5n-3me8K8",
     "parentSlot": "children.hexAdapters",
@@ -122,7 +122,7 @@
   },
   {
     "id": "spoke://instances/9ANyF-0g38IN",
-    "type": "spoke://types/hardware/hex-adapter",
+    "type": "spoke://types/motion/hex-adapter",
     "name": "Hex Adapter Right",
     "parent": "spoke://instances/30yH5n-3me8K8",
     "parentSlot": "children.hexAdapters",

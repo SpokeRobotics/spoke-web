@@ -389,7 +389,7 @@ export function SystemViewer({
         const isPreview = m?.doc?.meta?.transient === true
         wrapper.userData.preview = isPreview
         try { console.log('[SystemViewer] model wrapper category:', { id: m.$id, cat: categoryName, ref }) } catch {}
-        const baseOpacity = isPreview ? (previewMode === 'hidden' ? 0 : (previewMode === 'translucent' ? 0.35 : 1)) : 1
+        const baseOpacity = isPreview ? (previewMode === 'hidden' ? 0 : (previewMode === 'translucent' ? 0.5 : 1)) : 1
         
         return {
           name: m.doc.name || m.$id,
@@ -465,7 +465,7 @@ export function SystemViewer({
       const currentState = info.currentState || 'normal_a'
       const currentVis = container.userData?.__states?.[currentState]?.visible
       if (currentVis !== shouldBeVisible) anyChange = true
-      const visibleOpacity = isPreview ? (previewMode === 'hidden' ? 0 : (previewMode === 'translucent' ? 0.35 : 1)) : 1
+      const visibleOpacity = isPreview ? (previewMode === 'hidden' ? 0 : (previewMode === 'translucent' ? 0.5 : 1)) : 1
       stateUpdates[index] = { visible: shouldBeVisible, opacity: shouldBeVisible ? visibleOpacity : 0 }
     })
     // Write both normal toggles and exploded to keep states aligned without animation
@@ -508,7 +508,7 @@ export function SystemViewer({
       }
       const currentVis = container.userData?.__states?.[currentState]?.visible
       if (currentVis !== shouldBeVisible) anyChange = true
-      const visibleOpacity = isPreview ? (previewMode === 'hidden' ? 0 : (previewMode === 'translucent' ? 0.35 : 1)) : 1
+      const visibleOpacity = isPreview ? (previewMode === 'hidden' ? 0 : (previewMode === 'translucent' ? 0.5 : 1)) : 1
       stateUpdates[index] = {
         visible: shouldBeVisible,
         opacity: shouldBeVisible ? visibleOpacity : 0

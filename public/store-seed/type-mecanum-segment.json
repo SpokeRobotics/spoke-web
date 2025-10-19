@@ -1,6 +1,6 @@
 {
-  "id": "spoke://types/segment/mecanum-segment",
-  "name": "Mecanum Segment Type",
+  "id": "spoke://types/segment/mecanum",
+  "name": "Mecanum",
   "slots": {
     "children": {
       "slots": {

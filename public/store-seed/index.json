@@ -76,17 +76,17 @@
       "path": "part-mecanum-right-48mm.json"
     },
     {
-      "path": "type-core-robot.json"
+      "path": "type-core-segment.json"
     },
     {
-      "path": "type-segment-mecanum.json"
+      "path": "type-mecanum-segment.json"
     },
     {
       "path": "instances-core-parts.json",
       "array": true
     },
     {
-      "path": "instance-core-assembly.json"
+      "path": "instance-core-segment.json"
     },
     {
       "path": "instances-mecanum-parts.json",

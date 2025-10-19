@@ -1,6 +1,6 @@
 {
-  "id": "spoke://types/segment/core-robot",
-  "name": "Core Robot Type",
+  "id": "spoke://types/segment/core",
+  "name": "Core",
   "slots": {
     "children": {
       "slots": {

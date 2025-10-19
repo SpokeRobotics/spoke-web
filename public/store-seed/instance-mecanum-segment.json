@@ -1,7 +1,7 @@
 {
   "id": "spoke://instances/30yH5n-3me8K8",
-  "type": "spoke://types/segment/mecanum-segment",
-  "name": "Mecanum Segment",
+  "type": "spoke://types/segment/mecanum",
+  "name": "Mecanum",
   "parent": null,
   "children": {
     "frame": "spoke://instances/1ZsIfA-0UNCbz",

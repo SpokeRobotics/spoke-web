@@ -1,7 +1,7 @@
 {
   "id": "spoke://instances/2l5nGL-4bTZ5y",
-  "type": "spoke://types/segment/core-robot",
-  "name": "Core Assembly",
+  "type": "spoke://types/segment/core",
+  "name": "Core",
   "parent": null,
   "children": {
     "frame": "spoke://instances/3JZxlz-0RDOmb",

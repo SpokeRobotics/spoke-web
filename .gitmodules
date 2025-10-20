@@ -1,7 +1,3 @@
-[submodule "docs-submodules/spoke-body"]
-	path = docs-submodules/spoke-body
-	url = git@github.com:spoke-robotics/spoke-body.git
-	branch = main
 [submodule "docs-submodules/spoke-power"]
 	path = docs-submodules/spoke-power
 	url = git@github.com:spoke-robotics/spoke-power.git
@@ -17,4 +13,8 @@
 [submodule "docs-submodules/spoke-peripherals"]
 	path = docs-submodules/spoke-peripherals
 	url = git@github.com:spoke-robotics/spoke-peripherals.git
+	branch = main
+[submodule "docs-submodules/spoke-structure"]
+	path = docs-submodules/spoke-structure
+	url = git@github.com:spoke-robotics/spoke-structure.git
 	branch = main

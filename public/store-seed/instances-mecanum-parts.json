@@ -144,7 +144,7 @@
   },
   {
     "id": "spoke://instances/27vxXy-2xHgf0",
-    "type": "spoke://types/hardware/n20-motor",
+    "type": "spoke://types/motion/n20-motor",
     "name": "N20 Motor Left",
     "parent": "spoke://instances/30yH5n-3me8K8",
     "parentSlot": "children.n20MotorLeft",
@@ -155,7 +155,7 @@
   },
   {
     "id": "spoke://instances/27vxXy-2yYwYT",
-    "type": "spoke://types/hardware/n20-motor",
+    "type": "spoke://types/motion/n20-motor",
     "name": "N20 Motor Right",
     "parent": "spoke://instances/30yH5n-3me8K8",
     "parentSlot": "children.n20MotorRight",

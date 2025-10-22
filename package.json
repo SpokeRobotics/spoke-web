@@ -20,7 +20,8 @@
     "figma:react": "node scripts/figma_to_react.js",
     "figma:fetch": "node scripts/fetch_from_figma.js",
     "figma:ingest": "node scripts/ingest_figma_exports.js",
-    "sync:models": "node scripts/sync-models.js"
+    "sync:models": "node scripts/sync-models.js",
+    "audit:seed": "node scripts/audit-store-seed.js"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.0.5",
